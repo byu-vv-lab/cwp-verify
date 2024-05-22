@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=69.5.1"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bpmn-cwp-verify"
+description = "A tool to verify that workflow implements a cognitive work problem"
+version = "0.0.1"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+  "numpy>=1.21.0",
+  "pandas>=2.2.2"
+]
+
+[project.scripts]
+verify = "cli.main:main"
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.2.0",
+  "ruff>=0.4.4",
+  ]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"

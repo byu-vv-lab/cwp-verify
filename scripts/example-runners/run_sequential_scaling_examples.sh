@@ -1,0 +1,14 @@
+python3 main.py -e longScaling10 -s
+python3 main.py -e longScaling20 -s
+python3 main.py -e longScaling30 -s
+python3 main.py -e longScaling40 -s
+python3 main.py -e longScaling50 -s
+python3 main.py -e longScaling60 -s
+python3 main.py -e longScaling70 -s
+python3 main.py -e longScaling80 -s
+python3 main.py -e longScaling90 -s
+python3 main.py -e longScaling100 -s
+python3 main.py -e longScaling150 -s
+python3 main.py -e longScaling200 -s
+python3 main.py -e longScaling300 -s
+python3 main.py -e longScaling500 -s
