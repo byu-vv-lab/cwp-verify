@@ -28,6 +28,8 @@ The packages uses `setuptools` and is configured in `pyproject.toml`.
 
 Add list of _best practices for BPMN_ as separate TODO items.
 
+  * Every element has a _unique friendly name_ so that all errors are reported using the friendly name
+
 ### Input Validation for CWP
 
 ### Input Validation for state
