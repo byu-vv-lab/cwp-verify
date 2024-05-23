@@ -5,7 +5,14 @@ import sys
 
 class CounterExampleStep:
     def __init__(
-        self, step_num, traversed_ids, cwp_states, cwpStateIds, varMap, edgeIds, edgeLabelIds
+        self,
+        step_num,
+        traversed_ids,
+        cwp_states,
+        cwpStateIds,
+        varMap,
+        edgeIds,
+        edgeLabelIds,
     ):
         self.step_num = step_num
         self.traversed_ids = traversed_ids
@@ -64,16 +71,22 @@ class CounterExampleParser:
                     combinedStep = self.combineSteps(
                         self.steps[stepNum - parallelStepCount : stepNum]
                     )
-                    self.steps = self.steps[: stepNum - parallelStepCount] + [combinedStep]
+                    self.steps = self.steps[: stepNum - parallelStepCount] + [
+                        combinedStep
+                    ]
                     stepNum = combinedStep.step_num + 1
                     continue
                 if self.NVR in match:
                     if stepNum > 1:
                         self.steps[stepNum - 2].set_interesting()
-                        self.steps[stepNum - 2].interestingText = "POSSIBLE MOMENT OF INTEREST"
+                        self.steps[
+                            stepNum - 2
+                        ].interestingText = "POSSIBLE MOMENT OF INTEREST"
                     if stepNum > 0:
                         self.steps[stepNum - 1].set_interesting()
-                        self.steps[stepNum - 1].interestingText = "POSSIBLE MOMENT OF INTEREST"
+                        self.steps[
+                            stepNum - 1
+                        ].interestingText = "POSSIBLE MOMENT OF INTEREST"
                     continue
                 for line in match.splitlines():
                     if self.TRAVERSED_PREFIX in line:
@@ -92,7 +105,13 @@ class CounterExampleParser:
                             edgeLabelIds.append(labelId)
                 self.steps.append(
                     CounterExampleStep(
-                        stepNum, [traversed_id], states, stateIds, varMap, edgeIds, edgeLabelIds
+                        stepNum,
+                        [traversed_id],
+                        states,
+                        stateIds,
+                        varMap,
+                        edgeIds,
+                        edgeLabelIds,
                     )
                 )
                 stepNum += 1
@@ -119,9 +138,13 @@ class CounterExampleParser:
         return newStep
 
     def grabEdgeIdVal(self, str):
-        match = re.search("(?<=\*\*EDGE )(.*)(\(.*\)) = (.*)", str, re.I)
+        match = re.search("(?<=\\*\\*EDGE )(.*)(\\(.*\\)) = (.*)", str, re.I)
         if match:
-            return match.group(1).strip(), match.group(2).strip()[1:-1], match.group(3).strip()
+            return (
+                match.group(1).strip(),
+                match.group(2).strip()[1:-1],
+                match.group(3).strip(),
+            )
         else:
             return None, None, None
 
@@ -131,14 +154,14 @@ class CounterExampleParser:
             return id.group(0).strip()
 
     def grabCWPState(self, str):
-        state = re.search("(?<=\*\*STATE )(.*)(\(.*\))", str, re.I)
+        state = re.search("(?<=\\*\\*STATE )(.*)(\\(.*\\))", str, re.I)
         if state:
             return state.group(1).strip(), state.group(2).strip()[1:-1]
         else:
             return None, None
 
     def grabVariable(self, str):
-        match = re.search("(?<=\*\*VAR )(.*) = (.*)", str, re.I)
+        match = re.search("(?<=\\*\\*VAR )(.*) = (.*)", str, re.I)
         if match:
             return match.group(1).strip(), match.group(2).strip()
         else:
@@ -160,4 +183,3 @@ if __name__ == "__main__":
     myparser = CounterExampleParser()
     myparser.parseInput(sys.argv[1:])
     myparser.parseCounterExample()
-    print(myparser.traversed_ids)

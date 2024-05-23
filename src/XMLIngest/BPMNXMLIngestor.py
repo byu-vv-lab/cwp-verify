@@ -76,7 +76,9 @@ class BPMNXMLIngestor:
                 ).possibleValues
                 fileString += "\tif\n"
                 for val in possibleVals:
-                    fileString += "\t\t:: true -> {var} = {val}\n".format(var=varName, val=val)
+                    fileString += "\t\t:: true -> {var} = {val}\n".format(
+                        var=varName, val=val
+                    )
                 fileString += "\tfi\n"
             fileString += "\tupdateState()\n"
         else:
@@ -143,7 +145,9 @@ class BPMNXMLIngestor:
         return BPMNmodel
 
     def processProc(self, process) -> BPMN.Process:
-        BPMNproc = BPMN.Process(self.cleanup_name(self.participantMap[process.get("id")]))
+        BPMNproc = BPMN.Process(
+            self.cleanup_name(self.participantMap[process.get("id")])
+        )
         for element in process:
             if "task" in element.tag or "Task" in element.tag:
                 name = self.cleanup_task_name(element.get("name"))
@@ -200,9 +204,9 @@ class BPMNXMLIngestor:
                 targetRef = element.get("targetRef")
                 fromNode = self.storedElems[sourceRef]
                 toNode = self.storedElems[targetRef]
-                if isinstance(fromNode, BPMN.XorGatewayNode) and self.BPMNhasMultipleOutEdges(
-                    fromNode
-                ):
+                if isinstance(
+                    fromNode, BPMN.XorGatewayNode
+                ) and self.BPMNhasMultipleOutEdges(fromNode):
                     root = self.condParser.execute(name)
                     newroot = TreeNode(value="()", type=TokenType.PAREN, left=root)
                     flow = BPMN.Flow(newroot, id=raw_id)

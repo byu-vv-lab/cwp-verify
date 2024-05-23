@@ -85,10 +85,14 @@ class Stub_gen_visitor(BPMN_visitor):
     def visit_xor_gateway_node(self, element: XorGatewayNode) -> None:
         self.visit_node(element)
 
-    def visit_parallel_gateway_join_node(self, element: ParallelGatewayJoinNode) -> None:
+    def visit_parallel_gateway_join_node(
+        self, element: ParallelGatewayJoinNode
+    ) -> None:
         self.visit_node(element)
 
-    def visit_parallel_gateway_fork_node(self, element: ParallelGatewayForkNode) -> None:
+    def visit_parallel_gateway_fork_node(
+        self, element: ParallelGatewayForkNode
+    ) -> None:
         self.visit_node(element)
 
     def visit_timer_intermediate_node(self, element: TimerIntermediateNode) -> None:

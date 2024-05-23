@@ -45,7 +45,9 @@ class CounterExampleXMLGenerator:
         colors = self.genGreenGradient(steps)
         ids = [step.traversed_ids for step in steps]
         startingIdGroups = [ids[0:i] for i in range(1, len(colors))]
-        restIdGroups = [ids[i : i + len(colors)] for i in range(len(ids) + 1 - len(colors))]
+        restIdGroups = [
+            ids[i : i + len(colors)] for i in range(len(ids) + 1 - len(colors))
+        ]
         idGroups = startingIdGroups + restIdGroups
         varChanged = [False] * len(steps[0].varMap.values())
         stateChanged = False
@@ -138,7 +140,9 @@ class CounterExampleXMLGenerator:
     def genRedGradient(self, ids):
         gbcolors = np.linspace(0, 180, 6, dtype="int")
         colors = [
-            "#{red}{green}{blue}".format(red="FF", green=format(gb, "02x"), blue=format(gb, "02x"))
+            "#{red}{green}{blue}".format(
+                red="FF", green=format(gb, "02x"), blue=format(gb, "02x")
+            )
             for gb in gbcolors
         ]
         colors.reverse()
@@ -147,7 +151,9 @@ class CounterExampleXMLGenerator:
     def genGreenGradient(self, ids):
         rbcolors = np.linspace(0, 180, 6, dtype="int")
         colors = [
-            "#{red}{green}{blue}".format(red=format(rb, "02x"), green="FF", blue=format(rb, "02x"))
+            "#{red}{green}{blue}".format(
+                red=format(rb, "02x"), green="FF", blue=format(rb, "02x")
+            )
             for rb in rbcolors
         ]
         colors.reverse()
@@ -158,7 +164,9 @@ class CounterExampleXMLGenerator:
         try:
             opts, args = getopt.getopt(argv, "c:b:", [])
         except getopt.GetoptError:
-            print("CounterExampleBPMNGenerator.py -c <counterExampleFile> -b <BPMNFile>")
+            print(
+                "CounterExampleBPMNGenerator.py -c <counterExampleFile> -b <BPMNFile>"
+            )
             sys.exit(2)
         for opt, arg in opts:
             if opt == "-c":

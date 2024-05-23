@@ -70,7 +70,9 @@ class StateIngestor:
                     workflowPart, cwpPart, initVal = splitLine[1:4]
                     valsList = self.parsePossibleVals("".join(splitLine[4:]), type)
 
-                var = StateVar(workflowPart, cwpPart, initVal, type, isConstant, valsList)
+                var = StateVar(
+                    workflowPart, cwpPart, initVal, type, isConstant, valsList
+                )
                 self.varList.append(var)
 
     def parsePossibleVals(self, possibleValsString, type):
@@ -78,7 +80,9 @@ class StateIngestor:
         if type == "mtype":
             return [val.strip() for val in possibleValsString[1:-1].split(",")]
         else:
-            rawPossibleValsList = [val.strip() for val in possibleValsString[1:-1].split(",")]
+            rawPossibleValsList = [
+                val.strip() for val in possibleValsString[1:-1].split(",")
+            ]
             for val in rawPossibleValsList:
                 pattern = r"([0-9]*)-([0-9]*)"
                 match = re.search(pattern, val)

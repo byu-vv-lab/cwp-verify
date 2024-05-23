@@ -28,7 +28,9 @@ class LongScaling:
         self.process = self.root.find("bpmn:process", self.ns)
         self.curloopNum = 2
         self.numLoops = numLoops
-        self.lastGateway = self.process.find("bpmn:exclusiveGateway[@name='GATEWAY1']", self.ns)
+        self.lastGateway = self.process.find(
+            "bpmn:exclusiveGateway[@name='GATEWAY1']", self.ns
+        )
         self.finalTask = self.process.find("bpmn:task[@name='999-FINAL']", self.ns)
 
     def genFiles(self):
@@ -124,11 +126,13 @@ class LongScaling:
     def addLoop(self):
         taskId = "Activity_" + self.gen_id()
         task = ET.Element(
-            "ns0:task", {"id": taskId, "name": "{:02d}-MIDDLE ACTIVITY".format(self.curloopNum)}
+            "ns0:task",
+            {"id": taskId, "name": "{:02d}-MIDDLE ACTIVITY".format(self.curloopNum)},
         )
         gatewayId = "Gateway_" + self.gen_id()
         gateway = ET.Element(
-            "ns0:exclusiveGateway", {"id": gatewayId, "name": "GATEWAY{}".format(self.curloopNum)}
+            "ns0:exclusiveGateway",
+            {"id": gatewayId, "name": "GATEWAY{}".format(self.curloopNum)},
         )
         flowId1 = "Flow_" + self.gen_id()
         incoming1 = ET.Element("ns0:incoming")
@@ -150,7 +154,8 @@ class LongScaling:
         outgoing2 = ET.Element("ns0:incoming")
         outgoing2.text = flowId2
         flow2 = ET.Element(
-            "ns0:sequenceFlow", {"id": flowId2, "sourceRef": taskId, "targetRef": gatewayId}
+            "ns0:sequenceFlow",
+            {"id": flowId2, "sourceRef": taskId, "targetRef": gatewayId},
         )
         flowId3 = "Flow_" + self.gen_id()
         incoming3 = ET.Element("ns0:incoming")
@@ -184,7 +189,9 @@ class LongScaling:
         self.curloopNum += 1
 
     def gen_id(self):
-        return "".join(random.choice(string.ascii_lowercase + string.digits) for _ in range(7))
+        return "".join(
+            random.choice(string.ascii_lowercase + string.digits) for _ in range(7)
+        )
 
     def finalize(self):
         flowId = "Flow_" + self.gen_id()

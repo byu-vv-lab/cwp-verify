@@ -55,7 +55,7 @@ class Promela_gen_visitor(BPMN_visitor):
         self.initIndent = 0
         self.flowPlaces = []
 
-    def genLogCounterExamplePath(self, elementId) -> String:
+    def genLogCounterExamplePath(self, elementId) -> String:  # type: ignore
         ret = ""
         if self.printfOn:
             ret += '\t\t\tprintf("###COUNTEREXAMPLE PATH OUTPUT###\\n")\n'
@@ -74,7 +74,7 @@ class Promela_gen_visitor(BPMN_visitor):
         putFlowIDs,
         elementID,
         type="",
-    ) -> String:
+    ) -> String:  # type: ignore
         ret = ":: atomic {{ {x} -> \n".format(x=guard)
         ret += "\t\t{x}\n".format(x=behaviorInline)
         ret += "\t\td_step {\n"
@@ -90,7 +90,9 @@ class Promela_gen_visitor(BPMN_visitor):
         if type == "XOR":
             ret += "\t\t\tif\n"
             for condition, location, id in zip(putConditions, putLocations, putFlowIDs):
-                ret += "\t\t\t\t:: {x} -> putToken({y})\n".format(x=condition, y=location)
+                ret += "\t\t\t\t:: {x} -> putToken({y})\n".format(
+                    x=condition, y=location
+                )
                 ret += self.genLogCounterExamplePath(id)
             ret += "\t\t\tfi\n"
         else:
@@ -100,14 +102,18 @@ class Promela_gen_visitor(BPMN_visitor):
         if "ParallelFALSE" in type:
             ret += "\t\t\tif\n"
             ret += '\t\t\t:: (!locked[me]) -> printf("###END PARALLEL GATEWAY###\\n")\n'
-            ret += '\t\t\t:: (locked[me]) -> printf("###START PARALLEL GATEWAY###\\n")\n'
+            ret += (
+                '\t\t\t:: (locked[me]) -> printf("###START PARALLEL GATEWAY###\\n")\n'
+            )
             ret += "\t\t\tfi\n"
         ret += "\t\t}\n"
         ret += "\t}"
         return ret
 
     def writePlacesLines(self, text):
-        self.placesText += ("\t" * self.placesIndent).join(("\n" + text.lstrip()).splitlines(True))
+        self.placesText += ("\t" * self.placesIndent).join(
+            ("\n" + text.lstrip()).splitlines(True)
+        )
 
     def writeConstantsLines(self, text):
         self.constantsText += ("\t" * self.constantsIndent).join(
@@ -120,7 +126,9 @@ class Promela_gen_visitor(BPMN_visitor):
         )
 
     def writeInitLines(self, text):
-        self.initText += ("\t" * self.initIndent).join(("\n" + text.lstrip()).splitlines(True))
+        self.initText += ("\t" * self.initIndent).join(
+            ("\n" + text.lstrip()).splitlines(True)
+        )
 
     def writeWorkflowLines(self, text):
         self.workflowText += ("\t" * self.workflowIndent).join(
@@ -140,10 +148,7 @@ class Promela_gen_visitor(BPMN_visitor):
         consumeLocations = []
         putLocations = []
         behaviorInline = "skip"
-        if type == "XOR":
-            putConditions = []
-        else:
-            putConditions = None
+        putConditions: list[str] = []
         putFlowIDs = []
         elementID = element.id
         if type == "Task-END":
@@ -280,7 +285,9 @@ class Promela_gen_visitor(BPMN_visitor):
         for flow in element.outFlows:
             flow.accept(self)
 
-    def visit_parallel_gateway_join_node(self, element: ParallelGatewayJoinNode) -> None:
+    def visit_parallel_gateway_join_node(
+        self, element: ParallelGatewayJoinNode
+    ) -> None:
         if element.seen:
             return
         element.seen = True
@@ -289,7 +296,9 @@ class Promela_gen_visitor(BPMN_visitor):
         for flow in element.outFlows:
             flow.accept(self)
 
-    def visit_parallel_gateway_fork_node(self, element: ParallelGatewayForkNode) -> None:
+    def visit_parallel_gateway_fork_node(
+        self, element: ParallelGatewayForkNode
+    ) -> None:
         if element.seen:
             return
         element.seen = True

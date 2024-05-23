@@ -1,16 +1,22 @@
 ## Developer Setup
 
-Development is intended in a virtual environment with an editable install. Instructions are form OSX but should be very similar for Windows.
+The following assume the terminal is in the root directory of the package.
 
-  * Install `pre-commit` in the root directory: `pre-commit install`. All the hooks for it are in the `.pre-commit-config.yaml`. It configures all the `ruff` tools.
-  * Create the virtual environment in the root directory: `python -m venv .venv`
-  * Activate the virtual environment: `source .venv/bin/activate`
-  * Make the editable installation: `pip install --editable .`
-  * Reactivate the virtual environment and make sure that `verify` is on the path
+  1. Create a virtual environment
+    * In the root directory: `python3 -m venv .venv`
+    * Activate the virtual environment: `source .venv/bin/activate`
+  2. Install `setuptools`
+    * `pip install --upgrade setuptools`
+    * `pip install --upgrade build`
+  4. Install the package, with `dev` dependencies, in editable mode: `pip install --editable ".[dev]"`.
+  5. Enable `pre-commit`: `pre-commit install`
+    * `pre-commit run --all-files` will force the check on all files otherwise it will only check the files in the index (i.e., those that are part if the commit)
 
-To uninstall, `pip uninstall bpmn_cwp_verify`. To deactivate the virtual environment: `deactivate`.
+  To uninstall the package, `pip uninstall bpmn_cwp_verify`. To deactivate the virtual environment: `deactivate`.
+  The package uses `setuptools` and is configured in `pyproject.toml`. If a now dependency is required (added), then please update the `pyproject.toml` file accordingly so that the install brings it down as expected. All of the `pre-commit` hooks are defined in the `.pre-commit-config.yaml`. Please update as needed. It currently uses `ruff` for linting and formatting. It uses `mypy` for static typechecking.
 
-The packages uses `setuptools` and is configured in `pyproject.toml`.
+  If using the `mypy` vscode extension, then it is necessary to point the executable path to `.venv/bin/dmypy` for it to work correctly.
+
 
 ## TODO
 
@@ -29,8 +35,11 @@ The packages uses `setuptools` and is configured in `pyproject.toml`.
 Add list of _best practices for BPMN_ as separate TODO items.
 
   * Every element has a _unique friendly name_ so that all errors are reported using the friendly name
+  * Add a proper expression parser from ANTLRv4 for the FEEL language and make sure all expressions parse
 
 ### Input Validation for CWP
+
+  * Add a proper expression parser from ANTLRv4 for the FEEL language and make sure all expressions parse
 
 ### Input Validation for state
 

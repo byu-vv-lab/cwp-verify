@@ -25,11 +25,22 @@ class CWPXMLIngestor:
         tree = self.parseXML(self.inputfile)
         self.root = tree.getroot()
         self.diagram = self.root.find("diagram")
+        if self.diagram is None:
+            raise Exception("ERROR: self.diagram is None")
         self.mxGraphModel = self.diagram.find("mxGraphModel")
+        if self.mxGraphModel is None:
+            raise Exception("ERROR: self.mxGraphModel is None")
         self.mxRoot = self.mxGraphModel.find("root")
+        if self.mxRoot is None:
+            raise Exception("ERROR: self.mxRoot is None")
         mxCells = self.mxRoot.findall("mxCell")
         for mxCell in mxCells:
-            if mxCell.get("vertex") and "edgeLabel" not in mxCell.get("style"):
+            if mxCell is None:
+                raise Exception("ERROR: self.mxCells is None")
+            tmp = mxCell.get("style")
+            if tmp is None:
+                raise Exception('ERROR: mxCell.get("style") is None')
+            if mxCell.get("vertex") and "edgeLabel" not in tmp:
                 name = self.cleanup_name(mxCell.get("value"))
                 state = CWPState(name, mxCell.get("id"))
                 self.cwp.addState(state)
@@ -55,7 +66,10 @@ class CWPXMLIngestor:
                 self.storedElems[id] = edge
                 self.cwp.addEdge(edge)
         for mxCell in mxCells:
-            if mxCell.get("style") and "edgeLabel" in mxCell.get("style"):
+            tmp = mxCell.get("style")
+            if tmp is None:
+                raise Exception('ERROR: mxCell.get("style") is None')
+            if mxCell.get("style") and "edgeLabel" in tmp:
                 edge = self.storedElems[mxCell.get("parent")]
                 edge.label = self.cleanup_line_label(mxCell.get("value"))
                 self.condParser.execute(edge.label)

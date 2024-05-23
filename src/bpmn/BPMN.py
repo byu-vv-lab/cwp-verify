@@ -67,7 +67,13 @@ class Msg:
 # Class representing a generic node
 class Node:
     def __init__(
-        self, label=Label("Empty"), inFlows=None, outFlows=None, inMsgs=None, outMsgs=None, id=None
+        self,
+        label=Label("Empty"),
+        inFlows=None,
+        outFlows=None,
+        inMsgs=None,
+        outMsgs=None,
+        id=None,
     ):
         if inFlows is None:
             self.inFlows = []
@@ -115,7 +121,9 @@ class Node:
 
 # Class representing an event node
 class EventNode(Node):
-    def __init__(self, label, inFlows=None, outFlows=None, inMsgs=None, outMsgs=None, id=None):
+    def __init__(
+        self, label, inFlows=None, outFlows=None, inMsgs=None, outMsgs=None, id=None
+    ):
         super().__init__(label, inFlows, outFlows, inMsgs, outMsgs, id)
 
     def accept(self, visitor):
@@ -124,7 +132,9 @@ class EventNode(Node):
 
 # Class representing an activity node
 class ActivityNode(Node):
-    def __init__(self, label, inFlows=None, outFlows=None, inMsgs=None, outMsgs=None, id=None):
+    def __init__(
+        self, label, inFlows=None, outFlows=None, inMsgs=None, outMsgs=None, id=None
+    ):
         super().__init__(label, inFlows, outFlows, inMsgs, outMsgs, id)
 
     def accept(self, visitor):
@@ -133,7 +143,9 @@ class ActivityNode(Node):
 
 # Class representing a start node
 class StartNode(Node):
-    def __init__(self, label, inFlows=None, outFlows=None, inMsgs=None, outMsgs=None, id=None):
+    def __init__(
+        self, label, inFlows=None, outFlows=None, inMsgs=None, outMsgs=None, id=None
+    ):
         super().__init__(label, inFlows, outFlows, inMsgs, outMsgs, id)
 
     def accept(self, visitor):
@@ -142,7 +154,9 @@ class StartNode(Node):
 
 # Class representing a gateway node
 class gatewayNode(Node):
-    def __init__(self, label, inFlows=None, outFlows=None, inMsgs=None, outMsgs=None, id=None):
+    def __init__(
+        self, label, inFlows=None, outFlows=None, inMsgs=None, outMsgs=None, id=None
+    ):
         super().__init__(label, inFlows, outFlows, inMsgs, outMsgs, id)
 
     def accept(self, visitor):
@@ -151,7 +165,9 @@ class gatewayNode(Node):
 
 # Class representing an XOR gateway node
 class XorGatewayNode(gatewayNode):
-    def __init__(self, label, inFlows=None, outFlows=None, inMsgs=None, outMsgs=None, id=None):
+    def __init__(
+        self, label, inFlows=None, outFlows=None, inMsgs=None, outMsgs=None, id=None
+    ):
         super().__init__(label, inFlows, outFlows, inMsgs, outMsgs, id)
 
     def accept(self, visitor):
@@ -160,7 +176,9 @@ class XorGatewayNode(gatewayNode):
 
 # Class representing a parallel gateway join node
 class ParallelGatewayJoinNode(gatewayNode):
-    def __init__(self, label, inFlows=None, outFlows=None, inMsgs=None, outMsgs=None, id=None):
+    def __init__(
+        self, label, inFlows=None, outFlows=None, inMsgs=None, outMsgs=None, id=None
+    ):
         super().__init__(label, inFlows, outFlows, inMsgs, outMsgs, id)
 
     def accept(self, visitor):
@@ -169,7 +187,9 @@ class ParallelGatewayJoinNode(gatewayNode):
 
 # Class representing a parallel gateway fork node
 class ParallelGatewayForkNode(gatewayNode):
-    def __init__(self, label, inFlows=None, outFlows=None, inMsgs=None, outMsgs=None, id=None):
+    def __init__(
+        self, label, inFlows=None, outFlows=None, inMsgs=None, outMsgs=None, id=None
+    ):
         super().__init__(label, inFlows, outFlows, inMsgs, outMsgs, id)
 
     def accept(self, visitor):
@@ -178,7 +198,9 @@ class ParallelGatewayForkNode(gatewayNode):
 
 # Class representing an end node
 class EndNode(Node):
-    def __init__(self, label, inFlows=None, outFlows=None, inMsgs=None, outMsgs=None, id=None):
+    def __init__(
+        self, label, inFlows=None, outFlows=None, inMsgs=None, outMsgs=None, id=None
+    ):
         super().__init__(label, inFlows, outFlows, inMsgs, outMsgs, id)
 
     def accept(self, visitor):
@@ -187,13 +209,17 @@ class EndNode(Node):
 
 # Abstract class representing an intermediate node
 class IntermediateNode(Node, ABC):
-    def __init__(self, label, inFlows=None, outFlows=None, inMsgs=None, outMsgs=None, id=None):
+    def __init__(
+        self, label, inFlows=None, outFlows=None, inMsgs=None, outMsgs=None, id=None
+    ):
         super().__init__(label, inFlows, outFlows, inMsgs, outMsgs, id)
 
 
 # Class representing a message intermediate node
 class MsgIntermediateNode(IntermediateNode):
-    def __init__(self, label, inFlows=None, outFlows=None, inMsgs=None, outMsgs=None, id=None):
+    def __init__(
+        self, label, inFlows=None, outFlows=None, inMsgs=None, outMsgs=None, id=None
+    ):
         super().__init__(label, inFlows, outFlows, inMsgs, outMsgs, id)
 
     def accept(self, visitor):
@@ -202,7 +228,9 @@ class MsgIntermediateNode(IntermediateNode):
 
 # Class representing a timer intermediate node
 class TimerIntermediateNode(IntermediateNode):
-    def __init__(self, label, inFlows=None, outFlows=None, inMsgs=None, outMsgs=None, id=None):
+    def __init__(
+        self, label, inFlows=None, outFlows=None, inMsgs=None, outMsgs=None, id=None
+    ):
         super().__init__(label, inFlows, outFlows, inMsgs, outMsgs, id)
 
     def accept(self, visitor):

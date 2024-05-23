@@ -37,11 +37,15 @@ class BPMN_visitor(ABC):
         pass
 
     @abstractmethod
-    def visit_parallel_gateway_join_node(self, element: ParallelGatewayJoinNode) -> None:
+    def visit_parallel_gateway_join_node(
+        self, element: ParallelGatewayJoinNode
+    ) -> None:
         pass
 
     @abstractmethod
-    def visit_parallel_gateway_fork_node(self, element: ParallelGatewayForkNode) -> None:
+    def visit_parallel_gateway_fork_node(
+        self, element: ParallelGatewayForkNode
+    ) -> None:
         pass
 
     @abstractmethod

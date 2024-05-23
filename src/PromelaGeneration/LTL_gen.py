@@ -23,7 +23,7 @@ class LTLGenerator:
         else:
             self.varList = []
             self.cwpVocabList = []
-        self.propertyList = []
+        self.propertyList: list[str] = []
 
     def generate_all(self):
         self.generate_helper_functions()
@@ -68,7 +68,9 @@ class LTLGenerator:
         self.writeLine("//**********VARIABLE DECLARATION************//")
         for var in self.varList:
             if var.type == "mtype" and var.isConstant:
-                self.writeLine("{type} = {{{name}}}".format(type=var.type, name=var.bpmn))
+                self.writeLine(
+                    "{type} = {{{name}}}".format(type=var.type, name=var.bpmn)
+                )
             else:
                 self.writeLine(
                     "{type} {name} = {initial}".format(
@@ -119,7 +121,9 @@ class LTLGenerator:
                 invariant = "("
                 for value in var.possibleValues:
                     if isinstance(value, int) or isinstance(value, str):
-                        invariant += "({cwp} == {value}) || ".format(cwp=cwp, value=value)
+                        invariant += "({cwp} == {value}) || ".format(
+                            cwp=cwp, value=value
+                        )
                     else:
                         valRange = value
                         invariant += "({cwp} >= {min} && {cwp} <= {max}) || ".format(
@@ -161,7 +165,9 @@ class LTLGenerator:
 
             # Conjunction of incoming
             if state.inEdges:
-                self.writeLine("(" + " && ".join([edge.name for edge in state.inEdges]) + ")")
+                self.writeLine(
+                    "(" + " && ".join([edge.name for edge in state.inEdges]) + ")"
+                )
 
             # Disjunction of incoming
             # self.writeLine("(" + " || ".join(state.inEdges) + ")")
@@ -172,7 +178,9 @@ class LTLGenerator:
 
             # Negated Disjunction of outgoing
             if state.outEdges:
-                self.writeLine("(! (" + " || ".join([edge.name for edge in state.outEdges]) + "))")
+                self.writeLine(
+                    "(! (" + " || ".join([edge.name for edge in state.outEdges]) + "))"
+                )
 
             self.tab -= 1
             self.writeLine(")")
@@ -186,7 +194,8 @@ class LTLGenerator:
     def writeInaStateProperty(self):
         self.propertyList.append("alwaysInAState")
         self.writeLine(
-            "#define inAState " + " \\\n || ".join([state.name for state in self.cwp.states])
+            "#define inAState "
+            + " \\\n || ".join([state.name for state in self.cwp.states])
         )
         self.writeLine("ltl alwaysInAState {(always (inAState))}")
 
@@ -203,7 +212,9 @@ class LTLGenerator:
         self.writeLine("ltl fairPathExists {(always (! fair))}")
 
     def writeStateProperties(self, state: CWPState):
-        self.writeLine("//**********{} STATE PROPERTIES************//".format(state.name))
+        self.writeLine(
+            "//**********{} STATE PROPERTIES************//".format(state.name)
+        )
         self.writeExistsProperty(state)
         self.writeMutexProperty(state)
         self.writeEdgesProperty(state)
@@ -211,7 +222,9 @@ class LTLGenerator:
     def writeExistsProperty(self, state: CWPState):
         self.propertyList.append("{}Exists".format(state.name))
         self.writeLine(
-            "ltl {name}Exists {{(fair implies (always (! {name})))}}".format(name=state.name)
+            "ltl {name}Exists {{(fair implies (always (! {name})))}}".format(
+                name=state.name
+            )
         )
 
     def writeMutexProperty(self, state: CWPState):
@@ -227,7 +240,9 @@ class LTLGenerator:
         self.writeLine("{}".format(state.name))
         joinString = (")\n" + "\t" * self.tab) + "&& (! "
         self.writeLine(
-            "&& (! " + joinString.join([x.name for x in self.cwp.states if x is not state]) + ")"
+            "&& (! "
+            + joinString.join([x.name for x in self.cwp.states if x is not state])
+            + ")"
         )
         self.tab -= 1
         self.writeLine(")")
@@ -282,7 +297,9 @@ class LTLGenerator:
         self.tab += 1
         if self.printfOn:
             self.writeLine(
-                'printf("**STATE {name}({id})\\n")'.format(name=state.name, id=state.idRef)
+                'printf("**STATE {name}({id})\\n")'.format(
+                    name=state.name, id=state.idRef
+                )
             )
         else:
             self.writeLine("skip")

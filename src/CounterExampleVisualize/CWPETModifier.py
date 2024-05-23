@@ -18,7 +18,8 @@ class CWPETModifier:
             edgeLabelElement = root.find("mxCell[@id='{}']".format(edgeLabelId))
             value = edgeLabelElement.get("value")
             edgeLabelElement.set(
-                "value", "&lt;font color=&quot;#00FF00&quot;&gt;" + value + "&lt;/font&gt;"
+                "value",
+                "&lt;font color=&quot;#00FF00&quot;&gt;" + value + "&lt;/font&gt;",
             )
 
     def color_active_states(self, stateIdList, color):

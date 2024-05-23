@@ -17,11 +17,21 @@ class BPMNETModifier:
         if len(elementIDGroup) < len(colors):
             colors = colors[len(colors) - len(elementIDGroup) :]
         diag = self.elementTree.getroot().find("bpmndi:BPMNDiagram", self.ns)
+        if diag is None:
+            raise Exception(
+                'ERROR: self.elementTree.getroot().find("bpmndi:BPMNDiagram", self.ns) is None'
+            )
         plane = diag.find("bpmndi:BPMNPlane", self.ns)
+        if plane is None:
+            raise Exception('ERROR: diag.find("bpmndi:BPMNPlane", self.ns)')
         for elementID, color in zip(elementIDGroup, colors):
             for id in elementID:
-                shape = plane.find("bpmndi:BPMNShape[@bpmnElement='{}']".format(id), self.ns)
-                line = plane.find("bpmndi:BPMNEdge[@bpmnElement='{}']".format(id), self.ns)
+                shape = plane.find(
+                    "bpmndi:BPMNShape[@bpmnElement='{}']".format(id), self.ns
+                )
+                line = plane.find(
+                    "bpmndi:BPMNEdge[@bpmnElement='{}']".format(id), self.ns
+                )
                 if shape:
                     shape.set("color:background-color", color)
                 if line:

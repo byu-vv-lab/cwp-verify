@@ -53,7 +53,9 @@ class WideScaling:
                 actNum = i + 1
                 f.write("const enum act{} act{}\n".format(actNum, actNum))
             actList = ["act{}".format(i) for i in range(1, self.numActors + 1)]
-            f.write("enum semaphore semaphore INIT [INIT, {}]\n".format(", ".join(actList)))
+            f.write(
+                "enum semaphore semaphore INIT [INIT, {}]\n".format(", ".join(actList))
+            )
             for i in range(self.numActors):
                 finNum = i + 1
                 f.write("enum fin{} fin{} False [True, False]\n".format(finNum, finNum))
@@ -107,7 +109,14 @@ class WideScaling:
                     skip
                 }}
 
-                """.format(i=i, start=start, task1=task1, gateway=gateway, task2=task2, end=end)
+                """.format(
+                            i=i,
+                            start=start,
+                            task1=task1,
+                            gateway=gateway,
+                            task2=task2,
+                            end=end,
+                        )
                     )
                 )
 
@@ -122,14 +131,22 @@ class WideScaling:
         edge1 = bpmn.Flow(
             label="flow-{}-1".format(self.curActor), fromNode=startState, toNode=task1
         )
-        edge2 = bpmn.Flow(label="flow-{}-2".format(self.curActor), fromNode=task1, toNode=gateway)
+        edge2 = bpmn.Flow(
+            label="flow-{}-2".format(self.curActor), fromNode=task1, toNode=gateway
+        )
         edge3 = bpmn.Flow(
-            label="semaphore!=act{}".format(self.curActor), fromNode=gateway, toNode=task1
+            label="semaphore!=act{}".format(self.curActor),
+            fromNode=gateway,
+            toNode=task1,
         )
         edge4 = bpmn.Flow(
-            label="semaphore==act{}".format(self.curActor), fromNode=gateway, toNode=task2
+            label="semaphore==act{}".format(self.curActor),
+            fromNode=gateway,
+            toNode=task2,
         )
-        edge5 = bpmn.Flow(label="flow-{}-3".format(self.curActor), fromNode=task2, toNode=end)
+        edge5 = bpmn.Flow(
+            label="flow-{}-3".format(self.curActor), fromNode=task2, toNode=end
+        )
 
         startState.addOutFlow(edge1)
         task1.addInFlow(edge1)

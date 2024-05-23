@@ -20,7 +20,9 @@ class Token:
 
 
 class TreeNode:
-    def __init__(self, value=None, type=TokenType.INVALID, left=None, right=None) -> None:
+    def __init__(
+        self, value=None, type=TokenType.INVALID, left=None, right=None
+    ) -> None:
         self.value = value
         self.type = type
         self.left = left
@@ -58,7 +60,9 @@ class ExpressionParser:
             if self.tokenQueue[-1].type == TokenType.OR:
                 self.tokenQueue.pop()
                 andExprX = self.parseAndExpression()
-                andExpr = TreeNode(value="||", type=TokenType.OR, left=andExpr1, right=andExprX)
+                andExpr = TreeNode(
+                    value="||", type=TokenType.OR, left=andExpr1, right=andExprX
+                )
                 andExpr1 = andExpr
         return andExpr1
 
@@ -117,17 +121,31 @@ class ExpressionParser:
                             terminal1.value + tok.value + terminal2.value
                         )
                     )
-                elif terminal1.type == TokenType.NUM and term2Type not in ["int", "byte", "short"]:
+                elif terminal1.type == TokenType.NUM and term2Type not in [
+                    "int",
+                    "byte",
+                    "short",
+                ]:
                     raise Exception(
-                        "Type mismatch: {}".format(terminal1.value + tok.value + terminal2.value)
+                        "Type mismatch: {}".format(
+                            terminal1.value + tok.value + terminal2.value
+                        )
                     )
-                elif terminal2.type == TokenType.NUM and term1Type not in ["int", "byte", "short"]:
+                elif terminal2.type == TokenType.NUM and term1Type not in [
+                    "int",
+                    "byte",
+                    "short",
+                ]:
                     raise Exception(
-                        "Type mismatch: {}".format(terminal1.value + tok.value + terminal2.value)
+                        "Type mismatch: {}".format(
+                            terminal1.value + tok.value + terminal2.value
+                        )
                     )
                 elif term1Type != term2Type:
                     raise Exception(
-                        "Type mismatch: {}".format(terminal1.value + tok.value + terminal2.value)
+                        "Type mismatch: {}".format(
+                            terminal1.value + tok.value + terminal2.value
+                        )
                     )
 
                 if tok.type in TokenType.COMPARER:
@@ -201,9 +219,9 @@ class ExpressionParser:
                     token.type = TokenType.NUM
                 elif re.search("^[a-zA-Z][a-zA-Z0-9_]+$", token.value):
                     token.type = TokenType.VAR
-                    if token.value not in [var.cwp for var in self.varList] and token.value not in [
-                        var.bpmn for var in self.varList
-                    ]:
+                    if token.value not in [
+                        var.cwp for var in self.varList
+                    ] and token.value not in [var.bpmn for var in self.varList]:
                         raise Exception("Variable not in list: {}".format(token.value))
 
             if token.type == TokenType.INVALID:

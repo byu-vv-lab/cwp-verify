@@ -20,7 +20,9 @@ from XMLIngest.CWPXMLIngestor import CWPXMLIngestor
 from PromelaGeneration.LTL_gen import LTLGenerator
 from PromelaGeneration.Promela_gen_visitor import Promela_gen_visitor
 from StateIngest.ActivityModifiesIngest import ActivityModifiesIngestor
-from CounterExampleVisualize.CounterExampleXMLGenerator import CounterExampleXMLGenerator
+from CounterExampleVisualize.CounterExampleXMLGenerator import (
+    CounterExampleXMLGenerator,
+)
 from PromelaGeneration.Stub_gen_visitor import Stub_gen_visitor
 
 
@@ -46,10 +48,14 @@ def visualizeProperty(exampleName, propertyName):
         cwpInput = os.path.join(exAssetsDir, "cwp.pickle")
         pickledCWP = True
     varList = ingestState(stateInput)
-    processCounterExampleDir(propDir, bpmnInput, cwpInput, varList, pickledWorkflow, pickledCWP)
+    processCounterExampleDir(
+        propDir, bpmnInput, cwpInput, varList, pickledWorkflow, pickledCWP
+    )
 
 
-def processCounterExampleDir(dir, bpmnInput, cwpInput, varList, pickledWorkflow, pickledCWP):
+def processCounterExampleDir(
+    dir, bpmnInput, cwpInput, varList, pickledWorkflow, pickledCWP
+):
     # Function to process the counterexample directory and generate images
     trailFile = os.path.join(dir, "trail.txt")
     generator = CounterExampleXMLGenerator(
@@ -70,10 +76,14 @@ def processCounterExampleDir(dir, bpmnInput, cwpInput, varList, pickledWorkflow,
         for file in files:
             file = os.path.join(subdir2, file)
             if file.endswith(".bpmn"):
-                cmd = "bpmn-to-image {file}:{output}".format(file=file, output=file + ".png")
+                cmd = "bpmn-to-image {file}:{output}".format(
+                    file=file, output=file + ".png"
+                )
                 os.system(cmd)
 
-        cmd = "convert {subdir}/*.bpmn.png {subdir}/BPMNerror.pdf".format(subdir=subdir2)
+        cmd = "convert {subdir}/*.bpmn.png {subdir}/BPMNerror.pdf".format(
+            subdir=subdir2
+        )
         os.system(cmd)
         cmd = "convert {subdir}/*.cwp.png {subdir}/CWPerror.pdf".format(subdir=subdir2)
         os.system(cmd)
@@ -187,13 +197,19 @@ def runExample(
                 time.strftime("%H:%M:%S", time.gmtime(modelGenerationTT))
             )
         )
-        f.write("Verification: {}\n".format(time.strftime("%H:%M:%S", time.gmtime(verificationTT))))
+        f.write(
+            "Verification: {}\n".format(
+                time.strftime("%H:%M:%S", time.gmtime(verificationTT))
+            )
+        )
         f.write(
             "CounterExample Visualization Generation: {}\n".format(
                 time.strftime("%H:%M:%S", time.gmtime(counterExampleTT))
             )
         )
-        f.write("Total: {}\n".format(time.strftime("%H:%M:%S", time.gmtime(total_time))))
+        f.write(
+            "Total: {}\n".format(time.strftime("%H:%M:%S", time.gmtime(total_time)))
+        )
         print("Done")
 
 
@@ -234,7 +250,9 @@ def genPromelaFile(
         myCwpIngestor.inputfile = cwpInput
         myCwpIngestor.ingestXML()
         cwpModel = myCwpIngestor.cwp
-    myLTLGen = LTLGenerator(cwp=cwpModel, varList=varList, debug=debug, printfOn=printfOn)
+    myLTLGen = LTLGenerator(
+        cwp=cwpModel, varList=varList, debug=debug, printfOn=printfOn
+    )
     myLTLGen.generate_all()
     outStr += str(myLTLGen.output_str)
 
@@ -317,15 +335,29 @@ def parse(argv):
         if opt in ["-i", "--shortestPath"]:
             shortestPath = True
 
-    return exampleName, preloaded, debug, skipCEGeneration, bfs, approxShortestPath, shortestPath
+    return (
+        exampleName,
+        preloaded,
+        debug,
+        skipCEGeneration,
+        bfs,
+        approxShortestPath,
+        shortestPath,
+    )
 
 
 def verify(argv):
     # Main function
     # PARSING INPUT
-    exampleName, preloaded, debug, skipCEGeneration, bfs, approxShortestPath, shortestPath = parse(
-        argv
-    )
+    (
+        exampleName,
+        preloaded,
+        debug,
+        skipCEGeneration,
+        bfs,
+        approxShortestPath,
+        shortestPath,
+    ) = parse(argv)
 
     if exampleName:
         runExample(
