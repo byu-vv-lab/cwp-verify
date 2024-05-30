@@ -27,7 +27,10 @@ There is an available container that `vscode` is able to recognize and open. In 
 ### Repository organization and entry points
 
   * Remove the hard coded paths on lines 29 and 30 of `cli/main.py` to take the relative path specified in the command line. Add runtime checks, with appropriate error messages, that all the required files (BPMN, CWP, state, etc.) are present in the supplied directory.
-  * Move the `CSVIngest`, `BMPN-Generate`, and `CWP-Generate` into the test directory
+      1. bpmn xml file
+      1. cwp xml file
+      1. file definind the state
+  * ~~Move the `CSVIngest`, `BMPN-Generate`, and `CWP-Generate` into the test directory~~
   * Bring over the tests that make sense and add tests as we refactor code.
   * Add an argument to indicate the output directory. Fail if the directory doesn't exist or it doesn't allow read and write permissions
   * Refactor the `src` directory to use appropriate Python package/module names (all lower-case, short, hypens, underscores are allowed)
