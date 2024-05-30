@@ -5,18 +5,22 @@ The following assume the terminal is in the root directory of the package.
   1. Create a virtual environment
       * In the root directory: `python3 -m venv .venv`
       * Activate the virtual environment: `source .venv/bin/activate`
-  2. Install `setuptools`
-      * `pip install --upgrade setuptools`
-      * `pip install --upgrade build`
-  4. Install the package, with `dev` dependencies, in editable mode: `pip install --editable ".[dev]"`.
-  5. Enable `pre-commit`: `pre-commit install`
+  1. Install the package, with `dev` dependencies, in editable mode: `pip install --editable ".[dev]"`.
+      * Only if above fails with missing packages:
+          * `pip install --upgrade setuptools`
+          * `pip install --upgrade build`
+  1. Enable `pre-commit`: `pre-commit install`
       * `pre-commit run --all-files` will force the check on all files otherwise it will only check the files in the index (i.e., those that are part if the commit)
 
-  To uninstall the package, `pip uninstall bpmn_cwp_verify`. To deactivate the virtual environment: `deactivate`.
-  The package uses `setuptools` and is configured in `pyproject.toml`. If a now dependency is required (added), then please update the `pyproject.toml` file accordingly so that the install brings it down as expected. All of the `pre-commit` hooks are defined in the `.pre-commit-config.yaml`. Please update as needed. It currently uses `ruff` for linting and formatting. It uses `mypy` for static typechecking.
+  To uninstall the package, `pip uninstall bpmn_cwp_verify`. To deactivate the virtual environment: `deactivate`. The entry point for the CLI is `verify`.
+
+  The package uses `setuptools` and is configured in `pyproject.toml`. If a new dependency is required (added), then please update the `pyproject.toml` file accordingly so that the install brings it down as expected. All of the `pre-commit` hooks are defined in the `.pre-commit-config.yaml`. Please update as needed. It currently uses `ruff` for linting and formatting. It uses `mypy` for static typechecking.
 
   If using the `mypy` vscode extension, then it is necessary to point the executable path to `.venv/bin/dmypy` for it to work correctly.
 
+### Docker Container
+
+There is an available container that `vscode` is able to recognize and open. In the command pallette `Python: create virtual environment` will create the virtual environment, and it will install the `dev` dependencies automatically as part of the configuration.
 
 ## TODO
 
@@ -29,6 +33,7 @@ The following assume the terminal is in the root directory of the package.
   * Refactor the `src` directory to use appropriate Python package/module names (all lower-case, short, hypens, underscores are allowed)
   * Move code around so that everything to do with CWP is in cwp and everything to do with BPMN is in BPMN etc.
   * Break the `BMPN.py` into several files for flows, nodes, process, and model.
+  * Write type stub files for all packages/modules to remove the `mypy` [import-untyped](https://mypy.readthedocs.io/en/latest/error_code_list.html#code-import-untyped) warnings
 
 ### Input Validation for BPMN
 
