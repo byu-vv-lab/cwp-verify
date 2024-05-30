@@ -22,7 +22,11 @@ dev = [
   "ruff>=0.4.4",
   "returns[compatible-mypy]",
   "pre-commit",
+  "nitpick"
   ]
 
 [tool.ruff]
 target-version = "py312"
+
+[tool.nitpick]
+style = "https://raw.githubusercontent.com/wemake-services/wemake-python-styleguide/master/styles/mypy.toml"
