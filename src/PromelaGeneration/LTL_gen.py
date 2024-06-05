@@ -5,7 +5,6 @@ helper function, and macros from a CWP object
 
 ###########################################"""
 
-from CSVIngest.CSVIngestor import CSVIngestor
 from CWP.CWP import CWP, CWPState
 
 
@@ -354,13 +353,3 @@ class LTLGenerator:
         self.output_str += "\t" * self.tab
         self.output_str += line
         self.output_str += "\n"
-
-
-if __name__ == "__main__":
-    myCSVIngestor = CSVIngestor()
-    myCSVIngestor.inputfile = "./../../assets/PhWare_CWP.csv"
-    myCSVIngestor.ingestCSV()
-    myLTLGen = LTLGenerator(cwp=myCSVIngestor.cwp)
-    myLTLGen.output_file = "./../../output/PhWare_CWP_LTL.pml"
-    myLTLGen.generate_LTL()
-    print(myLTLGen.output_str)
