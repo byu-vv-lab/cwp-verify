@@ -44,6 +44,32 @@ Add list of _best practices for BPMN_ as separate TODO items.
 
   * Every element has a _unique friendly name_ so that all errors are reported using the friendly name
   * Add a proper expression parser from ANTLRv4 for the FEEL language and make sure all expressions parse
+  * Clearly label start/end events, activities and gates
+  * Model should be symmetrical (if branching occurs, try to keep activities lined up)
+  * Model should be going from left to right
+  * When you can, use gateways instead of conditional flows
+  * If no start event, then no end event
+  * Split and join gates should have different symbols
+  * XOR gates should be marked with "X"
+  * Successful path should be the center path (from start gate to successful end gate)
+  * If retry behavior can be avoided, do avoid
+  * Each "pool" (different systems) should model one process (excluding subprocess)
+  * Long empty rectangle (only with name) => collapsed pool
+  * Database symbol => data storage/physical data storage
+  * Document symbol => data
+  * Avoid excessive use of data symbol/objects
+  * Avoid changing symbol size/color
+  * Task naming = verb (in infinitive form) + object
+  * Subprocess naming = object + verb (nominalized)
+  * Event naming = object + verb (past tense) (name the state object is leaving event), event naming should also be specific
+  * Data-based exclusive gateways should be labeled with a question
+  * If not possible to name gateways with question, describe conditions on the outgoing paths (when they are executed)
+  * Pool should have same name as process
+  * If pool has +1 lane, then each lane should be named its role name given to them by the organization or system name
+  * Capitalize where you would normally capitalize
+  * Avoid technical terms
+  * Everything should have a unique and relevant ID
+  * Error events => Interrupting boundary error event
 
 ### Input Validation for CWP
 
