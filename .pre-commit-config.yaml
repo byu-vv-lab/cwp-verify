@@ -37,3 +37,8 @@ repos:
     rev: 'v1.10.0'  # Use the sha / tag you want to point at
     hooks:
     -   id: mypy
+-   repo: https://github.com/Lucas-C/pre-commit-hooks
+    rev: v1.5.5
+    hooks:
+        - id: remove-crlf
+        - id: remove-tabs
