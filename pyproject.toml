@@ -11,10 +11,12 @@ requires-python = ">=3.12"
 dependencies = [
   "numpy>=1.21.0",
   "pandas>=2.2.2",
+  "returns",
 ]
 
 [project.scripts]
-verify = "cli.main:main"
+verify = "cli.main:verify"
+generate-stubs = "cli.main:generate_stubs"
 
 [project.optional-dependencies]
 dev = [
@@ -22,7 +24,7 @@ dev = [
   "ruff>=0.4.4",
   "returns[compatible-mypy]",
   "pre-commit",
-  "nitpick"
+  "nitpick",
   ]
 
 [tool.ruff]

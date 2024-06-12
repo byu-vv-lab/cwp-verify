@@ -20,6 +20,10 @@ class StateVar:
         else:
             self.possibleValues = []
 
+    @classmethod
+    def from_str(cls, str):
+        return None
+
 
 class VarRange:
     def __init__(self, min, max):
