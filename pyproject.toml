@@ -15,8 +15,8 @@ dependencies = [
 ]
 
 [project.scripts]
-verify = "cli.main:verify"
-generate-stubs = "cli.main:generate_stubs"
+verify = "bpmncwpverify.cli:verify"
+generate-stubs = "bpmncwpverify.cli:generate_stubs"
 
 [project.optional-dependencies]
 dev = [
