@@ -2,8 +2,6 @@ from antlr4.error.ErrorStrategy import ParseCancellationException
 from pytest import raises, fail, fixture
 from returns.pipeline import is_successful
 from returns.result import Result
-from returns.methods import unwrap_or_failure
-
 from typing import Iterable
 
 from bpmncwpverify.antlr.StateParser import StateParser
@@ -81,7 +79,7 @@ class Test_parse_state:
 
         # then
         assert not is_successful(result)
-        error = unwrap_or_failure(result)
+        error = result.failure()
         assert isinstance(error, StateSyntaxError)
         assert "line 1:58 extraneous input 'my' expecting ':'" == error.msg
 
