@@ -4,6 +4,9 @@ from returns.io import IOResultE, impure_safe
 from typing import TextIO
 from returns.pipeline import managed, flow
 from returns.result import ResultE
+from returns.pointfree import bind_result
+
+from bpmncwpverify.state import get_symbol_table
 
 
 def _get_argument_parser():
@@ -46,13 +49,13 @@ def verify():
     argument_parser = _get_argument_parser()
     args = argument_parser.parse_args()
     managed_read = managed(_read_file, _close_file)
+    filename: str = args.statefile
 
-    state: IOResultE[str] = flow(
-        args.statefile,
+    state = flow(
+        filename,
         impure_safe(lambda filename: open(filename, "r")),
         managed_read,
-        # bind_result(parse_toml), <== replace with a from_str method for the state (e.g., the state ingester)
-        # bind_result(get_project_name)
+        bind_result(get_symbol_table),
     )
 
     # Add tests for the StateIngester

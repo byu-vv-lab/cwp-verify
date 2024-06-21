@@ -1,0 +1,16 @@
+COLON=1
+CONST=2
+ENUM=3
+EQUALS=4
+LCURLY=5
+RCURLY=6
+VAR=7
+ID=8
+WS=9
+':'=1
+'const'=2
+'enum'=3
+'='=4
+'{'=5
+'}'=6
+'var'=7

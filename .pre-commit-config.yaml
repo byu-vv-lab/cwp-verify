@@ -5,7 +5,9 @@ repos:
     rev: v4.6.0
     hooks:
     -   id: trailing-whitespace
+        exclude: ^src/bpmncwpverify/antlr
     -   id: end-of-file-fixer
+        exclude: ^src/bpmncwpverify/antlr
     -   id: check-yaml
     -   id: check-added-large-files
 -   repo: https://github.com/astral-sh/ruff-pre-commit
@@ -21,6 +23,7 @@ repos:
         args: []
         require_serial: true
         additional_dependencies: []
+        exclude: ^src/bpmncwpverify/antlr
         minimum_pre_commit_version: "2.9.2"
     -   id: ruff-format
         name: ruff-format
@@ -31,13 +34,17 @@ repos:
         args: []
         require_serial: true
         additional_dependencies: []
+        exclude: ^src/bpmncwpverify/antlr
         minimum_pre_commit_version: "2.9.2"
 -   repo: https://github.com/pre-commit/mirrors-mypy
     rev: 'v1.10.0'  # Use the sha / tag you want to point at
     hooks:
     -   id: mypy
+        exclude: ^src/bpmncwpverify/antlr
 -   repo: https://github.com/Lucas-C/pre-commit-hooks
     rev: v1.5.5
     hooks:
-        - id: remove-crlf
-        - id: remove-tabs
+    -   id: remove-crlf
+        exclude: ^src/bpmncwpverify/antlr
+    -   id: remove-tabs
+        exclude: ^src/bpmncwpverify/antlr

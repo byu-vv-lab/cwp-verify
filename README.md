@@ -22,6 +22,10 @@ The following assume the terminal is in the root directory of the package.
 
 There is an available container that `vscode` is able to recognize and open. In the command pallette `Python: create virtual environment` will create the virtual environment, and it will install the `dev` dependencies automatically as part of the configuration.
 
+## Generating ANTLR Stuff
+
+`antlr4 -o src/bpmncwpverify/ -Dlanguage=Python3 antlr/State.g4 `
+
 ## TODO
 
 ### Repository organization and entry points
