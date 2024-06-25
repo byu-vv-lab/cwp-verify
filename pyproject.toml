@@ -34,3 +34,18 @@ target-version = "py312"
 
 [tool.nitpick]
 style = "https://raw.githubusercontent.com/wemake-services/wemake-python-styleguide/master/styles/mypy.toml"
+
+
+[tool.mypy]
+exclude = [
+  "^src/bpmncwpverify/antlr",
+]
+check_untyped_defs = true
+
+[[tool.mypy.overrides]]
+module = [
+    "antlr4.*",
+    "antlr.*",
+    "bpmncwpverify.antlr.*",
+]
+ignore_missing_imports = true
