@@ -1,3 +1,4 @@
+# mypy: ignore-errors
 import xml.etree.ElementTree as ET
 import random
 import string
