@@ -26,14 +26,14 @@ jobs:
         pip install --editable ".[dev]"
     - name: Lint with Ruff
       run: |
-        ruff check --silent --exclude src/bpmncwpverify/antlr --force-exclude bpmncwpverify
-        ruff check --silent test
-        ruff format --silent --exclude src/bpmncwpverify/antlr --force-exclude bpmncwpverify
-        ruff format --silent test
+        ruff check --exclude src/bpmncwpverify/antlr --force-exclude src/bpmncwpverify
+        ruff check test
+        ruff format --exclude src/bpmncwpverify/antlr --force-exclude src/bpmncwpverify
+        ruff format test
 
     - name: Type check
       run: |
-        mypy --non-interactive --exclude src/bpmncwpverify/antlr
+        mypy --non-interactive --exclude src/bpmncwpverify/antlr src/bpmncwpverify
         mypy --non-interactive test
     - name: Test pass-off
       run: |
