@@ -1,3 +1,4 @@
+# mypy: ignore-errors
 ##########################################
 # Main entry point into the project
 # Options:

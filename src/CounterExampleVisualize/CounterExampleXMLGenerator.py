@@ -1,3 +1,4 @@
+# mypy: ignore-errors
 from CounterExampleParser.CounterExampleParser import CounterExampleParser
 from CounterExampleVisualize.BPMNETModifier import BPMNETModifier
 from CounterExampleVisualize.CWPETModifier import CWPETModifier

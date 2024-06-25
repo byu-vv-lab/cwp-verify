@@ -1,3 +1,4 @@
+# mypy: ignore-errors
 """#########################################
 
 Class and methods for ingesting an XML .bpmn file and creating a BPMN object

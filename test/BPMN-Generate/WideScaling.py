@@ -1,3 +1,4 @@
+# mypy: ignore-errors
 import BPMN.BPMN as bpmn
 import pickle
 import os

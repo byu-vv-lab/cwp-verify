@@ -51,7 +51,7 @@ def verify():
     managed_read = managed(_read_file, _close_file)
     filename: str = args.statefile
 
-    state = flow(
+    _ = flow(
         filename,
         impure_safe(lambda filename: open(filename, "r")),
         managed_read,
@@ -60,7 +60,7 @@ def verify():
 
     # Add tests for the StateIngester
     # Repeat the above for the CWP and BPMN but include the validatation in the flow (move to separate method)
-    print(state)
+    # print(state)
 
 
 def generate_stubs():
