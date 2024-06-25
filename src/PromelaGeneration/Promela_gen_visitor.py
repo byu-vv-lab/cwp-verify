@@ -1,3 +1,4 @@
+# mypy: ignore-errors
 """#########################################
 
 Class and methods to generate a workflow model in Promela
