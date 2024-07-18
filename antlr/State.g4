@@ -4,12 +4,12 @@ state
   : (enum_type_decl)* (const_var_decl)* (var_decl)+ EOF
   ;
 
-const_var_decl
-  : CONST ID COLON ID EQUALS ID
-  ;
-
 enum_type_decl
   : ENUM ID LCURLY (ID)+ RCURLY
+  ;
+
+const_var_decl
+  : CONST ID COLON ID EQUALS ID
   ;
 
 var_decl

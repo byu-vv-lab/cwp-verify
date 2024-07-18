@@ -1,5 +1,17 @@
 ## Developer Setup
 
+There are two options here: `vscode` _devcontainer_ (preferred) and local using a virtual environment.
+
+### Docker Container
+
+This option requires `docker`, `vscode`, and the vscode _Dev Containers_ extension. The `devcontainer` is defined in the `.devcontainer/devcontainer.json` file that includes _customizations_ to install various `vscode` extensions in the `devcontainer` and a call to install additional packages on the image after creation. The post-create actions are defined in the `.devcontainer/post-create.sh` script. It configures the full development environment so there are no further actions required after the image is created.
+
+Open the directory to use the container: `code -n bpmn_cwp_verify`. The `vscode` _Dev Containers_ extension should automatically recognize the presence of a `devcontainer` and prompt to reopen in the container. If the extension doesn't recognize the container, then open the command pallette and search for `Dev Containers: Reopen in Container`.
+
+If the `pyproject.toml` file is changed to add new dependencies etc, then the container will need to be rebuilt: `Dev Containers: Rebuild container` (slow). It should also be possible to just reinstall the project to get the new dependencies (fast): `pip install --editable ".[dev]"`.
+
+### Local Install
+
 The following assume the terminal is in the root directory of the package.
 
   1. Create a virtual environment
@@ -17,10 +29,6 @@ The following assume the terminal is in the root directory of the package.
   The package uses `setuptools` and is configured in `pyproject.toml`. If a new dependency is required (added), then please update the `pyproject.toml` file accordingly so that the install brings it down as expected. All of the `pre-commit` hooks are defined in the `.pre-commit-config.yaml`. Please update as needed. It currently uses `ruff` for linting and formatting. It uses `mypy` for static typechecking.
 
   If using the `mypy` vscode extension, then it is necessary to point the executable path to `.venv/bin/dmypy` for it to work correctly.
-
-### Docker Container
-
-There is an available container that `vscode` is able to recognize and open. In the command pallette `Python: create virtual environment` will create the virtual environment, and it will install the `dev` dependencies automatically as part of the configuration.
 
 ## Generating ANTLR Stuff
 
