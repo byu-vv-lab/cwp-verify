@@ -1,12 +1,14 @@
 from antlr4.error.ErrorStrategy import ParseCancellationException
 from pytest import raises, fail, fixture
 from returns.pipeline import is_successful
-from returns.result import Result
+from returns.result import Result, Success
+from returns.functions import not_
+
 from typing import Iterable
 
 from bpmncwpverify.antlr.StateParser import StateParser
 from bpmncwpverify.error import Error, StateSyntaxError
-from bpmncwpverify.state import _get_parser, _parse_state
+from bpmncwpverify.state import _get_parser, _parse_state, SymbolTable
 
 
 @fixture(scope="module")
@@ -96,3 +98,45 @@ class Test_parse_state:
 
         # then
         assert is_successful(result)
+
+
+# TODO:
+#   * Add tests for failed enum declarations
+class Test_SymbolTable_build:
+    def test_given_good_input_when_build_then_success(self, good_input: str):
+        # given
+        # good_input
+
+        # when
+        result = SymbolTable.build(good_input)
+
+        # then
+        assert is_successful(result)
+
+    def test_given_bad_input_when_build_then_failure(self, bad_input: str):
+        # given
+        # bad_input
+
+        # when
+        result = SymbolTable.build(bad_input)
+
+        # then
+        assert not_(is_successful)(result)
+
+    def test_given_good_input_when_build_then_declared_enum_have_types(
+        self, good_input: str
+    ):
+        # given
+        # good_input
+
+        # when
+        result = SymbolTable.build(good_input)
+
+        # then
+        assert is_successful(result)
+        symbol_table = result.unwrap()
+        expected_type = Success("MyEnum")
+        assert expected_type == symbol_table.get_type("a")
+        assert expected_type == symbol_table.get_type("b")
+        assert expected_type == symbol_table.get_type("c")
+        assert expected_type == symbol_table.get_type("d")

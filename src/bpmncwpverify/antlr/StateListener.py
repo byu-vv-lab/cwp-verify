@@ -17,21 +17,30 @@ class StateListener(ParseTreeListener):
         pass
 
 
-    # Enter a parse tree produced by StateParser#const_var_decl.
-    def enterConst_var_decl(self, ctx:StateParser.Const_var_declContext):
-        pass
-
-    # Exit a parse tree produced by StateParser#const_var_decl.
-    def exitConst_var_decl(self, ctx:StateParser.Const_var_declContext):
-        pass
-
-
     # Enter a parse tree produced by StateParser#enum_type_decl.
     def enterEnum_type_decl(self, ctx:StateParser.Enum_type_declContext):
         pass
 
     # Exit a parse tree produced by StateParser#enum_type_decl.
     def exitEnum_type_decl(self, ctx:StateParser.Enum_type_declContext):
+        pass
+
+
+    # Enter a parse tree produced by StateParser#id_set.
+    def enterId_set(self, ctx:StateParser.Id_setContext):
+        pass
+
+    # Exit a parse tree produced by StateParser#id_set.
+    def exitId_set(self, ctx:StateParser.Id_setContext):
+        pass
+
+
+    # Enter a parse tree produced by StateParser#const_var_decl.
+    def enterConst_var_decl(self, ctx:StateParser.Const_var_declContext):
+        pass
+
+    # Exit a parse tree produced by StateParser#const_var_decl.
+    def exitConst_var_decl(self, ctx:StateParser.Const_var_declContext):
         pass
 
 

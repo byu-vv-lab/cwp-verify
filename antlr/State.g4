@@ -5,7 +5,11 @@ state
   ;
 
 enum_type_decl
-  : ENUM ID LCURLY (ID)+ RCURLY
+  : ENUM ID LCURLY id_set RCURLY
+  ;
+
+id_set
+  : (ID)+
   ;
 
 const_var_decl
@@ -13,7 +17,7 @@ const_var_decl
   ;
 
 var_decl
-  : VAR ID COLON ID EQUALS ID (LCURLY (ID)+ RCURLY)?
+  : VAR ID COLON ID EQUALS ID (LCURLY id_set RCURLY)?
   ;
 
 // ---------------------------------------------------------------------------
