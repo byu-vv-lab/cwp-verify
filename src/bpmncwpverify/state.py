@@ -67,42 +67,29 @@ class SymbolTable:
         def _add_error(self, error: Error) -> None:
             self._errors.append(error)
 
-        def exitEnum_type_decl(self, ctx: StateParser.Enum_type_declContext):
-            id_ctx: TerminalNode = ctx.ID()
-            id: str = id_ctx.getText()
-            symbol: Token = id_ctx.getSymbol()
-
+        def _add_definition(self, id: str, line: int, column: int) -> None:
             if id in self._first_def:
                 prev_line = self._first_def[id][0]
                 prev_column = self._first_def[id][1]
                 self._add_error(
                     StateMultipleDefinitionError(
-                        id, symbol.line, symbol.column, prev_line, prev_column
+                        id, line, column, prev_line, prev_column
                     )
                 )
             else:
-                self._first_def[id] = (symbol.line, symbol.column)
+                self._first_def[id] = (line, column)
 
-            values: set[str] = set()
-            for i in ctx.id_set().getChildren():
-                value = i.getText()
-                value_symbol: Token = i.getSymbol()
-                if value in self._first_def:
-                    value_prev_line = self._first_def[value][0]
-                    value_prev_column = self._first_def[value][1]
-                    self._add_error(
-                        StateMultipleDefinitionError(
-                            value,
-                            value_symbol.line,
-                            value_symbol.column,
-                            value_prev_line,
-                            value_prev_column,
-                        )
-                    )
-                else:
-                    self._first_def[value] = (value_symbol.line, value_symbol.column)
-                values.add(value)
+        def exitEnum_type_decl(self, ctx: StateParser.Enum_type_declContext):
+            def get_id_and_add_definition(id_node: TerminalNode) -> str:
+                id: str = id_node.getText()
+                symbol: Token = id_node.getSymbol()
+                self._add_definition(id, symbol.line, symbol.column)
+                return id
 
+            id: str = get_id_and_add_definition(ctx.ID())
+            values: set[str] = {
+                get_id_and_add_definition(i) for i in ctx.id_set().getChildren()
+            }
             self._symbol_table._add_enum_type_decl(id, values)
 
     def __init__(self) -> None:

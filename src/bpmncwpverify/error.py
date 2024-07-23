@@ -2,11 +2,13 @@
 
 
 class Error:
+    __slots__ = ()
+
     def __init__(self) -> None:
         pass
 
 
-class NotImplementedError:
+class NotImplementedError(Error):
     def __init__(self) -> None:
         super().__init__()
 
