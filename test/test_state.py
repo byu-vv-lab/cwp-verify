@@ -7,7 +7,12 @@ from returns.functions import not_
 from typing import Iterable
 
 from bpmncwpverify.antlr.StateParser import StateParser
-from bpmncwpverify.error import Error, StateSyntaxError
+from bpmncwpverify.error import (
+    Error,
+    Errors,
+    StateSyntaxError,
+    StateMultipleDefinitionError,
+)
 from bpmncwpverify.state import _get_parser, _parse_state, SymbolTable
 
 
@@ -140,3 +145,84 @@ class Test_SymbolTable_build:
         assert expected_type == symbol_table.get_type("b")
         assert expected_type == symbol_table.get_type("c")
         assert expected_type == symbol_table.get_type("d")
+
+    @fixture(scope="class")
+    def bad_multi_defined_enum_val(self) -> Iterable[str]:
+        yield "enum E {e e} var i : E = a {a}"
+
+    def test_given_bad_multi_defined_enum_val_when_build_then_Errors(
+        self, bad_multi_defined_enum_val
+    ):
+        # given
+        # multi_defined_enum
+
+        # when
+        result = SymbolTable.build(bad_multi_defined_enum_val)
+
+        # then
+        assert not_(is_successful)(result)
+        errors: Error = result.failure()
+        assert type(errors) is Errors
+        assert len(errors.errors) == 1
+
+        expected = StateMultipleDefinitionError("e", 1, 10, 1, 8)
+        error: Error = errors.errors[0]
+        assert expected == error
+
+    @fixture(scope="class")
+    def bad_multi_defined_enum_id(self) -> Iterable[str]:
+        yield "enum E {e} enum E {f} var i : E = a {a}"
+
+    def test_given_bad_multi_defined_enum_id_when_build_then_Errors(
+        self, bad_multi_defined_enum_id
+    ):
+        # given
+        # multi_defined_enum
+
+        # when
+        result = SymbolTable.build(bad_multi_defined_enum_id)
+
+        # then
+        assert not_(is_successful)(result)
+        errors: Error = result.failure()
+        assert type(errors) is Errors
+        assert len(errors.errors) == 1
+
+        expected = StateMultipleDefinitionError("E", 1, 16, 1, 5)
+        error: Error = errors.errors[0]
+        assert expected == error
+
+    @fixture(scope="class")
+    def bad_multi_defined_enum(self) -> Iterable[str]:
+        yield "enum E {e f} enum E {e g} enum E {e h} var i : E = a {a}"
+
+    def test_given_bad_multi_defined_enum_when_build_then_Errors(
+        self, bad_multi_defined_enum
+    ):
+        # given
+        # multi_defined_enum
+
+        # when
+        result = SymbolTable.build(bad_multi_defined_enum)
+
+        # then
+        assert not_(is_successful)(result)
+        errors: Error = result.failure()
+        assert type(errors) is Errors
+        assert len(errors.errors) == 4
+
+        expected: Error = StateMultipleDefinitionError("E", 1, 18, 1, 5)
+        error: Error = errors.errors[0]
+        assert expected == error
+
+        expected = StateMultipleDefinitionError("e", 1, 21, 1, 8)
+        error = errors.errors[1]
+        assert expected == error
+
+        expected = StateMultipleDefinitionError("E", 1, 31, 1, 5)
+        error = errors.errors[2]
+        assert expected == error
+
+        expected = StateMultipleDefinitionError("e", 1, 34, 1, 8)
+        error = errors.errors[3]
+        assert expected == error
