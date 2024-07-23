@@ -53,5 +53,23 @@ class StateListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by StateParser#type.
+    def enterType(self, ctx:StateParser.TypeContext):
+        pass
+
+    # Exit a parse tree produced by StateParser#type.
+    def exitType(self, ctx:StateParser.TypeContext):
+        pass
+
+
+    # Enter a parse tree produced by StateParser#primitive_type.
+    def enterPrimitive_type(self, ctx:StateParser.Primitive_typeContext):
+        pass
+
+    # Exit a parse tree produced by StateParser#primitive_type.
+    def exitPrimitive_type(self, ctx:StateParser.Primitive_typeContext):
+        pass
+
+
 
 del StateParser

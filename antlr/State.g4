@@ -13,11 +13,24 @@ id_set
   ;
 
 const_var_decl
-  : CONST ID COLON ID EQUALS ID
+  : CONST ID COLON type EQUALS ID
   ;
 
 var_decl
-  : VAR ID COLON ID EQUALS ID (LCURLY id_set RCURLY)?
+  : VAR ID COLON type EQUALS ID (LCURLY id_set RCURLY)?
+  ;
+
+type
+  : primitive_type
+  | ID
+  ;
+
+primitive_type
+  : BIT
+  | BOOL
+  | BYTE
+  | INT
+  | SHORT
   ;
 
 // ---------------------------------------------------------------------------
@@ -28,12 +41,32 @@ COLON
   : ':'
   ;
 
+BIT
+  : 'bit'
+  ;
+
+BOOL
+  : 'bool'
+  ;
+
+BYTE
+  : 'byte'
+  ;
+
 CONST
   : 'const'
   ;
 
 ENUM
   : 'enum'
+  ;
+
+INT
+  : 'int'
+  ;
+
+SHORT
+  : 'short'
   ;
 
 EQUALS

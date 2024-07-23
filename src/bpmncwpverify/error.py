@@ -21,20 +21,13 @@ class Errors(Error):
         self.errors = errors
 
 
-class StateSyntaxError(Error):
-    __slots__ = "msg"
+class StateAssignmentCompatibleError(Error):
+    __slots__ = ("ltype", "rtype")
 
-    def __init__(self, msg: str) -> None:
-        self.msg = msg
+    def __init__(self, ltype: str, rtype) -> None:
         super().__init__()
-
-
-class StateUnknownTypeError(Error):
-    __slots__ = "id"
-
-    def __init__(self, id: str) -> None:
-        super().__init__()
-        self.id = id
+        self.ltype = ltype
+        self.rtype = rtype
 
 
 class StateMultipleDefinitionError(Error):
@@ -61,4 +54,47 @@ class StateMultipleDefinitionError(Error):
                 and self.prev_line == other.prev_line
                 and self.prev_column == other.prev_column
             )
+        return False
+
+
+class StateSyntaxError(Error):
+    __slots__ = "msg"
+
+    def __init__(self, msg: str) -> None:
+        self.msg = msg
+        super().__init__()
+
+
+class StateUnknownTypeError(Error):
+    __slots__ = "id"
+
+    def __init__(self, id: str) -> None:
+        super().__init__()
+        self.id = id
+
+
+class TypingAssignCompatabilityError(Error):
+    __slots__ = ("type", "init")
+
+    def __init__(self, type: str, init: str) -> None:
+        super().__init__()
+        self.type = type
+        self.init = init
+
+    def __eq__(self, other) -> bool:
+        if isinstance(other, TypingAssignCompatabilityError):
+            return self.type == other.type and self.init == other.init
+        return False
+
+
+class TypingNoTypeError(Error):
+    __slots__ = "literal"
+
+    def __init__(self, literal: str) -> None:
+        super().__init__()
+        self.literal = literal
+
+    def __eq__(self, other) -> bool:
+        if isinstance(other, TypingNoTypeError):
+            return self.literal == other.literal
         return False

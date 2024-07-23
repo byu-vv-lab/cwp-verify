@@ -4,7 +4,7 @@ from antlr4.error.ErrorListener import ConsoleErrorListener, ErrorListener
 from antlr4.tree.Tree import TerminalNode
 from antlr4.Token import Token
 
-from returns.result import safe, Failure, Result, Success
+from returns.result import Failure, Result, Success
 from returns.pipeline import flow, is_successful
 from returns.pointfree import bind_result
 
@@ -17,9 +17,10 @@ from bpmncwpverify.antlr.StateListener import StateListener
 from bpmncwpverify.error import (
     Error,
     Errors,
+    StateAssignmentCompatibleError,
+    StateMultipleDefinitionError,
     StateSyntaxError,
     StateUnknownTypeError,
-    StateMultipleDefinitionError,
 )
 
 # TODO:
@@ -30,105 +31,8 @@ from bpmncwpverify.error import (
 #   * ~Track where the symbol was previously defined and include that information in the Error class (add map in Symbol table to track where things are defined)
 #   * ~Rework 'is_defined' to use 'get_type' with 'is_successul'~
 #   * ~Rename things to be more sensible (StateDefinedError etc.)~
-#   * Test __slot__ attribute for errors when using undefined slots
-#   * Create methods for the multiple definition checks etc. (make it more modular)
-
-
-class SymbolTable:
-    __slots__ = ["_enums", "_id2type"]
-
-    PRIMITIVES: Final[set[str]] = {
-        "BIT",
-        "BOOL",
-        "BYTE",
-        "ENUM",
-        "INT",
-        "SHORT",
-    }
-
-    # maps the enum ID to the values for the enum
-    # _enums: dict[str, set[str]]
-
-    # consts: dict[str, (str, str)]
-    # vars: dict[str, (str, set[str])]
-
-    # maps an ID to a type
-    # _id2type: dict[str, str]
-
-    class _Listener(StateListener):
-        __slots__ = ["_errors", "_first_def", "_symbol_table"]
-
-        def __init__(self) -> None:
-            super().__init__()
-            self._errors: list[Error] = []
-            self._first_def: dict[str, Tuple[int, int]] = dict()
-            self._symbol_table: "SymbolTable" = SymbolTable()
-
-        def _add_error(self, error: Error) -> None:
-            self._errors.append(error)
-
-        def _add_definition(self, id: str, line: int, column: int) -> None:
-            if id in self._first_def:
-                prev_line = self._first_def[id][0]
-                prev_column = self._first_def[id][1]
-                self._add_error(
-                    StateMultipleDefinitionError(
-                        id, line, column, prev_line, prev_column
-                    )
-                )
-            else:
-                self._first_def[id] = (line, column)
-
-        def exitEnum_type_decl(self, ctx: StateParser.Enum_type_declContext):
-            def get_id_and_add_definition(id_node: TerminalNode) -> str:
-                id: str = id_node.getText()
-                symbol: Token = id_node.getSymbol()
-                self._add_definition(id, symbol.line, symbol.column)
-                return id
-
-            id: str = get_id_and_add_definition(ctx.ID())
-            values: set[str] = {
-                get_id_and_add_definition(i) for i in ctx.id_set().getChildren()
-            }
-            self._symbol_table._add_enum_type_decl(id, values)
-
-    def __init__(self) -> None:
-        self._enums: dict[str, set[str]] = dict()
-        self._id2type: dict[str, str] = dict()
-
-    def _add_enum_type_decl(self, id: str, values: set[str]) -> None:
-        self._enums[id] = values
-        self._id2type[id] = "ENUM"
-
-        for v in values:
-            self._id2type[v] = id
-
-    def _build(self, context: StateParser.StateContext) -> Result["SymbolTable", Error]:
-        listener = SymbolTable._Listener()
-        ParseTreeWalker.DEFAULT.walk(listener, context)
-        if len(listener._errors) == 0:
-            return Success(listener._symbol_table)
-        return Failure(Errors(listener._errors))
-
-    def get_type(self, id: str) -> Result[str, Error]:
-        if id in self._id2type:
-            return Success(self._id2type[id])
-        return Failure(StateUnknownTypeError(id))
-
-    def is_defined(self, id) -> bool:
-        return is_successful(self.get_type(id))
-
-    @staticmethod
-    def build(state_def: str) -> Result["SymbolTable", Error]:
-        symbol_table = SymbolTable()
-
-        result: Result["SymbolTable", Error] = flow(
-            state_def,
-            _get_parser,
-            bind_result(_parse_state),
-            bind_result(symbol_table._build),
-        )
-        return result
+#   * ~Test __slot__ attribute for errors when using undefined slots~
+#   * ~Create methods for the multiple definition checks etc. (make it more modular)~
 
 
 class ThrowingErrorListener(ErrorListener):
@@ -160,27 +64,116 @@ def _parse_state(parser: StateParser) -> Result[StateParser.StateContext, Error]
         return Failure(failure_value)
 
 
-@safe
-def _get_symbol_table(context):
-    print(context)
-    return context
+class SymbolTable:
+    __slots__ = ["_consts", "_enums", "_id2type"]
 
+    PRIMITIVES: Final[set[str]] = {
+        "BIT",
+        "BOOL",
+        "BYTE",
+        "ENUM",
+        "INT",
+        "SHORT",
+    }
 
-@safe
-def get_symbol_table(file_contents: str):
-    pass
-    # input_stream = InputStream(file_contents)
-    # lexer = StateLexer(input_stream)
-    # stream = CommonTokenStream(lexer)
-    # parser = StateParser(stream)
-    # parser: StateParser = _get_parser(str)
+    class _Listener(StateListener):
+        __slots__ = ["_errors", "_first_def", "_symbol_table"]
 
-    # tree = flow(parser, _parse_state, bind_result(_get_symbol_table))
+        def __init__(self) -> None:
+            super().__init__()
+            self._errors: list[Error] = []
+            self._first_def: dict[str, Tuple[int, int]] = dict()
+            self._symbol_table: "SymbolTable" = SymbolTable()
 
-    # print(tree)
-    # # input_stream = InputStream(file_contents)
-    # lexer = StateLexer(input_stream)
-    # stream = CommonTokenStream(lexer)
-    # parser = StateParser(stream)
-    # tree = parser.state()
-    # return tree
+        def _add_definition(self, id: str, line: int, column: int) -> None:
+            if id in self._first_def:
+                prev_line = self._first_def[id][0]
+                prev_column = self._first_def[id][1]
+                self._errors.append(
+                    StateMultipleDefinitionError(
+                        id, line, column, prev_line, prev_column
+                    )
+                )
+            else:
+                self._first_def[id] = (line, column)
+
+        def exitEnum_type_decl(self, ctx: StateParser.Enum_type_declContext):
+            def get_id_and_add_definition(id_node: TerminalNode) -> str:
+                id: str = id_node.getText()
+                symbol: Token = id_node.getSymbol()
+                self._add_definition(id, symbol.line, symbol.column)
+                return id
+
+            id: str = get_id_and_add_definition(ctx.ID())
+            values: set[str] = {
+                get_id_and_add_definition(i) for i in ctx.id_set().getChildren()
+            }
+            self._symbol_table._add_enum_type_decl(id, values)
+
+    def __init__(self) -> None:
+        self._consts: dict[str, Tuple[str, str]] = dict()
+        self._enums: dict[str, set[str]] = dict()
+        self._id2type: dict[str, str] = dict()
+
+    def _add_enum_type_decl(self, id: str, values: set[str]) -> None:
+        # requires
+        assert id not in self._id2type and id not in self._enums
+        for i in values:
+            assert i not in self._id2type
+
+        self._enums[id] = values
+        self._id2type[id] = "ENUM"
+
+        for v in values:
+            self._id2type[v] = id
+
+    def _add_const_decl(self, id: str, type: str, init: str) -> Error:
+        # requires
+        assert id not in self._id2type and id not in self._consts
+
+    def _type_check_init(self, type: str, init: str) -> Result[Tuple, Error]:
+        result: Result[Tuple, Error] = Failure(NotImplementedError())
+        match type:
+            case "bit":
+                if init == "0" or init == "1":
+                    result = Success(())
+                else:
+                    result = Failure(StateAssignmentCompatibleError(type, init))
+            case "bool":
+                pass
+            case "byte":
+                pass
+            case "int":
+                pass
+            case "short":
+                pass
+            case _:
+                pass
+        return result
+
+    def _build(self, context: StateParser.StateContext) -> Result["SymbolTable", Error]:
+        listener = SymbolTable._Listener()
+        ParseTreeWalker.DEFAULT.walk(listener, context)
+        if len(listener._errors) == 0:
+            return Success(listener._symbol_table)
+        return Failure(Errors(listener._errors))
+
+    def get_type(self, id: str) -> Result[str, Error]:
+        if id in self._id2type:
+            return Success(self._id2type[id])
+        return Failure(StateUnknownTypeError(id))
+
+    def is_defined(self, id) -> bool:
+        return is_successful(self.get_type(id))
+
+    @staticmethod
+    def build(state_def: str) -> Result["SymbolTable", Error]:
+        symbol_table = SymbolTable()
+
+        result: Result["SymbolTable", Error] = flow(
+            state_def,
+            _get_parser,
+            bind_result(_parse_state),
+            bind_result(symbol_table._build),
+        )
+        return result

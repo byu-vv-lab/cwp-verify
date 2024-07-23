@@ -13,6 +13,7 @@ from bpmncwpverify.error import (
     StateSyntaxError,
     StateMultipleDefinitionError,
 )
+
 from bpmncwpverify.state import _get_parser, _parse_state, SymbolTable
 
 
@@ -226,3 +227,23 @@ class Test_SymbolTable_build:
         expected = StateMultipleDefinitionError("e", 1, 34, 1, 8)
         error = errors.errors[3]
         assert expected == error
+
+    @fixture(scope="class")
+    def good_const_bit(self) -> Iterable[str]:
+        yield "const a: bit = 0 var i : E = a {a}"
+
+    def test_given_good_const_bit_when_build_then_defined(self, good_const_bit):
+        # given
+        # good_const_bit
+
+        # when
+        result = result = SymbolTable.build(good_const_bit)
+
+        # then
+        assert is_successful(result)
+        symbol_table = result.unwrap()
+        expected_type = Success("bit")
+        assert expected_type == symbol_table.get_type("a")
+        assert "a" in symbol_table._consts
+        expected_value = ("bit", "0")
+        assert expected_value == symbol_table._consts["a"]
