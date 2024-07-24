@@ -35,12 +35,13 @@ def get_type_assign(ltype: str, rtype: str) -> Result[str, TypingNoTypeError]:
 
 
 def get_type_literal(literal: str) -> Result[str, TypingNoTypeError]:
-    if literal == "0" or literal == "1":
-        return Success(BIT)
-    elif literal == "false" or literal == "true":
+    if literal == "false" or literal == "true":
         return Success(BOOL)
+
     try:
         value: int = int(literal)
+        if value == 0 or value == 1:
+            return Success(BIT)
         if BYTEMIN <= value and value <= BYTEMAX:
             return Success(BYTE)
         elif SHORTMIN <= value and value <= SHORTMAX:

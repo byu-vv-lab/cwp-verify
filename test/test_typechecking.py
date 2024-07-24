@@ -1,102 +1,112 @@
 from returns.result import Failure, Success
 
+import pytest
+
 from bpmncwpverify.error import TypingNoTypeError, TypingAssignCompatabilityError
 
-from bpmncwpverify.typechecking import BIT, BOOL, get_type_assign, get_type_literal
+from bpmncwpverify.typechecking import (
+    BIT,
+    BOOL,
+    BYTE,
+    SHORT,
+    INT,
+    get_type_assign,
+    get_type_literal,
+)
 
 
-# TODO
-# * Convert the tests to use a yielding fixture for the inputs (or a parameterized fixture)
 class Test_get_type_assign:
-    def test_given_good_assign_bit_then_success(self):
+    @pytest.mark.parametrize(
+        "ltype, rtype, expected_type",
+        [
+            ("a", "a", "a"),
+            (BIT, BIT, BIT),
+            (BOOL, BOOL, BOOL),
+            (BYTE, BIT, BYTE),
+            (SHORT, BYTE, SHORT),
+            (INT, SHORT, INT),
+            (INT, BYTE, INT),
+        ],
+    )
+    def test_given_good_assign_then_success(
+        self, ltype: str, rtype: str, expected_type: str
+    ):
         # givin
-        type = BIT
+        # ltype, rtype
 
         # when
-        result = get_type_assign(type, type)
+        result = get_type_assign(ltype, rtype)
 
         # then
-        expected = Success(type)
+        expected = Success(expected_type)
         assert expected == result
 
-    def test_given_bad_assign_bit_then_failure(self):
+    @pytest.mark.parametrize(
+        "ltype, rtype",
+        [
+            ("a", "b"),
+            (BIT, BYTE),
+            (SHORT, INT),
+            (BOOL, BIT),
+            (BIT, BOOL),
+        ],
+    )
+    def test_given_bad_assign_then_failure(self, ltype: str, rtype: str):
         # givin
-        type = BIT
+        # ltype, rtype
 
         # when
-        result = get_type_assign(type, "a")
+        result = get_type_assign(ltype, rtype)
 
         # then
-        expected = Failure(TypingAssignCompatabilityError(type, "a"))
-        assert expected == result
-
-    def test_given_good_assign_bool_then_success(self):
-        # givin
-        type = BOOL
-
-        # when
-        result = get_type_assign(type, type)
-
-        # then
-        expected = Success(type)
-        assert expected == result
-
-    def test_given_bad_assign_bool_then_failure(self):
-        # givin
-        type = BOOL
-
-        # when
-        result = get_type_assign(type, "a")
-
-        # then
-        expected = Failure(TypingAssignCompatabilityError(type, "a"))
+        expected = Failure(TypingAssignCompatabilityError(ltype, rtype))
         assert expected == result
 
 
 class Test_get_type_literal:
-    def test_given_good_literal_bit_then_success(self):
+    @pytest.mark.parametrize(
+        "literal, expected_type",
+        [
+            ("00", BIT),
+            ("1", BIT),
+            ("false", BOOL),
+            ("true", BOOL),
+            ("2", BYTE),
+            ("255", BYTE),
+            ("256", SHORT),
+            ("-32769", INT),
+            ("32768", INT),
+            ("-2147483648", INT),
+            ("2147483647", INT),
+        ],
+    )
+    def test_given_good_literal_then_success(self, literal: str, expected_type: str):
         # givin
-        literal = "1"
+        # literal
 
         # when
         result = get_type_literal(literal)
 
         # then
-        expected = Success(BIT)
+        expected = Success(expected_type)
         assert expected == result
 
-    def test_given_bad_literal_bit_then_failure(self):
+    @pytest.mark.parametrize(
+        "literal",
+        [
+            ("False"),
+            ("True"),
+            ("-2147483649"),
+            ("2147483648"),
+        ],
+    )
+    def test_given_bad_literal_then_failure(self, literal: str):
         # givin
-        literal = "a"
+        literal = literal
 
         # when
         result = get_type_literal(literal)
 
         # then
-        expected = Failure(TypingNoTypeError("a"))
+        expected = Failure(TypingNoTypeError(literal))
         assert expected == result
-
-    def test_given_good_literal_bool_then_success(self):
-        # givin
-        literal = "false"
-
-        # when
-        result = get_type_literal(literal)
-
-        # then
-        expected = Success(BOOL)
-        assert expected == result
-
-    def test_given_bad_literal_bool_then_failure(self):
-        # givin
-        literal = "a"
-
-        # when
-        result = get_type_literal(literal)
-
-        # then
-        expected = Failure(TypingNoTypeError("a"))
-        assert expected == result
-
-    def test_given_good_literal_byte_then_success(self):
-        pass
