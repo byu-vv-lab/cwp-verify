@@ -13,14 +13,6 @@ class NotImplementedError(Error):
         super().__init__()
 
 
-class Errors(Error):
-    _slots__ = "errors"
-
-    def __init__(self, errors: list[Error]) -> None:
-        super().__init__()
-        self.errors = errors
-
-
 class StateAssignmentCompatibleError(Error):
     __slots__ = ("ltype", "rtype")
 

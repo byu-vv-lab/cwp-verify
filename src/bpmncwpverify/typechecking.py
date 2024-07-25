@@ -11,6 +11,7 @@ from bpmncwpverify.error import (
 BIT: Final[str] = "bit"
 BOOL: Final[str] = "bool"
 BYTE: Final[str] = "byte"
+ENUM: Final[str] = "enum"
 SHORT: Final[str] = "short"
 INT: Final[str] = "int"
 
