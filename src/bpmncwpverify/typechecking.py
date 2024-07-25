@@ -45,29 +45,10 @@ def get_type_literal(literal: str) -> Result[str, TypingNoTypeError]:
             return Success(BIT)
         if BYTEMIN <= value and value <= BYTEMAX:
             return Success(BYTE)
-        elif SHORTMIN <= value and value <= SHORTMAX:
+        if SHORTMIN <= value and value <= SHORTMAX:
             return Success(SHORT)
-        elif INTMIN <= value and value <= INTMAX:
+        if INTMIN <= value and value <= INTMAX:
             return Success(INT)
-    except ValueError:
-        pass
-
-    return Failure(TypingNoTypeError(literal))
-
-
-# class Type:
-#     __slots__ = ()
-
-#     def __init__(self) -> None:
-#         pass
-
-#     def check_init_compatible(init: str) -> Result[Tuple, TypingInitCompatabilityError]:
-#         pass
-
-# class Bit:
-#     text: Final[str] = "bit"
-
-#     def check_init_compatible(init: str) -> Result[Tuple, TypingInitCompatabilityError]:
-#         if init == "0" or init == "1":
-#             return Success(())
-#         return Failure(TypingInitCompatabilityError(Bit.text, init))
+        return Failure(TypingNoTypeError(literal))
+    except Exception:
+        return Failure(TypingNoTypeError(literal))

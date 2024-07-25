@@ -7,6 +7,7 @@ from antlr4.Token import Token
 from returns.result import Failure, Result, Success
 from returns.pipeline import flow, is_successful
 from returns.pointfree import bind_result
+from returns.functions import not_
 
 from typing import Tuple
 
@@ -106,7 +107,7 @@ class SymbolTable:
 
             id: str = get_id(self._first_def, ctx.ID(0))
             type_: str = ctx.type_().getText()
-            init: str = ctx.ID(1)
+            init: str = ctx.ID(1).getText()
 
             self._symbol_table._add_const_decl(id, type_, init)
 
@@ -157,7 +158,8 @@ class SymbolTable:
         self._vars[id] = (type, init, values)
         self._id2type[id] = type
 
-    def _build(self, context: StateParser.StateContext) -> Result["SymbolTable", Error]:
+    @staticmethod
+    def _build(context: StateParser.StateContext) -> Result["SymbolTable", Error]:
         listener = SymbolTable._Listener()
         try:
             ParseTreeWalker.DEFAULT.walk(listener, context)
@@ -167,6 +169,40 @@ class SymbolTable:
             assert len(exception.args) == 1
             error: Error = exception.args[0]
             return Failure(error)
+
+    @staticmethod
+    def _type_check_consts(symbol_table: "SymbolTable") -> Result["SymbolTable", Error]:
+        for key in symbol_table._consts:
+            type_, init = symbol_table._consts[key]
+            init_type: str = ""
+            match (symbol_table.get_type(init), typechecking.get_type_literal(init)):
+                case (Success(enum_type), Failure(_)):
+                    init_type = enum_type
+
+                case (Failure(_), Success(literal_type)):
+                    init_type = literal_type
+
+                case _:
+                    pass
+
+            result = typechecking.get_type_assign(type_, init_type)
+            if not_(is_successful)(result):
+                return Failure(result.failure())
+        return Success(symbol_table)
+
+    @staticmethod
+    def _type_check_vars(symbol_table: "SymbolTable") -> Result["SymbolTable", Error]:
+        return Failure(NotImplementedError)
+
+    @staticmethod
+    def _type_check(symbol_table: "SymbolTable") -> Result["SymbolTable", Error]:
+        result: Result["SymbolTable", Error] = flow(
+            symbol_table,
+            SymbolTable._type_check_consts,
+            # bind_result(SymbolTable._type_check_vars),
+        )
+
+        return result
 
     def get_type(self, id: str) -> Result[str, Error]:
         if id in self._id2type:
@@ -178,13 +214,11 @@ class SymbolTable:
 
     @staticmethod
     def build(state_def: str) -> Result["SymbolTable", Error]:
-        symbol_table = SymbolTable()
-
         result: Result["SymbolTable", Error] = flow(
             state_def,
             _get_parser,
             bind_result(_parse_state),
-            bind_result(symbol_table._build),
-            # Add type-check...
+            bind_result(SymbolTable._build),
+            bind_result(SymbolTable._type_check),
         )
         return result

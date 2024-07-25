@@ -13,15 +13,6 @@ class NotImplementedError(Error):
         super().__init__()
 
 
-class StateAssignmentCompatibleError(Error):
-    __slots__ = ("ltype", "rtype")
-
-    def __init__(self, ltype: str, rtype) -> None:
-        super().__init__()
-        self.ltype = ltype
-        self.rtype = rtype
-
-
 class StateMultipleDefinitionError(Error):
     __slots__ = ("id", "line", "column", "prev_line", "prev_column")
 
