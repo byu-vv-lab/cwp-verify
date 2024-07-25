@@ -146,7 +146,7 @@ class Test_SymbolTable_build:
             ("enum A {b} const a: A = b var i : A = b {b}", [("a", "A")]),
             ("const a: bit = 0 var i : bit = 0 {0 1}", [("a", typechecking.BIT)]),
             (
-                "const a: bool = 0 var i : bool = true {true false}",
+                "const a: bool = false var i : bool = true {true false}",
                 [("a", typechecking.BOOL)],
             ),
             ("const a: byte = 0 var i : byte = 0 {0 5 9}", [("a", typechecking.BYTE)]),

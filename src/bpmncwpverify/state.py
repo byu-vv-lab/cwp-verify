@@ -8,6 +8,7 @@ from returns.result import Failure, Result, Success
 from returns.pipeline import flow, is_successful
 from returns.pointfree import bind_result
 from returns.functions import not_
+from returns.curry import partial
 
 from typing import Tuple
 
@@ -91,14 +92,32 @@ class SymbolTable:
             )
             return id
 
+        @staticmethod
+        def _get_values(
+            definitions: dict[str, Tuple[int, int]], ctx: StateParser.Id_setContext
+        ) -> set[str]:
+            def get_id(i, j) -> str:
+                return SymbolTable._Listener._get_id_and_add_definition(i, j)
+
+            result: set[str] = (
+                {get_id(definitions, i) for i in ctx.getChildren()}
+                if ctx is not None
+                else set()
+            )
+
+            return result
+
         def exitEnum_type_decl(self, ctx: StateParser.Enum_type_declContext):
             def get_id(i, j):
                 return SymbolTable._Listener._get_id_and_add_definition(i, j)
 
             id: str = get_id(self._first_def, ctx.ID())
-            values: set[str] = {
-                get_id(self._first_def, i) for i in ctx.id_set().getChildren()
-            }
+            values: set[str] = (
+                {get_id(self._first_def, i) for i in ctx.id_set().getChildren()}
+                if ctx.id_set().getChildren() is not None
+                else set()
+            )
+
             self._symbol_table._add_enum_type_decl(id, values)
 
         def exitConst_var_decl(self, ctx: StateParser.Const_var_declContext):
@@ -120,9 +139,11 @@ class SymbolTable:
             init: str = ctx.ID(1)
 
             definitions: dict[str, Tuple[int, int]] = dict()
-            values: set[str] = {
-                get_id(definitions, i) for i in ctx.id_set().getChildren()
-            }
+            values: set[str] = (
+                {get_id(definitions, i) for i in ctx.id_set().getChildren()}
+                if ctx.id_set() is not None
+                else set()
+            )
 
             self._symbol_table._add_var_decl(id, type_, init, values)
 
@@ -172,20 +193,19 @@ class SymbolTable:
 
     @staticmethod
     def _type_check_consts(symbol_table: "SymbolTable") -> Result["SymbolTable", Error]:
+        def get_type_init(init: str) -> Result[str, Error]:
+            return (
+                symbol_table.get_type(init)
+                .bind(get_type_assign)
+                .lash(lambda e: typechecking.get_type_literal(e.id))
+            )
+
         for key in symbol_table._consts:
             type_, init = symbol_table._consts[key]
-            init_type: str = ""
-            match (symbol_table.get_type(init), typechecking.get_type_literal(init)):
-                case (Success(enum_type), Failure(_)):
-                    init_type = enum_type
-
-                case (Failure(_), Success(literal_type)):
-                    init_type = literal_type
-
-                case _:
-                    pass
-
-            result = typechecking.get_type_assign(type_, init_type)
+            get_type_assign = partial(typechecking.get_type_assign, type_)
+            result: Result[str, Error] = flow(
+                init, get_type_init, bind_result(get_type_assign)
+            )
             if not_(is_successful)(result):
                 return Failure(result.failure())
         return Success(symbol_table)
