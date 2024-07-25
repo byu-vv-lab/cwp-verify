@@ -143,7 +143,13 @@ class Test_SymbolTable_build:
                 "enum E {a b} var e : E = a {a b}",
                 [("E", typechecking.ENUM), ("a", "E"), ("b", "E")],
             ),
+            ("const a: A = 0 var i : E = a {a}", [("a", "A")]),
             ("const a: bit = 0 var i : E = a {a}", [("a", typechecking.BIT)]),
+            ("const a: bool = 0 var i : E = a {a}", [("a", typechecking.BOOL)]),
+            ("const a: byte = 0 var i : E = a {a}", [("a", typechecking.BYTE)]),
+            ("const a: short = 0 var i : E = a {a}", [("a", typechecking.SHORT)]),
+            ("const a: int = 0 var i : E = a {a}", [("a", typechecking.INT)]),
+            ("var i : int = 0 {0 1}", [("i", typechecking.INT)]),
         ],
     )
     def test_given_good_state_when_build_then_success(self, good_input, expected):
@@ -171,6 +177,14 @@ class Test_SymbolTable_build:
             (
                 "enum E {e} enum E {f} var i : E = a {a}",
                 StateMultipleDefinitionError("E", 1, 16, 1, 5),
+            ),
+            (
+                "enum E {e} const e : E = 0 var i : E = a {a}",
+                StateMultipleDefinitionError("e", 1, 17, 1, 8),
+            ),
+            (
+                "const e : int = 0 var e : int = 0 {0, 1}",
+                StateMultipleDefinitionError("e", 1, 22, 1, 6),
             ),
         ],
     )

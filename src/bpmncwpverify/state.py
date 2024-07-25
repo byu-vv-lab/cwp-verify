@@ -16,24 +16,12 @@ from bpmncwpverify.antlr.StateListener import StateListener
 
 from bpmncwpverify.error import (
     Error,
-    # Errors,
     StateMultipleDefinitionError,
     StateSyntaxError,
     StateUnknownTypeError,
 )
 
 from bpmncwpverify import typechecking
-
-# TODO:
-#   * ~Use the __slot__ attribute~
-#   * ~Figure out class member variable declaration~
-#   * Get rid of magic numbers
-#   * ~Group by private and public (rename the nested class and mark all methods private where possible)~
-#   * ~Track where the symbol was previously defined and include that information in the Error class (add map in Symbol table to track where things are defined)
-#   * ~Rework 'is_defined' to use 'get_type' with 'is_successul'~
-#   * ~Rename things to be more sensible (StateDefinedError etc.)~
-#   * ~Test __slot__ attribute for errors when using undefined slots~
-#   * ~Create methods for the multiple definition checks etc. (make it more modular)~
 
 
 class ThrowingErrorListener(ErrorListener):
@@ -66,53 +54,82 @@ def _parse_state(parser: StateParser) -> Result[StateParser.StateContext, Error]
 
 
 class SymbolTable:
-    __slots__ = ["_consts", "_enums", "_id2type"]
+    __slots__ = ["_consts", "_enums", "_id2type", "_vars"]
 
     class _Listener(StateListener):
-        __slots__ = ["_errors", "_first_def", "_symbol_table"]
+        __slots__ = ["_duplicates", "_first_def", "_symbol_table"]
 
         def __init__(self) -> None:
             super().__init__()
-            self._errors: list[Error] = []
+            self._duplicates: dict[str, Tuple[int, int]] = dict()
             self._first_def: dict[str, Tuple[int, int]] = dict()
             self._symbol_table: "SymbolTable" = SymbolTable()
 
-        def _add_definition(self, id: str, line: int, column: int) -> None:
-            if id in self._first_def:
-                prev_line = self._first_def[id][0]
-                prev_column = self._first_def[id][1]
+        @staticmethod
+        def _add_definition(
+            definitions: dict[str, Tuple[int, int]], id: str, line: int, column: int
+        ) -> None:
+            if id in definitions:
+                prev_line = definitions[id][0]
+                prev_column = definitions[id][1]
                 error = StateMultipleDefinitionError(
                     id, line, column, prev_line, prev_column
                 )
                 raise Exception(error)
-                # self._errors.append(
-                #     StateMultipleDefinitionError(
-                #         id, line, column, prev_line, prev_column
-                #     )
-                # )
             else:
-                self._first_def[id] = (line, column)
+                definitions[id] = (line, column)
 
-        def _get_id_and_add_definition(self, id_node: TerminalNode) -> str:
+        @staticmethod
+        def _get_id_and_add_definition(
+            definitions: dict[str, Tuple[int, int]], id_node: TerminalNode
+        ) -> str:
             id: str = id_node.getText()
             symbol: Token = id_node.getSymbol()
-            self._add_definition(id, symbol.line, symbol.column)
+            SymbolTable._Listener._add_definition(
+                definitions, id, symbol.line, symbol.column
+            )
             return id
 
         def exitEnum_type_decl(self, ctx: StateParser.Enum_type_declContext):
-            id: str = self._get_id_and_add_definition(ctx.ID())
+            def get_id(i, j):
+                return SymbolTable._Listener._get_id_and_add_definition(i, j)
+
+            id: str = get_id(self._first_def, ctx.ID())
             values: set[str] = {
-                self._get_id_and_add_definition(i) for i in ctx.id_set().getChildren()
+                get_id(self._first_def, i) for i in ctx.id_set().getChildren()
             }
             self._symbol_table._add_enum_type_decl(id, values)
 
         def exitConst_var_decl(self, ctx: StateParser.Const_var_declContext):
-            pass
+            def get_id(i, j):
+                return SymbolTable._Listener._get_id_and_add_definition(i, j)
+
+            id: str = get_id(self._first_def, ctx.ID(0))
+            type_: str = ctx.type_().getText()
+            init: str = ctx.ID(1)
+
+            self._symbol_table._add_const_decl(id, type_, init)
+
+        def exitVar_decl(self, ctx: StateParser.Var_declContext):
+            def get_id(i, j):
+                return SymbolTable._Listener._get_id_and_add_definition(i, j)
+
+            id: str = get_id(self._first_def, ctx.ID(0))
+            type_: str = ctx.type_().getText()
+            init: str = ctx.ID(1)
+
+            definitions: dict[str, Tuple[int, int]] = dict()
+            values: set[str] = {
+                get_id(definitions, i) for i in ctx.id_set().getChildren()
+            }
+
+            self._symbol_table._add_var_decl(id, type_, init, values)
 
     def __init__(self) -> None:
         self._consts: dict[str, Tuple[str, str]] = dict()
         self._enums: dict[str, set[str]] = dict()
         self._id2type: dict[str, str] = dict()
+        self._vars: dict[str, Tuple[str, str, set[str]]] = dict()
 
     def _add_enum_type_decl(self, id: str, values: set[str]) -> None:
         # requires
@@ -133,6 +150,13 @@ class SymbolTable:
         self._consts[id] = (type, init)
         self._id2type[id] = type
 
+    def _add_var_decl(self, id: str, type: str, init: str, values: set[str]) -> Error:
+        # requires
+        assert id not in self._id2type and id not in self._vars
+
+        self._vars[id] = (type, init, values)
+        self._id2type[id] = type
+
     def _build(self, context: StateParser.StateContext) -> Result["SymbolTable", Error]:
         listener = SymbolTable._Listener()
         try:
@@ -143,9 +167,6 @@ class SymbolTable:
             assert len(exception.args) == 1
             error: Error = exception.args[0]
             return Failure(error)
-        # if len(listener._errors) == 0:
-        #     return Success(listener._symbol_table)
-        # return Failure(Errors(listener._errors))
 
     def get_type(self, id: str) -> Result[str, Error]:
         if id in self._id2type:
