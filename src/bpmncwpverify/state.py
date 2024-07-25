@@ -96,9 +96,7 @@ class SymbolTable:
         def _get_values(
             definitions: dict[str, Tuple[int, int]], ctx: StateParser.Id_setContext
         ) -> set[str]:
-            def get_id(i, j) -> str:
-                return SymbolTable._Listener._get_id_and_add_definition(i, j)
-
+            get_id = SymbolTable._Listener._get_id_and_add_definition
             result: set[str] = (
                 {get_id(definitions, i) for i in ctx.getChildren()}
                 if ctx is not None
@@ -108,22 +106,16 @@ class SymbolTable:
             return result
 
         def exitEnum_type_decl(self, ctx: StateParser.Enum_type_declContext):
-            def get_id(i, j):
-                return SymbolTable._Listener._get_id_and_add_definition(i, j)
-
+            get_id = SymbolTable._Listener._get_id_and_add_definition
             id: str = get_id(self._first_def, ctx.ID())
-            values: set[str] = (
-                {get_id(self._first_def, i) for i in ctx.id_set().getChildren()}
-                if ctx.id_set().getChildren() is not None
-                else set()
+            values: set[str] = SymbolTable._Listener._get_values(
+                self._first_def, ctx.id_set()
             )
 
             self._symbol_table._add_enum_type_decl(id, values)
 
         def exitConst_var_decl(self, ctx: StateParser.Const_var_declContext):
-            def get_id(i, j):
-                return SymbolTable._Listener._get_id_and_add_definition(i, j)
-
+            get_id = SymbolTable._Listener._get_id_and_add_definition
             id: str = get_id(self._first_def, ctx.ID(0))
             type_: str = ctx.type_().getText()
             init: str = ctx.ID(1).getText()
@@ -131,18 +123,14 @@ class SymbolTable:
             self._symbol_table._add_const_decl(id, type_, init)
 
         def exitVar_decl(self, ctx: StateParser.Var_declContext):
-            def get_id(i, j):
-                return SymbolTable._Listener._get_id_and_add_definition(i, j)
-
+            get_id = SymbolTable._Listener._get_id_and_add_definition
             id: str = get_id(self._first_def, ctx.ID(0))
             type_: str = ctx.type_().getText()
             init: str = ctx.ID(1)
 
             definitions: dict[str, Tuple[int, int]] = dict()
-            values: set[str] = (
-                {get_id(definitions, i) for i in ctx.id_set().getChildren()}
-                if ctx.id_set() is not None
-                else set()
+            values: set[str] = SymbolTable._Listener._get_values(
+                definitions, ctx.id_set()
             )
 
             self._symbol_table._add_var_decl(id, type_, init, values)
