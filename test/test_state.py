@@ -11,7 +11,10 @@ from bpmncwpverify.antlr.StateParser import StateParser
 from bpmncwpverify.error import (
     Error,
     StateSyntaxError,
+    StateInitNotInValues,
     StateMultipleDefinitionError,
+    TypingNoTypeError,
+    TypingAssignCompatabilityError,
 )
 
 from bpmncwpverify.state import _get_parser, _parse_state, SymbolTable
@@ -25,7 +28,7 @@ def bad_input() -> Iterable[str]:
 
 @pytest.fixture(scope="module")
 def good_input() -> Iterable[str]:
-    yield "enum MyEnum {a b c d} const MYCONST : foo = 10 var myenum : MyEnum = a {b c d}"
+    yield "enum MyEnum {a b c d} const MYCONST : byte = 10 var myenum : MyEnum = a {a b c d}"
 
 
 class Test_get_parser:
@@ -132,10 +135,6 @@ class Test_SymbolTable_build:
         # then
         assert not_(is_successful)(result)
 
-    @pytest.fixture(scope="class")
-    def good_const_bit(self) -> Iterable[str]:
-        yield "const a: bit = 0 var i : E = a {a}"
-
     @pytest.mark.parametrize(
         "good_input, expected",
         [
@@ -176,6 +175,7 @@ class Test_SymbolTable_build:
     @pytest.mark.parametrize(
         "bad_input, expected",
         [
+            # Multiple Defnitionns
             (
                 "enum E {e e} var i : E = a {a}",
                 StateMultipleDefinitionError("e", 1, 10, 1, 8),
@@ -192,11 +192,52 @@ class Test_SymbolTable_build:
                 "const e : int = 0 var e : int = 0 {0, 1}",
                 StateMultipleDefinitionError("e", 1, 22, 1, 6),
             ),
+            # Bad const initializer
+            (
+                "enum E {e} const ECONST : E = a var i : int = 0",
+                TypingNoTypeError("a"),
+            ),
+            (
+                "enum E {e} const ECONST : E = true var i : int = 0",
+                TypingAssignCompatabilityError("E", typechecking.BOOL),
+            ),
+            (
+                "const C : bool = 0 var i : int = 0",
+                TypingAssignCompatabilityError(typechecking.BOOL, typechecking.BIT),
+            ),
+            (
+                "const C : int = true var i : int = 0",
+                TypingAssignCompatabilityError(typechecking.INT, typechecking.BOOL),
+            ),
+            (
+                "const C : bit = 2 var i : int = 0",
+                TypingAssignCompatabilityError(typechecking.BIT, typechecking.BYTE),
+            ),
+            # Bad var assigns
+            (
+                "enum E {e} var c : E = a",
+                TypingNoTypeError("a"),
+            ),
+            (
+                "enum E {e} var c : E = e {e, 0}",
+                TypingAssignCompatabilityError("E", typechecking.BIT),
+            ),
+            (
+                "var i : int = false",
+                TypingAssignCompatabilityError(typechecking.INT, typechecking.BOOL),
+            ),
+            (
+                "var i : bit = 2",
+                TypingAssignCompatabilityError(typechecking.BIT, typechecking.BYTE),
+            ),
+            # Var initial value not included in allowed values
+            (
+                "enum E {e f} var c : E = e {f}",
+                StateInitNotInValues("e", 1, 25, {"f"}),
+            ),
         ],
     )
-    def test_given_multiple_definitions_in_state_when_build_then_failure(
-        self, bad_input, expected
-    ):
+    def test_given_bad_state_when_build_then_failure(self, bad_input, expected):
         # given
         # bad, expected
 

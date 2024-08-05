@@ -10,7 +10,7 @@ from returns.pointfree import bind_result
 from returns.functions import not_
 from returns.curry import partial
 
-from typing import Tuple
+from typing import Tuple, Iterable
 
 from bpmncwpverify.antlr.StateLexer import StateLexer
 from bpmncwpverify.antlr.StateParser import StateParser
@@ -18,6 +18,7 @@ from bpmncwpverify.antlr.StateListener import StateListener
 
 from bpmncwpverify.error import (
     Error,
+    StateInitNotInValues,
     StateMultipleDefinitionError,
     StateSyntaxError,
     StateUnknownTypeError,
@@ -126,12 +127,18 @@ class SymbolTable:
             get_id = SymbolTable._Listener._get_id_and_add_definition
             id: str = get_id(self._first_def, ctx.ID(0))
             type_: str = ctx.type_().getText()
-            init: str = ctx.ID(1)
+            init_node: TerminalNode = ctx.ID(1)
+            init: str = init_node.getText()
 
             definitions: dict[str, Tuple[int, int]] = dict()
             values: set[str] = SymbolTable._Listener._get_values(
                 definitions, ctx.id_set()
             )
+
+            if len(values) != 0 and init not in values:
+                symbol: Token = init_node.getSymbol()
+                error = StateInitNotInValues(init, symbol.line, symbol.column, values)
+                raise Exception(error)
 
             self._symbol_table._add_var_decl(id, type_, init, values)
 
@@ -162,7 +169,11 @@ class SymbolTable:
 
     def _add_var_decl(self, id: str, type: str, init: str, values: set[str]) -> Error:
         # requires
-        assert id not in self._id2type and id not in self._vars
+        assert (
+            id not in self._id2type
+            and id not in self._vars
+            and (len(values) == 0 or init in values)
+        )
 
         self._vars[id] = (type, init, values)
         self._id2type[id] = type
@@ -180,34 +191,51 @@ class SymbolTable:
             return Failure(error)
 
     @staticmethod
-    def _type_check_consts(symbol_table: "SymbolTable") -> Result["SymbolTable", Error]:
-        def get_type_init(init: str) -> Result[str, Error]:
-            return (
-                symbol_table.get_type(init)
-                .bind(get_type_assign)
-                .lash(lambda e: typechecking.get_type_literal(e.id))
-            )
+    def _get_type_init(symbol_table: "SymbolTable", init: str) -> Result[str, Error]:
+        return symbol_table.get_type(init).lash(
+            lambda e: typechecking.get_type_literal(e.id)
+        )
 
+    @staticmethod
+    def _type_check_assigns(
+        symbol_table: "SymbolTable", ltype: str, values: Iterable[str]
+    ) -> Result[Tuple, Error]:
+        get_type_init = partial(SymbolTable._get_type_init, symbol_table)
+        get_type_assign = partial(typechecking.get_type_assign, ltype)
+        for i in values:
+            result: Result[str, Error] = flow(
+                i, get_type_init, bind_result(get_type_assign)
+            )
+            if not_(is_successful)(result):
+                return Failure(result.failure())
+        return Success(())
+
+    @staticmethod
+    def _type_check_consts(symbol_table: "SymbolTable") -> Result["SymbolTable", Error]:
+        type_check_assigns = partial(SymbolTable._type_check_assigns, symbol_table)
         for key in symbol_table._consts:
             type_, init = symbol_table._consts[key]
-            get_type_assign = partial(typechecking.get_type_assign, type_)
-            result: Result[str, Error] = flow(
-                init, get_type_init, bind_result(get_type_assign)
-            )
+            result = type_check_assigns(type_, [init])
             if not_(is_successful)(result):
                 return Failure(result.failure())
         return Success(symbol_table)
 
     @staticmethod
     def _type_check_vars(symbol_table: "SymbolTable") -> Result["SymbolTable", Error]:
-        return Failure(NotImplementedError)
+        type_check_assigns = partial(SymbolTable._type_check_assigns, symbol_table)
+        for key in symbol_table._vars:
+            type_, init, values = symbol_table._vars[key]
+            result = type_check_assigns(type_, {init}.union(values))
+            if not_(is_successful)(result):
+                return Failure(result.failure())
+        return Success(symbol_table)
 
     @staticmethod
     def _type_check(symbol_table: "SymbolTable") -> Result["SymbolTable", Error]:
         result: Result["SymbolTable", Error] = flow(
             symbol_table,
             SymbolTable._type_check_consts,
-            # bind_result(SymbolTable._type_check_vars),
+            bind_result(SymbolTable._type_check_vars),
         )
 
         return result

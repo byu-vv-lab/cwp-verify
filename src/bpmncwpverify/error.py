@@ -13,6 +13,27 @@ class NotImplementedError(Error):
         super().__init__()
 
 
+class StateInitNotInValues(Error):
+    __slots__ = ("id", "line", "column", "values")
+
+    def __init__(self, id: str, line: int, column: int, values: set[str]) -> None:
+        super().__init__()
+        self.id = (id,)
+        self.line = (line,)
+        self.column = column
+        self.values = values
+
+    def __eq__(self, other) -> bool:
+        if isinstance(other, StateInitNotInValues):
+            return (
+                self.id == other.id
+                and self.line == other.line
+                and self.column == other.column
+                and self.values == other.values
+            )
+        return False
+
+
 class StateMultipleDefinitionError(Error):
     __slots__ = ("id", "line", "column", "prev_line", "prev_column")
 
@@ -57,27 +78,27 @@ class StateUnknownTypeError(Error):
 
 
 class TypingAssignCompatabilityError(Error):
-    __slots__ = ("type", "init")
+    __slots__ = ("ltype", "rtype")
 
-    def __init__(self, type: str, init: str) -> None:
+    def __init__(self, ltype: str, rtype: str) -> None:
         super().__init__()
-        self.type = type
-        self.init = init
+        self.ltype = ltype
+        self.rtype = rtype
 
     def __eq__(self, other) -> bool:
         if isinstance(other, TypingAssignCompatabilityError):
-            return self.type == other.type and self.init == other.init
+            return self.ltype == other.ltype and self.rtype == other.rtype
         return False
 
 
 class TypingNoTypeError(Error):
-    __slots__ = "literal"
+    __slots__ = "id"
 
     def __init__(self, literal: str) -> None:
         super().__init__()
-        self.literal = literal
+        self.id = id
 
     def __eq__(self, other) -> bool:
         if isinstance(other, TypingNoTypeError):
-            return self.literal == other.literal
+            return self.id == other.id
         return False
