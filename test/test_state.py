@@ -1,22 +1,34 @@
+import pytest
+
 from antlr4.error.ErrorStrategy import ParseCancellationException
-from pytest import raises, fail, fixture
 from returns.pipeline import is_successful
 from returns.result import Result
+from returns.functions import not_
+
 from typing import Iterable
 
 from bpmncwpverify.antlr.StateParser import StateParser
-from bpmncwpverify.error import Error, StateSyntaxError
-from bpmncwpverify.state import _get_parser, _parse_state
+from bpmncwpverify.error import (
+    Error,
+    StateSyntaxError,
+    StateInitNotInValues,
+    StateMultipleDefinitionError,
+    TypingNoTypeError,
+    TypingAssignCompatabilityError,
+)
+
+from bpmncwpverify.state import _get_parser, _parse_state, SymbolTable
+from bpmncwpverify import typechecking
 
 
-@fixture(scope="module")
+@pytest.fixture(scope="module")
 def bad_input() -> Iterable[str]:
     yield "enum MyEnum {a b c d} const MYCONST : foo = 10 var myenum my : MyEnum = a {b c d}"
 
 
-@fixture(scope="module")
+@pytest.fixture(scope="module")
 def good_input() -> Iterable[str]:
-    yield "enum MyEnum {a b c d} const MYCONST : foo = 10 var myenum : MyEnum = a {b c d}"
+    yield "enum MyEnum {a b c d} const MYCONST : byte = 10 var myenum : MyEnum = a {a b c d}"
 
 
 class Test_get_parser:
@@ -29,7 +41,9 @@ class Test_get_parser:
         parser = parser_result.unwrap()
 
         # when
-        with raises(ParseCancellationException, match=r".* extraneous .*") as exception:
+        with pytest.raises(
+            ParseCancellationException, match=r".* extraneous .*"
+        ) as exception:
             _ = parser.state()
 
         # then
@@ -50,7 +64,7 @@ class Test_get_parser:
         try:
             tree = parser.state()
         except Exception as exception:
-            fail("ERROR: unexpected {}".format(exception))
+            pytest.fail("ERROR: unexpected {}".format(exception))
 
         # then
         assert 0 == parser.getNumberOfSyntaxErrors()
@@ -58,12 +72,12 @@ class Test_get_parser:
 
 
 class Test_parse_state:
-    @fixture(scope="class")
+    @pytest.fixture(scope="class")
     def bad_parser(self, bad_input):
         result = _get_parser(bad_input)
         yield result
 
-    @fixture(scope="class")
+    @pytest.fixture(scope="class")
     def good_parser(self, good_input):
         result = _get_parser(good_input)
         yield result
@@ -96,3 +110,141 @@ class Test_parse_state:
 
         # then
         assert is_successful(result)
+
+
+# TODO:
+#   * Add tests for failed enum declarations
+class Test_SymbolTable_build:
+    def test_given_good_input_when_build_then_success(self, good_input: str):
+        # given
+        # good_input
+
+        # when
+        result = SymbolTable.build(good_input)
+
+        # then
+        assert is_successful(result)
+
+    def test_given_bad_input_when_build_then_failure(self, bad_input: str):
+        # given
+        # bad_input
+
+        # when
+        result = SymbolTable.build(bad_input)
+
+        # then
+        assert not_(is_successful)(result)
+
+    @pytest.mark.parametrize(
+        "good_input, expected",
+        [
+            (
+                "enum E {a b} var e : E = a {a b}",
+                [("E", typechecking.ENUM), ("a", "E"), ("b", "E")],
+            ),
+            ("enum A {b} const a: A = b var i : A = b {b}", [("a", "A")]),
+            ("const a: bit = 0 var i : bit = 0 {0 1}", [("a", typechecking.BIT)]),
+            (
+                "const a: bool = false var i : bool = true {true false}",
+                [("a", typechecking.BOOL)],
+            ),
+            ("const a: byte = 0 var i : byte = 0 {0 5 9}", [("a", typechecking.BYTE)]),
+            (
+                "const a: short = 0 var i : short = 256 {0 1 256}",
+                [("a", typechecking.SHORT)],
+            ),
+            ("const a: int = 0 var i : int = 2", [("a", typechecking.INT)]),
+            ("var i : int = 0 {0 1}", [("i", typechecking.INT)]),
+        ],
+    )
+    def test_given_good_state_when_build_then_success(self, good_input, expected):
+        # given
+        # good, expected
+
+        # when
+        result = SymbolTable.build(good_input)
+
+        # then
+        assert is_successful(result)
+        symbol_table: SymbolTable = result.unwrap()
+        for i, expected_type in expected:
+            result_type = symbol_table.get_type(i)
+            assert is_successful(result_type)
+            assert expected_type == result_type.unwrap()
+
+    @pytest.mark.parametrize(
+        "bad_input, expected",
+        [
+            # Multiple Defnitionns
+            (
+                "enum E {e e} var i : E = a {a}",
+                StateMultipleDefinitionError("e", 1, 10, 1, 8),
+            ),
+            (
+                "enum E {e} enum E {f} var i : E = a {a}",
+                StateMultipleDefinitionError("E", 1, 16, 1, 5),
+            ),
+            (
+                "enum E {e} const e : E = 0 var i : E = a {a}",
+                StateMultipleDefinitionError("e", 1, 17, 1, 8),
+            ),
+            (
+                "const e : int = 0 var e : int = 0 {0, 1}",
+                StateMultipleDefinitionError("e", 1, 22, 1, 6),
+            ),
+            # Bad const initializer
+            (
+                "enum E {e} const ECONST : E = a var i : int = 0",
+                TypingNoTypeError("a"),
+            ),
+            (
+                "enum E {e} const ECONST : E = true var i : int = 0",
+                TypingAssignCompatabilityError("E", typechecking.BOOL),
+            ),
+            (
+                "const C : bool = 0 var i : int = 0",
+                TypingAssignCompatabilityError(typechecking.BOOL, typechecking.BIT),
+            ),
+            (
+                "const C : int = true var i : int = 0",
+                TypingAssignCompatabilityError(typechecking.INT, typechecking.BOOL),
+            ),
+            (
+                "const C : bit = 2 var i : int = 0",
+                TypingAssignCompatabilityError(typechecking.BIT, typechecking.BYTE),
+            ),
+            # Bad var assigns
+            (
+                "enum E {e} var c : E = a",
+                TypingNoTypeError("a"),
+            ),
+            (
+                "enum E {e} var c : E = e {e, 0}",
+                TypingAssignCompatabilityError("E", typechecking.BIT),
+            ),
+            (
+                "var i : int = false",
+                TypingAssignCompatabilityError(typechecking.INT, typechecking.BOOL),
+            ),
+            (
+                "var i : bit = 2",
+                TypingAssignCompatabilityError(typechecking.BIT, typechecking.BYTE),
+            ),
+            # Var initial value not included in allowed values
+            (
+                "enum E {e f} var c : E = e {f}",
+                StateInitNotInValues("e", 1, 25, {"f"}),
+            ),
+        ],
+    )
+    def test_given_bad_state_when_build_then_failure(self, bad_input, expected):
+        # given
+        # bad, expected
+
+        # when
+        result = SymbolTable.build(bad_input)
+
+        # then
+        assert not_(is_successful)(result)
+        error: Error = result.failure()
+        assert expected == error
