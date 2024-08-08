@@ -1,4 +1,5 @@
 # TODO: create a "match" function on Failure(Error) and create standard error messaging.
+import typing
 
 
 class Error:
@@ -23,7 +24,7 @@ class StateInitNotInValues(Error):
         self.column = column
         self.values = values
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: typing.Any) -> bool:
         if isinstance(other, StateInitNotInValues):
             return (
                 self.id == other.id
@@ -49,7 +50,7 @@ class StateMultipleDefinitionError(Error):
 
         # msg: str = str.format("ERROR: {} at line {}:{} previously", id, line, column)
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: typing.Any) -> bool:
         if isinstance(other, StateMultipleDefinitionError):
             return (
                 self.id == other.id
@@ -85,7 +86,7 @@ class TypingAssignCompatabilityError(Error):
         self.ltype = ltype
         self.rtype = rtype
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: typing.Any) -> bool:
         if isinstance(other, TypingAssignCompatabilityError):
             return self.ltype == other.ltype and self.rtype == other.rtype
         return False
@@ -98,7 +99,7 @@ class TypingNoTypeError(Error):
         super().__init__()
         self.id = id
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: typing.Any) -> bool:
         if isinstance(other, TypingNoTypeError):
             return self.id == other.id
         return False

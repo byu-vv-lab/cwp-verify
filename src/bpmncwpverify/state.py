@@ -10,7 +10,7 @@ from returns.pointfree import bind_result
 from returns.functions import not_
 from returns.curry import partial
 
-from typing import Tuple, Iterable
+from typing import Tuple, Iterable, Any
 
 from bpmncwpverify.antlr.StateLexer import StateLexer
 from bpmncwpverify.antlr.StateParser import StateParser
@@ -27,11 +27,19 @@ from bpmncwpverify.error import (
 from bpmncwpverify import typechecking
 
 
-class ThrowingErrorListener(ErrorListener):
-    def __init__(self):
+class ThrowingErrorListener(ErrorListener):  # type: ignore[misc]
+    def __init__(self) -> None:
         super().__init__()
 
-    def syntaxError(self, recognizer, offendingSymbol, line, column, msg, e):
+    def syntaxError(
+        self,
+        recognizer: Any,
+        offendingSymbol: Any,
+        line: int,
+        column: int,
+        msg: str,
+        e: Exception,
+    ) -> None:
         msg = "line {}:{} {}".format(line, column, msg)
         raise ParseCancellationException(msg)
 
@@ -48,7 +56,7 @@ def _get_parser(file_contents: str) -> Result[StateParser, Error]:
 
 def _parse_state(parser: StateParser) -> Result[StateParser.StateContext, Error]:
     try:
-        tree = parser.state()
+        tree: StateParser.StateContext = parser.state()  # type: ignore[no-untyped-call]
         return Success(tree)
     except ParseCancellationException as exception:
         msg = str(exception)
@@ -106,33 +114,35 @@ class SymbolTable:
 
             return result
 
-        def exitEnum_type_decl(self, ctx: StateParser.Enum_type_declContext):
+        def exitEnum_type_decl(self, ctx: StateParser.Enum_type_declContext) -> None:
             get_id = SymbolTable._Listener._get_id_and_add_definition
-            id: str = get_id(self._first_def, ctx.ID())
+            id: str = get_id(self._first_def, ctx.ID())  # type: ignore[no-untyped-call]
             values: set[str] = SymbolTable._Listener._get_values(
-                self._first_def, ctx.id_set()
+                self._first_def,
+                ctx.id_set(),  # type: ignore[no-untyped-call]
             )
 
             self._symbol_table._add_enum_type_decl(id, values)
 
-        def exitConst_var_decl(self, ctx: StateParser.Const_var_declContext):
+        def exitConst_var_decl(self, ctx: StateParser.Const_var_declContext) -> None:
             get_id = SymbolTable._Listener._get_id_and_add_definition
             id: str = get_id(self._first_def, ctx.ID(0))
-            type_: str = ctx.type_().getText()
+            type_: str = ctx.type_().getText()  # type: ignore[no-untyped-call]
             init: str = ctx.ID(1).getText()
 
             self._symbol_table._add_const_decl(id, type_, init)
 
-        def exitVar_decl(self, ctx: StateParser.Var_declContext):
+        def exitVar_decl(self, ctx: StateParser.Var_declContext) -> None:
             get_id = SymbolTable._Listener._get_id_and_add_definition
             id: str = get_id(self._first_def, ctx.ID(0))
-            type_: str = ctx.type_().getText()
+            type_: str = ctx.type_().getText()  # type: ignore[no-untyped-call]
             init_node: TerminalNode = ctx.ID(1)
             init: str = init_node.getText()
 
             definitions: dict[str, Tuple[int, int]] = dict()
             values: set[str] = SymbolTable._Listener._get_values(
-                definitions, ctx.id_set()
+                definitions,
+                ctx.id_set(),  # type: ignore[no-untyped-call]
             )
 
             if len(values) != 0 and init not in values:
@@ -160,14 +170,14 @@ class SymbolTable:
         for v in values:
             self._id2type[v] = id
 
-    def _add_const_decl(self, id: str, type: str, init: str) -> Error:
+    def _add_const_decl(self, id: str, type: str, init: str) -> None:
         # requires
         assert id not in self._id2type and id not in self._consts
 
         self._consts[id] = (type, init)
         self._id2type[id] = type
 
-    def _add_var_decl(self, id: str, type: str, init: str, values: set[str]) -> Error:
+    def _add_var_decl(self, id: str, type: str, init: str, values: set[str]) -> None:
         # requires
         assert (
             id not in self._id2type
@@ -192,14 +202,19 @@ class SymbolTable:
 
     @staticmethod
     def _get_type_init(symbol_table: "SymbolTable", init: str) -> Result[str, Error]:
-        return symbol_table.get_type(init).lash(
-            lambda e: typechecking.get_type_literal(e.id)
-        )
+        def get_type_literal(error: Error) -> Result[str, Error]:
+            match error:
+                case StateUnknownTypeError(id=id):
+                    return typechecking.get_type_literal(id)
+                case _:
+                    return Failure(error)
+
+        return symbol_table.get_type(init).lash(get_type_literal)
 
     @staticmethod
     def _type_check_assigns(
         symbol_table: "SymbolTable", ltype: str, values: Iterable[str]
-    ) -> Result[Tuple, Error]:
+    ) -> Result[Tuple[()], Error]:
         get_type_init = partial(SymbolTable._get_type_init, symbol_table)
         get_type_assign = partial(typechecking.get_type_assign, ltype)
         for i in values:
@@ -245,8 +260,9 @@ class SymbolTable:
             return Success(self._id2type[id])
         return Failure(StateUnknownTypeError(id))
 
-    def is_defined(self, id) -> bool:
-        return is_successful(self.get_type(id))
+    def is_defined(self, id: str) -> bool:
+        defined: bool = is_successful(self.get_type(id))
+        return defined
 
     @staticmethod
     def build(state_def: str) -> Result["SymbolTable", Error]:

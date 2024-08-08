@@ -2,6 +2,7 @@ from returns.result import Failure, Result, Success
 from typing import Final
 
 from bpmncwpverify.error import (
+    Error,
     TypingAssignCompatabilityError,
     TypingNoTypeError,
 )
@@ -23,7 +24,7 @@ INTMIN: Final[int] = -2147483648
 INTMAX: Final[int] = 2147483647
 
 
-def get_type_assign(ltype: str, rtype: str) -> Result[str, TypingNoTypeError]:
+def get_type_assign(ltype: str, rtype: str) -> Result[str, Error]:
     if ltype == rtype:
         return Success(ltype)
     if ltype == BYTE and (rtype == BIT):
