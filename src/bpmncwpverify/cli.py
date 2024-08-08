@@ -4,12 +4,12 @@ from returns.io import IOResultE, impure_safe
 from typing import TextIO
 from returns.pipeline import managed, flow
 from returns.result import ResultE
-from returns.pointfree import bind_result
+# from returns.pointfree import bind_result
 
-from bpmncwpverify.state import get_symbol_table
+# from bpmncwpverify.state import get_symbol_table
 
 
-def _get_argument_parser():
+def _get_argument_parser() -> "argparse.ArgumentParser":
     argument_parser = argparse.ArgumentParser(
         description="Verify the BPMN is a safe substitution for the CWP given the state"
     )
@@ -45,7 +45,7 @@ def _close_file(
     return impure_safe(file_obj.close)()
 
 
-def verify():
+def verify() -> None:
     argument_parser = _get_argument_parser()
     args = argument_parser.parse_args()
     managed_read = managed(_read_file, _close_file)
@@ -55,7 +55,7 @@ def verify():
         filename,
         impure_safe(lambda filename: open(filename, "r")),
         managed_read,
-        bind_result(get_symbol_table),
+        # bind_result(get_symbol_table),
     )
 
     # Add tests for the StateIngester
@@ -63,6 +63,6 @@ def verify():
     # print(state)
 
 
-def generate_stubs():
+def generate_stubs() -> None:
     """Generate behavior stubs for the BPMN workflow"""
-    return
+    pass
