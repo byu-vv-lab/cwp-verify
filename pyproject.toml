@@ -26,6 +26,7 @@ dev = [
   "returns[compatible-mypy]",
   "pre-commit",
   "nitpick",
+  "mypy",
   "antlr4-tools",
   ]
 
