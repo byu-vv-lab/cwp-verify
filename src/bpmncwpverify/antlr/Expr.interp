@@ -1,0 +1,36 @@
+token literal names:
+null
+':'
+'const'
+'enum'
+'='
+'{'
+'}'
+'var'
+null
+null
+null
+null
+null
+
+token symbolic names:
+null
+COLON
+CONST
+ENUM
+EQUALS
+LCURLY
+RCURLY
+VAR
+ID
+WS
+ANDOR
+BINARYOP
+IMPLYOP
+
+rule names:
+binary_expr
+
+
+atn:
+[4, 1, 12, 7, 2, 0, 7, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 5, 0, 2, 1, 0, 0, 0, 2, 3, 5, 8, 0, 0, 3, 4, 5, 11, 0, 0, 4, 5, 5, 8, 0, 0, 5, 1, 1, 0, 0, 0, 0]
