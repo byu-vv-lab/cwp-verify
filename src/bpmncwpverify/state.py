@@ -10,7 +10,7 @@ from returns.pointfree import bind_result
 from returns.functions import not_
 from returns.curry import partial
 
-from typing import Tuple, Iterable, Any
+from typing import Iterable, Any
 
 from bpmncwpverify.antlr.StateLexer import StateLexer
 from bpmncwpverify.antlr.StateParser import StateParser
@@ -72,13 +72,13 @@ class SymbolTable:
 
         def __init__(self) -> None:
             super().__init__()
-            self._duplicates: dict[str, Tuple[int, int]] = dict()
-            self._first_def: dict[str, Tuple[int, int]] = dict()
+            self._duplicates: dict[str, tuple[int, int]] = dict()
+            self._first_def: dict[str, tuple[int, int]] = dict()
             self._symbol_table: "SymbolTable" = SymbolTable()
 
         @staticmethod
         def _add_definition(
-            definitions: dict[str, Tuple[int, int]], id: str, line: int, column: int
+            definitions: dict[str, tuple[int, int]], id: str, line: int, column: int
         ) -> None:
             if id in definitions:
                 prev_line = definitions[id][0]
@@ -92,7 +92,7 @@ class SymbolTable:
 
         @staticmethod
         def _get_id_and_add_definition(
-            definitions: dict[str, Tuple[int, int]], id_node: TerminalNode
+            definitions: dict[str, tuple[int, int]], id_node: TerminalNode
         ) -> str:
             id: str = id_node.getText()
             symbol: Token = id_node.getSymbol()
@@ -103,7 +103,7 @@ class SymbolTable:
 
         @staticmethod
         def _get_values(
-            definitions: dict[str, Tuple[int, int]], ctx: StateParser.Id_setContext
+            definitions: dict[str, tuple[int, int]], ctx: StateParser.Id_setContext
         ) -> set[str]:
             get_id = SymbolTable._Listener._get_id_and_add_definition
             result: set[str] = (
@@ -139,7 +139,7 @@ class SymbolTable:
             init_node: TerminalNode = ctx.ID(1)
             init: str = init_node.getText()
 
-            definitions: dict[str, Tuple[int, int]] = dict()
+            definitions: dict[str, tuple[int, int]] = dict()
             values: set[str] = SymbolTable._Listener._get_values(
                 definitions,
                 ctx.id_set(),  # type: ignore[no-untyped-call]
@@ -153,10 +153,10 @@ class SymbolTable:
             self._symbol_table._add_var_decl(id, type_, init, values)
 
     def __init__(self) -> None:
-        self._consts: dict[str, Tuple[str, str]] = dict()
+        self._consts: dict[str, tuple[str, str]] = dict()
         self._enums: dict[str, set[str]] = dict()
         self._id2type: dict[str, str] = dict()
-        self._vars: dict[str, Tuple[str, str, set[str]]] = dict()
+        self._vars: dict[str, tuple[str, str, set[str]]] = dict()
 
     def _add_enum_type_decl(self, id: str, values: set[str]) -> None:
         # requires
@@ -214,7 +214,7 @@ class SymbolTable:
     @staticmethod
     def _type_check_assigns(
         symbol_table: "SymbolTable", ltype: str, values: Iterable[str]
-    ) -> Result[Tuple[()], Error]:
+    ) -> Result[tuple[()], Error]:
         get_type_init = partial(SymbolTable._get_type_init, symbol_table)
         get_type_assign = partial(typechecking.get_type_assign, ltype)
         for i in values:
