@@ -4,9 +4,9 @@ from returns.io import IOResultE, impure_safe
 from typing import TextIO
 from returns.pipeline import managed, flow
 from returns.result import ResultE
-# from returns.pointfree import bind_result
+from returns.pointfree import bind_result
 
-# from bpmncwpverify.state import get_symbol_table
+from bpmncwpverify.state import SymbolTable
 
 
 def _get_argument_parser() -> "argparse.ArgumentParser":
@@ -55,7 +55,7 @@ def verify() -> None:
         filename,
         impure_safe(lambda filename: open(filename, "r")),
         managed_read,
-        # bind_result(get_symbol_table),
+        bind_result(SymbolTable.build),
     )
 
     # Add tests for the StateIngester
