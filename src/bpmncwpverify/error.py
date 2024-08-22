@@ -1,26 +1,28 @@
 # TODO: create a "match" function on Failure(Error) and create standard error messaging.
 import typing
+import builtins
 
 
 class Error:
-    __slots__ = ()
-
     def __init__(self) -> None:
         pass
 
 
 class NotImplementedError(Error):
-    def __init__(self) -> None:
+    __slots__ = ["function"]
+
+    def __init__(self, function: str) -> None:
         super().__init__()
+        self.function = function
 
 
 class StateInitNotInValues(Error):
-    __slots__ = ("id", "line", "column", "values")
+    __slots__ = ["id", "line", "column", "values"]
 
     def __init__(self, id: str, line: int, column: int, values: set[str]) -> None:
         super().__init__()
-        self.id = (id,)
-        self.line = (line,)
+        self.id = id
+        self.line = line
         self.column = column
         self.values = values
 
@@ -47,8 +49,6 @@ class StateMultipleDefinitionError(Error):
         self.column = column
         self.prev_line = prev_line
         self.prev_column = prev_column
-
-        # msg: str = str.format("ERROR: {} at line {}:{} previously", id, line, column)
 
     def __eq__(self, other: typing.Any) -> bool:
         if isinstance(other, StateMultipleDefinitionError):
@@ -79,7 +79,7 @@ class StateUnknownTypeError(Error):
 
 
 class TypingAssignCompatabilityError(Error):
-    __slots__ = ("ltype", "rtype")
+    __slots__ = ["ltype", "rtype"]
 
     def __init__(self, ltype: str, rtype: str) -> None:
         super().__init__()
@@ -93,9 +93,9 @@ class TypingAssignCompatabilityError(Error):
 
 
 class TypingNoTypeError(Error):
-    __slots__ = "id"
+    __slots__ = ["id"]
 
-    def __init__(self, literal: str) -> None:
+    def __init__(self, id: str) -> None:
         super().__init__()
         self.id = id
 
@@ -103,3 +103,50 @@ class TypingNoTypeError(Error):
         if isinstance(other, TypingNoTypeError):
             return self.id == other.id
         return False
+
+
+def _get_exception_message(error: Exception) -> str:
+    return "ERROR: {0} ({1})".format(type(error), error)
+
+
+def _get_error_message(error: Error) -> str:
+    match error:
+        case NotImplementedError(function=function):
+            return "ERROR: not implemented '{}'".format(function)
+        case StateInitNotInValues(id=id, line=line, column=column, values=values):
+            # Convert to a list since Python sets are not stable
+            return "STATE ERROR: init value '{}' at line {}:{} not in allowed values {}".format(
+                id, line, column, sorted(values)
+            )
+        case StateMultipleDefinitionError(
+            id=id,
+            line=line,
+            column=column,
+            prev_line=prev_line,
+            prev_column=prev_column,
+        ):
+            return "STATE ERROR: multiple definition of '{}' at line {}:{}, previously defined at line {}:{}".format(
+                id, line, column, prev_line, prev_column
+            )
+        case StateSyntaxError(msg=msg):
+            return "STATE SYNTAX ERROR: {}".format(msg)
+        case StateUnknownTypeError(id=id):
+            return "STATE ERROR: the type of '{}' is not known".format(id)
+        case TypingAssignCompatabilityError(ltype=ltype, rtype=rtype):
+            return "TYPING ERROR: something of type '{}' cannot by assigned to something of type '{}'".format(
+                rtype, ltype
+            )
+        case TypingNoTypeError(id=id):
+            return "TYPING ERROR: literal '{}' has an unknown type".format(id)
+        case _:
+            raise builtins.NotImplementedError
+
+
+def get_error_message(error: Error | Exception) -> str:
+    match error:
+        case Exception():
+            return _get_exception_message(error)
+        case Error():
+            return _get_error_message(error)
+        case _:
+            return "ERROR: unknown error type {0}".format(type(error))

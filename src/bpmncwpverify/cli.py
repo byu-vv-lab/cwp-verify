@@ -1,11 +1,13 @@
 # Imports from refactor
 import argparse
-from returns.io import IOResultE, impure_safe
-from typing import TextIO
-from returns.pipeline import managed, flow
-from returns.result import ResultE
-from returns.pointfree import bind_result
+from returns.io import impure_safe, IOResult, IOResultE
 
+from returns.pipeline import managed, flow
+from returns.pointfree import bind_result
+from returns.result import ResultE, Result, Success, Failure
+from typing import TextIO
+
+from bpmncwpverify.error import Error, get_error_message
 from bpmncwpverify.state import SymbolTable
 
 
@@ -51,12 +53,21 @@ def verify() -> None:
     managed_read = managed(_read_file, _close_file)
     filename: str = args.statefile
 
-    _ = flow(
+    result: IOResultE[Result[SymbolTable, Error]] = flow(
         filename,
         impure_safe(lambda filename: open(filename, "r")),
         managed_read,
         bind_result(SymbolTable.build),
     )
+
+    match result:
+        case IOResult(Success(success)):
+            print(success)
+        case IOResult(Failure(error)):
+            msg = get_error_message(error)
+            print(msg)
+        case IOResult(other):
+            print(other)
 
     # Add tests for the StateIngester
     # Repeat the above for the CWP and BPMN but include the validatation in the flow (move to separate method)

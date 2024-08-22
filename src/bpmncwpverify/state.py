@@ -158,6 +158,9 @@ class SymbolTable:
         self._id2type: dict[str, str] = dict()
         self._vars: dict[str, tuple[str, str, set[str]]] = dict()
 
+    def __str__(self) -> str:
+        raise NotImplementedError("SymbolTable::__str__")
+
     def _add_enum_type_decl(self, id: str, values: set[str]) -> None:
         # requires
         assert id not in self._id2type and id not in self._enums
