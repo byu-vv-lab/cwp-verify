@@ -1,3 +1,4 @@
+# type: ignore
 import pytest
 
 from antlr4.error.ErrorStrategy import ParseCancellationException

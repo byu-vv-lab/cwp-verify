@@ -1,3 +1,4 @@
+# type: ignore
 import pytest
 
 from bpmncwpverify.error import (

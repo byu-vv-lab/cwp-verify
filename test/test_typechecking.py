@@ -1,3 +1,4 @@
+# type: ignore
 from returns.result import Failure, Success
 
 import pytest
