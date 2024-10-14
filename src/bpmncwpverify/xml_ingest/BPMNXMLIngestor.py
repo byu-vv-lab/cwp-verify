@@ -9,11 +9,6 @@ import xml.etree.ElementTree as ET
 import getopt
 import sys
 import re
-from bpmncwpverify.original.ExpressionParse.ExpressionParser import (
-    ExpressionParser,
-    TokenType,
-    TreeNode,
-)
 from bpmncwpverify.bpmn import BPMN
 from bpmncwpverify.state import SymbolTable
 
@@ -30,14 +25,14 @@ class BPMNXMLIngestor:
         self.inputfile = ""
         self.storedElems = {}
         self.generateStub = False
-        self.condParser = ExpressionParser()
+        self.condParser = None # TODO: put expressions here
         if varList:
             self.varList = varList
             self.BPMNLang = [var.bpmn for var in self.varList]
         else:
             self.varList = []
             self.BPMNLang = []
-        self.condParser.setVarList(self.varList)
+        # self.condParser.setVarList(self.varList)
         self.root = None
 
     def parseXML(self, xmlFile) -> ET.ElementTree:
@@ -202,14 +197,20 @@ class BPMNXMLIngestor:
                 targetRef = element.get("targetRef")
                 fromNode = self.storedElems[sourceRef]
                 toNode = self.storedElems[targetRef]
-                if isinstance(
-                    fromNode, BPMN.XorGatewayNode
-                ) and self.BPMNhasMultipleOutEdges(fromNode):
-                    root = self.condParser.execute(name)
-                    newroot = TreeNode(value="()", type=TokenType.PAREN, left=root)
-                    flow = BPMN.Flow(newroot, id=raw_id)
-                else:
-                    flow = BPMN.Flow(name, id=raw_id)
+
+                # TODO: follow this logic but with new expression parser
+                # if isinstance(
+                #     fromNode, BPMN.XorGatewayNode
+                # ) and self.BPMNhasMultipleOutEdges(fromNode):
+                #     # root = self.condParser.execute(name)
+                #     # newroot = TreeNode(value="()", type=TokenType.PAREN, left=root)
+                #     # flow = BPMN.Flow(newroot, id=raw_id)
+                #     pass
+                # else:
+                    # flow = BPMN.Flow(name, id=raw_id)
+
+                flow = BPMN.Flow(name, id=raw_id)
+
                 flow.setToNode(toNode)
                 flow.setFromNode(fromNode)
                 fromNode.addOutFlow(flow)
