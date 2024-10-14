@@ -1,7 +1,7 @@
 from typing import Optional, List
 from abc import ABC
 import xml.etree.ElementTree as ET
-
+from bpmncwpverify.bpmn.bpmn_visitor import BPMN_Visitor
 
 # Class representing a label
 class Label:
@@ -33,6 +33,9 @@ class Flow:
     def setFromNode(self, fromNode: "Node") -> None:
         self.fromNode = fromNode
 
+    def accept(self, visitor: BPMN_Visitor) -> None:
+        visitor.visit_flow(self)
+
 # Class representing a message
 class Msg:
     def __init__(
@@ -53,6 +56,9 @@ class Msg:
 
     def setFromNode(self, fromNode: "Node") -> None:
         self.fromNode = fromNode
+
+    def accept(self, visitor: BPMN_Visitor) -> None:
+        visitor.visit_msg(self)
 
 # Class representing a generic node
 class Node:
@@ -113,6 +119,8 @@ class EventNode(Node):
     ):
         super().__init__(label, inFlows, outFlows, inMsgs, outMsgs, id)
 
+    def accept(self, visitor: BPMN_Visitor) -> None:
+        visitor.visit_event_node(self)
 
 # Class representing an activity node
 class ActivityNode(Node):
@@ -127,6 +135,8 @@ class ActivityNode(Node):
     ):
         super().__init__(label, inFlows, outFlows, inMsgs, outMsgs, id)
 
+    def accept(self, visitor: BPMN_Visitor) -> None:
+        visitor.visit_activity_node(self)
 
 # Class representing a start node
 class StartNode(Node):
@@ -141,9 +151,11 @@ class StartNode(Node):
     ):
         super().__init__(label, inFlows, outFlows, inMsgs, outMsgs, id)
 
+    def accept(self, visitor: BPMN_Visitor) -> None:
+        visitor.visit_start_node(self)
 
 # Class representing a gateway node
-class gatewayNode(Node):
+class GatewayNode(Node):
     def __init__(
         self,
         label: Label = Label("Empty"),
@@ -155,9 +167,11 @@ class gatewayNode(Node):
     ):
         super().__init__(label, inFlows, outFlows, inMsgs, outMsgs, id)
 
+    def accept(self, visitor: BPMN_Visitor) -> None:
+        visitor.visit_gateway_node(self)
 
 # Class representing an XOR gateway node
-class XorGatewayNode(gatewayNode):
+class XorGatewayNode(GatewayNode):
     def __init__(
         self,
         label: Label = Label("Empty"),
@@ -169,9 +183,11 @@ class XorGatewayNode(gatewayNode):
     ):
         super().__init__(label, inFlows, outFlows, inMsgs, outMsgs, id)
 
+    def accept(self, visitor: BPMN_Visitor) -> None:
+        visitor.visit_xor_gateway_node(self)
 
 # Class representing a parallel gateway join node
-class ParallelGatewayJoinNode(gatewayNode):
+class ParallelGatewayJoinNode(GatewayNode):
     def __init__(
         self,
         label: Label = Label("Empty"),
@@ -183,9 +199,11 @@ class ParallelGatewayJoinNode(gatewayNode):
     ):
         super().__init__(label, inFlows, outFlows, inMsgs, outMsgs, id)
 
+    def accept(self, visitor: BPMN_Visitor) -> None:
+        visitor.visit_parallel_gateway_join_node(self)
 
 # Class representing a parallel gateway fork node
-class ParallelGatewayForkNode(gatewayNode):
+class ParallelGatewayForkNode(GatewayNode):
     def __init__(
         self,
         label: Label = Label("Empty"),
@@ -197,6 +215,8 @@ class ParallelGatewayForkNode(gatewayNode):
     ):
         super().__init__(label, inFlows, outFlows, inMsgs, outMsgs, id)
 
+    def accept(self, visitor: BPMN_Visitor) -> None:
+        visitor.visit_parallel_gateway_fork_node(self)
 
 # Class representing an end node
 class EndNode(Node):
@@ -211,6 +231,8 @@ class EndNode(Node):
     ):
         super().__init__(label, inFlows, outFlows, inMsgs, outMsgs, id)
 
+    def accept(self, visitor: BPMN_Visitor) -> None:
+        visitor.visit_end_node(self)
 
 # Abstract class representing an intermediate node
 class IntermediateNode(Node, ABC):
@@ -225,7 +247,6 @@ class IntermediateNode(Node, ABC):
     ):
         super().__init__(label, inFlows, outFlows, inMsgs, outMsgs, id)
 
-
 # Class representing a message intermediate node
 class MsgIntermediateNode(IntermediateNode):
     def __init__(
@@ -239,6 +260,8 @@ class MsgIntermediateNode(IntermediateNode):
     ):
         super().__init__(label, inFlows, outFlows, inMsgs, outMsgs, id)
 
+    def accept(self, visitor: BPMN_Visitor) -> None:
+        visitor.visit_msg_intermediate_node(self)
 
 # Class representing a timer intermediate node
 class TimerIntermediateNode(IntermediateNode):
@@ -253,6 +276,8 @@ class TimerIntermediateNode(IntermediateNode):
     ):
         super().__init__(label, inFlows, outFlows, inMsgs, outMsgs, id)
 
+    def accept(self, visitor: BPMN_Visitor) -> None:
+        visitor.visit_timer_intermediate_node(self)
 
 # Class representing a process
 class Process:
@@ -266,6 +291,8 @@ class Process:
     def addStartState(self, startState: StartNode) -> None:
         self.startStateList.append(startState)
 
+    def accept(self, visitor: BPMN_Visitor) -> None:
+        visitor.visit_process(self)
 
 # Class representing a model
 class Model:
@@ -282,6 +309,9 @@ class Model:
 
     def addProcess(self, process: Process) -> None:
         self.processList.append(process)
+
+    def accept(self, visitor: BPMN_Visitor) -> None:
+        visitor.visit_model(self)
 
     def exportXML(self, outputFile: str) -> None:
         if isinstance(self.rawIngestRef, ET.ElementTree):

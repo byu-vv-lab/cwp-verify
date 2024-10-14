@@ -1,8 +1,11 @@
 from abc import ABC, abstractmethod
 from .BPMN import (
     Flow,
+    Process,
     Msg,
+    EventNode,
     ActivityNode,
+    GatewayNode,
     StartNode,
     XorGatewayNode,
     ParallelGatewayJoinNode,
@@ -14,7 +17,11 @@ from .BPMN import (
 )
 
 
-class BPMN_visitor(ABC):
+class BPMN_Visitor(ABC):
+    @abstractmethod
+    def visit_process(self, element: Process) -> None:
+        pass
+
     @abstractmethod
     def visit_flow(self, element: Flow) -> None:
         pass
@@ -42,6 +49,10 @@ class BPMN_visitor(ABC):
         pass
 
     @abstractmethod
+    def visit_gateway_node(self, element: GatewayNode) -> None:
+        pass
+
+    @abstractmethod
     def visit_parallel_gateway_fork_node(
         self, element: ParallelGatewayForkNode
     ) -> None:
@@ -49,6 +60,10 @@ class BPMN_visitor(ABC):
 
     @abstractmethod
     def visit_end_node(self, element: EndNode) -> None:
+        pass
+
+    @abstractmethod
+    def visit_event_node(self, element: EventNode) -> None:
         pass
 
     @abstractmethod
