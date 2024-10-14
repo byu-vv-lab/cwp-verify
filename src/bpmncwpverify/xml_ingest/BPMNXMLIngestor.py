@@ -9,9 +9,13 @@ import xml.etree.ElementTree as ET
 import getopt
 import sys
 import re
-from ExpressionParse.ExpressionParser import ExpressionParser, TokenType, TreeNode
-from StateIngest.StateIngestor import StateIngestor
-from bpmn import BPMN
+from bpmncwpverify.original.ExpressionParse.ExpressionParser import (
+    ExpressionParser,
+    TokenType,
+    TreeNode,
+)
+from bpmncwpverify.bpmn import BPMN
+from bpmncwpverify.state import SymbolTable
 
 BPMNNamespaceMap = {"bpmn": "http://www.omg.org/spec/BPMN/20100524/MODEL"}
 
@@ -103,11 +107,12 @@ class BPMNXMLIngestor:
                 self.outputfile = arg
 
     def execute(self) -> BPMN.Model:
+        model = self.processXML()
+
         if self.generateStub:
             self.createInlineStubFile()
-        else:
-            model = self.processXML()
-            return model
+
+        return model
 
     def processXML(self) -> BPMN.Model:
         tree = self.parseXML(self.inputfile)
@@ -150,50 +155,42 @@ class BPMNXMLIngestor:
             self.cleanup_name(self.participantMap[process.get("id")])
         )
         for element in process:
-            if "task" in element.tag or "Task" in element.tag:
+            if "task" in element.tag.lower():
                 name = self.cleanup_task_name(element.get("name"))
-                id = self.cleanup_name(element.get("id"))
-                raw_id = element.get("id")
             else:
                 name = self.cleanup_name(element.get("name"))
-                id = self.cleanup_name(element.get("id"))
-                raw_id = element.get("id")
+
+            id = self.cleanup_name(element.get("id"))
+            raw_id = element.get("id")
+
             if name is None:
                 name = id
             if "startEvent" in element.tag:
                 event = BPMN.StartNode(name, id=raw_id)
                 BPMNproc.addStartState(event)
-                self.storedElems[id] = event
             elif "sendTask" in element.tag:
-                task = BPMN.MsgIntermediateNode(name, id=raw_id)
-                self.storedElems[id] = task
+                itm = BPMN.MsgIntermediateNode(name, id=raw_id)
             elif "task" in element.tag.lower():
-                task = BPMN.ActivityNode(name, id=raw_id)
-                self.storedElems[id] = task
+                itm = BPMN.ActivityNode(name, id=raw_id)
             elif "intermediateCatchEvent" in element.tag:
-                event = BPMN.EventNode(name, id=raw_id)
-                self.storedElems[id] = event
+                itm = BPMN.EventNode(name, id=raw_id)
             elif "intermediateThrowEvent" in element.tag:
-                event = BPMN.EventNode(name, id=raw_id)
-                self.storedElems[id] = event
+                itm = BPMN.EventNode(name, id=raw_id)
             elif "businessRuleTask" in element.tag:
-                task = BPMN.ActivityNode(name, id=raw_id)
-                self.storedElems[id] = task
+                itm = BPMN.ActivityNode(name, id=raw_id)
             elif "exclusiveGateway" in element.tag:
-                gateway = BPMN.XorGatewayNode(name, id=raw_id)
-                self.storedElems[id] = gateway
+                itm = BPMN.XorGatewayNode(name, id=raw_id)
             elif "parallelGateway" in element.tag:
                 if self.hasMultipleOutEdges(element):
-                    gateway = BPMN.ParallelGatewayForkNode(name, id=raw_id)
+                    itm = BPMN.ParallelGatewayForkNode(name, id=raw_id)
                 else:
-                    gateway = BPMN.ParallelGatewayJoinNode(name, id=raw_id)
-                self.storedElems[id] = gateway
+                    itm = BPMN.ParallelGatewayJoinNode(name, id=raw_id)
             elif "serviceTask" in element.tag:
-                task = BPMN.ActivityNode(name, id=raw_id)
-                self.storedElems[id] = task
+                itm = BPMN.ActivityNode(name, id=raw_id)
             elif "endEvent" in element.tag:
-                event = BPMN.EndNode(name, id=raw_id)
-                self.storedElems[id] = event
+                itm = BPMN.EndNode(name, id=raw_id)
+
+            self.storedElems[id] = itm
         for element in process:
             raw_id = element.get("id")
             name = self.cleanup_flow(element.get("name"))
@@ -258,10 +255,14 @@ class BPMNXMLIngestor:
         return name.strip()
 
 
+def read_state(state_file):
+    with open(state_file) as f:
+        return f.read()
+
+
 def main(argv):
-    stateIngestor = StateIngestor(inputfile="./../../assets/state.txt")
-    stateIngestor.ingestState()
-    ingestor = BPMNXMLIngestor(varList=stateIngestor.varMap.keys, ns=BPMNNamespaceMap)
+    symbol_table = SymbolTable.build(read_state("../state.txt"))
+    ingestor = BPMNXMLIngestor(varList=symbol_table, ns=BPMNNamespaceMap)
     ingestor.parseInput(argv)
     myBPMN = ingestor.execute()
     myBPMN.exportXML("./../../output/XMLOut.bpmn")

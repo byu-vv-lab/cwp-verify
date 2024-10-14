@@ -27,6 +27,11 @@ class Flow:
         self.id = id
         self.seen = False  # Used in traversal
 
+    def setToNode(self, toNode: "Node") -> None:
+        self.toNode = toNode
+
+    def setFromNode(self, fromNode: "Node") -> None:
+        self.fromNode = fromNode
 
 # Class representing a message
 class Msg:
@@ -43,6 +48,11 @@ class Msg:
         self.id = id
         self.seen = False  # Used in traversal
 
+    def setToNode(self, toNode: "Node") -> None:
+        self.toNode = toNode
+
+    def setFromNode(self, fromNode: "Node") -> None:
+        self.fromNode = fromNode
 
 # Class representing a generic node
 class Node:
@@ -75,6 +85,20 @@ class Node:
         self.seen = False  # Used in traversal
         self.id = id
 
+    def setOutFlows(self, outFlows: List[Flow]) -> None:
+        self.outFlows = outFlows
+
+    def addOutFlow(self, flow: Flow) -> None:
+        self.outFlows.append(flow)
+
+    def addOutMsg(self, msg: Msg) -> None:
+        self.outMsgs.append(msg)
+
+    def addInFlow(self, flow: Flow) -> None:
+        self.inFlows.append(flow)
+
+    def addInMsg(self, msg: Msg) -> None:
+        self.inMsgs.append(msg)
 
 # Class representing an event node
 class EventNode(Node):
@@ -232,12 +256,15 @@ class TimerIntermediateNode(IntermediateNode):
 
 # Class representing a process
 class Process:
-    def __init__(self, name: str, startStateList: Optional[List[str]] = None):
+    def __init__(self, name: str, startStateList: Optional[List[StartNode]] = None):
         if startStateList is None:
             self.startStateList = []
         else:
             self.startStateList = startStateList
         self.name = name
+
+    def addStartState(self, startState: StartNode) -> None:
+        self.startStateList.append(startState)
 
 
 # Class representing a model
@@ -252,6 +279,9 @@ class Model:
         else:
             self.processList = processList
         self.rawIngestRef = rawIngestRef
+
+    def addProcess(self, process: Process) -> None:
+        self.processList.append(process)
 
     def exportXML(self, outputFile: str) -> None:
         if isinstance(self.rawIngestRef, ET.ElementTree):
