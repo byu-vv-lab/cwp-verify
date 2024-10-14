@@ -8,83 +8,32 @@ Class and methods for ingesting an XML .bpmn file and creating a BPMN object
 import xml.etree.ElementTree as ET
 import getopt
 import sys
+import os
 import re
 from bpmncwpverify.bpmn import BPMN
 from bpmncwpverify.state import SymbolTable
+from returns.pipeline import is_successful # type: ignore
 
 BPMNNamespaceMap = {"bpmn": "http://www.omg.org/spec/BPMN/20100524/MODEL"}
 
 
 class BPMNXMLIngestor:
-    def __init__(self, varList=None, ns=None, modifiesClauses=None):
+    def __init__(self, symbolTable=None, ns=None):
         if ns is None:
             self.ns = []
         else:
             self.ns = ns
-        self.modifiesClauses = modifiesClauses
         self.inputfile = ""
         self.storedElems = {}
         self.generateStub = False
         self.condParser = None # TODO: put expressions here
-        if varList:
-            self.varList = varList
-            self.BPMNLang = [var.bpmn for var in self.varList]
-        else:
-            self.varList = []
-            self.BPMNLang = []
+        self.symbolTable = symbolTable
         # self.condParser.setVarList(self.varList)
         self.root = None
 
     def parseXML(self, xmlFile) -> ET.ElementTree:
         tree = ET.parse(xmlFile)
         return tree
-
-    def createInlineStubFile(self):
-        fileString = ""
-        for process in self.processes:
-            for element in process:
-                updateState = False
-                if "sequenceFlow" not in element.tag:
-                    if "task" in element.tag or "Task" in element.tag:
-                        name = (
-                            self.cleanup_task_name(element.get("name"))
-                            if element.get("name") is not None
-                            else self.cleanup_name(element.get("id"))
-                        )
-
-                        updateState = True
-                    else:
-                        name = (
-                            self.cleanup_name(element.get("name"))
-                            if element.get("name") is not None
-                            else self.cleanup_name(element.get("id"))
-                        )
-                    if "parallel" in element.tag:
-                        updateState = True
-                    fileString += "//{x}\n".format(x=name)
-                    fileString = self.writeInlineStub(name, fileString, updateState)
-        return fileString
-
-    def writeInlineStub(self, placeName, fileString, updateState=False):
-        if updateState:
-            varsToModify = self.modifiesClauses.get(placeName, [])
-        fileString += "inline {x}_BehaviorModel(){{\n".format(x=placeName)
-        if updateState:
-            for varName in varsToModify:
-                possibleVals = next(
-                    (var for var in self.varList if var.bpmn == varName), None
-                ).possibleValues
-                fileString += "\tif\n"
-                for val in possibleVals:
-                    fileString += "\t\t:: true -> {var} = {val}\n".format(
-                        var=varName, val=val
-                    )
-                fileString += "\tfi\n"
-            fileString += "\tupdateState()\n"
-        else:
-            fileString += "\tskip\n"
-        fileString += "}\n"
-        return fileString
 
     def parseInput(self, argv):
         self.inputfile = ""
@@ -94,8 +43,6 @@ class BPMNXMLIngestor:
             print("BPMNXMLIngestor.py -i <inputFile>")
             sys.exit(2)
         for opt, arg in opts:
-            if opt in ["-s", "--stub"]:
-                self.generateStub = True
             if opt == "-i":
                 self.inputfile = arg
             if opt == "-o":
@@ -256,13 +203,16 @@ class BPMNXMLIngestor:
         return name.strip()
 
 
-def read_state(state_file):
-    with open(state_file) as f:
-        return f.read()
-
-
 def main(argv):
-    symbol_table = SymbolTable.build(read_state("../state.txt"))
+
+    def read_state(state_file):
+        with open(state_file) as f:
+            return f.read()
+
+    path = os.path.abspath(os.getcwd())
+    result = SymbolTable.build(read_state(path + "/src/bpmncwpverify/state.txt"))
+    assert is_successful(result)
+    symbol_table: SymbolTable = result.unwrap()
     ingestor = BPMNXMLIngestor(varList=symbol_table, ns=BPMNNamespaceMap)
     ingestor.parseInput(argv)
     myBPMN = ingestor.execute()
