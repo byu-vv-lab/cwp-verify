@@ -109,6 +109,17 @@ class Node:
     def addInMsg(self, msg: Msg) -> None:
         self.inMsgs.append(msg)
 
+    def accept(self, visitor: BPMN_Visitor) -> None:
+        pass
+
+    def __repr__(self) -> str:
+        return "Name: %s \n\tInFlows: %s \n\tOutFlows: %s\n\tID: %s" % (
+            str(self.label),
+            str(self.inFlows),
+            str(self.outFlows),
+            str(self.id),
+        )
+
 
 # Class representing an event node
 class EventNode(Node):
