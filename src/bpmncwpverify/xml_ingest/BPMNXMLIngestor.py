@@ -12,13 +12,13 @@ import os
 import re
 from bpmncwpverify.bpmn import BPMN
 from bpmncwpverify.state import SymbolTable
-from returns.pipeline import is_successful # type: ignore
+from returns.pipeline import is_successful  # type: ignore
 
 BPMNNamespaceMap = {"bpmn": "http://www.omg.org/spec/BPMN/20100524/MODEL"}
 
 
 class BPMNXMLIngestor:
-    def __init__(self, symbolTable=None, ns=None):
+    def __init__(self, symbolTable=None, ns=None) -> None:
         if ns is None:
             self.ns = []
         else:
@@ -26,16 +26,48 @@ class BPMNXMLIngestor:
         self.inputfile = ""
         self.storedElems = {}
         self.generateStub = False
-        self.condParser = None # TODO: put expressions here
+        self.condParser = None  # TODO: put expressions here
         self.symbolTable = symbolTable
         # self.condParser.setVarList(self.varList)
         self.root = None
+
+    def createInlineStubFile(self) -> str:
+        fileString = ""
+        for process in self.processes:
+            for element in process:
+                updateState = False
+                if "sequenceFlow" not in element.tag:
+                    if "task" in element.tag or "Task" in element.tag:
+                        name = (
+                            self.cleanup_task_name(element.get("name"))
+                            if element.get("name") is not None
+                            else self.cleanup_name(element.get("id"))
+                        )
+
+                        updateState = True
+                    else:
+                        name = (
+                            self.cleanup_name(element.get("name"))
+                            if element.get("name") is not None
+                            else self.cleanup_name(element.get("id"))
+                        )
+                    if "parallel" in element.tag:
+                        updateState = True
+                    fileString += "//{x}\n".format(x=name)
+                    fileString = self.writeInlineStub(name, fileString, updateState)
+        return fileString
+
+    def writeInlineStub(self, placeName, fileString, updateState=False) -> str:
+        fileString += "inline {x}_BehaviorModel(){{\n".format(x=placeName)
+        fileString += "\tskip\n"
+        fileString += "}\n"
+        return fileString
 
     def parseXML(self, xmlFile) -> ET.ElementTree:
         tree = ET.parse(xmlFile)
         return tree
 
-    def parseInput(self, argv):
+    def parseInput(self, argv) -> None:
         self.inputfile = ""
         try:
             opts, args = getopt.getopt(argv, "si:o:", ["stub"])
@@ -154,7 +186,7 @@ class BPMNXMLIngestor:
                 #     # flow = BPMN.Flow(newroot, id=raw_id)
                 #     pass
                 # else:
-                    # flow = BPMN.Flow(name, id=raw_id)
+                # flow = BPMN.Flow(name, id=raw_id)
 
                 flow = BPMN.Flow(name, id=raw_id)
 
@@ -204,7 +236,6 @@ class BPMNXMLIngestor:
 
 
 def main(argv):
-
     def read_state(state_file):
         with open(state_file) as f:
             return f.read()
@@ -213,7 +244,7 @@ def main(argv):
     result = SymbolTable.build(read_state(path + "/src/bpmncwpverify/state.txt"))
     assert is_successful(result)
     symbol_table: SymbolTable = result.unwrap()
-    ingestor = BPMNXMLIngestor(varList=symbol_table, ns=BPMNNamespaceMap)
+    ingestor = BPMNXMLIngestor(symbolTable=symbol_table, ns=BPMNNamespaceMap)
     ingestor.parseInput(argv)
     myBPMN = ingestor.execute()
     myBPMN.exportXML("./../../output/XMLOut.bpmn")

@@ -9,14 +9,16 @@ using a BPMN object.
 
 from typing import List, Optional, Union
 
-from ..bpmn.bpmn_visitor import BPMN_Visitor
-from ..bpmn.BPMN import (
+from bpmncwpverify.state import SymbolTable
+from returns.pipeline import is_successful
+from bpmncwpverify.bpmn.BPMN import (
     Flow,
     Msg,
     EventNode,
     ActivityNode,
     Node,
     StartNode,
+    GatewayNode,
     XorGatewayNode,
     ParallelGatewayJoinNode,
     ParallelGatewayForkNode,
@@ -25,23 +27,25 @@ from ..bpmn.BPMN import (
     TimerIntermediateNode,
     Model,
     Process,
+    BPMN_Visitor,
 )
-from ..xml_ingest.BPMNXMLIngestor import BPMNXMLIngestor
+from bpmncwpverify.xml_ingest.BPMNXMLIngestor import BPMNXMLIngestor
 import sys
+import os
 
 
 class Promela_gen_visitor(BPMN_Visitor):
     tokenHelpers = """#define hasToken(place) (place != 0)
 
-#define putToken(place) place = 1
+    #define putToken(place) place = 1
 
-#define consumeToken(place) place = 0
+    #define consumeToken(place) place = 0
 
-"""
+    """
 
     tempHelpers = ""
 
-    def __init__(self, printfOn: bool = False):
+    def __init__(self, printfOn: bool = False) -> None:
         self.printfOn = printfOn
         self.tempHelpers = self.tempHelpers
         self.helperFuncs = self.tokenHelpers
@@ -266,6 +270,9 @@ class Promela_gen_visitor(BPMN_Visitor):
         for flow in element.outFlows:
             flow.accept(self)
 
+    def visit_gateway_node(self, element: GatewayNode) -> None:
+        pass
+
     def visit_flow(self, element: Flow) -> None:
         if element.seen:
             return
@@ -443,15 +450,24 @@ class Promela_gen_visitor(BPMN_Visitor):
         )
 
 
-def main(argv):
+def main(argv: List[str]) -> None:
     BPMNNamespaceMap = {"bpmn": "http://www.omg.org/spec/BPMN/20100524/MODEL"}
-    ingestor = BPMNXMLIngestor(BPMNNamespaceMap)
+
+    def read_state(state_file: str) -> str:
+        with open(state_file) as f:
+            return f.read()
+
+    path = os.path.abspath(os.getcwd())
+    result = SymbolTable.build(read_state(path + "/src/bpmncwpverify/state.txt"))
+    assert is_successful(result)
+    symbol_table: SymbolTable = result.unwrap()
+    ingestor = BPMNXMLIngestor(symbolTable=symbol_table, ns=BPMNNamespaceMap)
     ingestor.parseInput(argv)
     BPMNModel = ingestor.processXML()
     myVisitor = Promela_gen_visitor()
     BPMNModel.accept(myVisitor)
     myVisitor.behaviorModelText = ingestor.createInlineStubFile()
-    with open(ingestor.outputfile, "w+") as f:
+    with open("hello.pml", "w+") as f:
         f.write(str(myVisitor))
 
 
