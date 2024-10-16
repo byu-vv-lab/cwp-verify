@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 import xml.etree.ElementTree as ET
 
 
-class BPMN_Visitor(ABC):
+class BpmnVisitor(ABC):
     @abstractmethod
     def visit_process(self, element: "Process") -> None:
         pass
@@ -65,8 +65,12 @@ class BPMN_Visitor(ABC):
         pass
 
 
-# Class representing a label
-class Label:
+class BpmnElement:
+    def __init__(self) -> None:
+        pass
+
+
+class Label(BpmnElement):
     def __init__(self, text: str):
         self.text = text
 
@@ -74,336 +78,185 @@ class Label:
         return self.text
 
 
-# Class representing a flow
-class Flow:
+class Flow(BpmnElement):
     def __init__(
         self,
         label: str,
-        toNode: Optional["Node"] = None,
-        fromNode: Optional["Node"] = None,
+        to_node: Optional["Node"] = None,
+        from_node: Optional["Node"] = None,
         id: Optional[str] = None,
     ):
         self.label = label
-        self.toNode = toNode
-        self.fromNode = fromNode
+        self.to_node = to_node
+        self.from_node = from_node
         self.id = id
-        self.seen = False  # Used in traversal
+        self.seen = False
 
-    def setToNode(self, toNode: "Node") -> None:
-        self.toNode = toNode
+    def set_to_node(self, to_node: "Node") -> None:
+        self.to_node = to_node
 
-    def setFromNode(self, fromNode: "Node") -> None:
-        self.fromNode = fromNode
+    def set_from_node(self, from_node: "Node") -> None:
+        self.from_node = from_node
 
-    def accept(self, visitor: BPMN_Visitor) -> None:
+    def accept(self, visitor: BpmnVisitor) -> None:
         visitor.visit_flow(self)
 
 
-# Class representing a message
-class Msg:
+class Msg(BpmnElement):
     def __init__(
         self,
         label: str,
-        toNode: Optional["Node"] = None,
-        fromNode: Optional["Node"] = None,
+        to_node: Optional["Node"] = None,
+        from_node: Optional["Node"] = None,
         id: Optional[str] = None,
     ):
         self.label = label
-        self.toNode = toNode
-        self.fromNode = fromNode
+        self.to_node = to_node
+        self.from_node = from_node
         self.id = id
-        self.seen = False  # Used in traversal
+        self.seen = False
 
-    def setToNode(self, toNode: "Node") -> None:
-        self.toNode = toNode
+    def set_to_node(self, to_node: "Node") -> None:
+        self.to_node = to_node
 
-    def setFromNode(self, fromNode: "Node") -> None:
-        self.fromNode = fromNode
+    def set_from_node(self, from_node: "Node") -> None:
+        self.from_node = from_node
 
-    def accept(self, visitor: BPMN_Visitor) -> None:
+    def accept(self, visitor: BpmnVisitor) -> None:
         visitor.visit_msg(self)
 
 
-# Class representing a generic node
-class Node:
+class Node(BpmnElement):
     def __init__(
         self,
         label: Label = Label("Empty"),
-        inFlows: Optional[List[Flow]] = None,
-        outFlows: Optional[List[Flow]] = None,
-        inMsgs: Optional[List[Msg]] = None,
-        outMsgs: Optional[List[Msg]] = None,
+        in_flows: Optional[List[Flow]] = None,
+        out_flows: Optional[List[Flow]] = None,
+        in_msgs: Optional[List[Msg]] = None,
+        out_msgs: Optional[List[Msg]] = None,
         id: Optional[str] = None,
     ):
-        if inFlows is None:
-            self.inFlows = []
-        else:
-            self.inFlows = inFlows
-        if outFlows is None:
-            self.outFlows = []
-        else:
-            self.outFlows = outFlows
-        if inMsgs is None:
-            self.inMsgs = []
-        else:
-            self.inMsgs = inMsgs
-        if outMsgs is None:
-            self.outMsgs = []
-        else:
-            self.outMsgs = outMsgs
+        self.in_flows = in_flows if in_flows is not None else []
+        self.out_flows = out_flows if out_flows is not None else []
+        self.in_msgs = in_msgs if in_msgs is not None else []
+        self.out_msgs = out_msgs if out_msgs is not None else []
         self.label = label
-        self.seen = False  # Used in traversal
+        self.seen = False
         self.id = id
 
-    def setOutFlows(self, outFlows: List[Flow]) -> None:
-        self.outFlows = outFlows
+    def set_out_flows(self, out_flows: List[Flow]) -> None:
+        self.out_flows = out_flows
 
-    def addOutFlow(self, flow: Flow) -> None:
-        self.outFlows.append(flow)
+    def add_out_flow(self, flow: Flow) -> None:
+        self.out_flows.append(flow)
 
-    def addOutMsg(self, msg: Msg) -> None:
-        self.outMsgs.append(msg)
+    def add_out_msg(self, msg: Msg) -> None:
+        self.out_msgs.append(msg)
 
-    def addInFlow(self, flow: Flow) -> None:
-        self.inFlows.append(flow)
+    def add_in_flow(self, flow: Flow) -> None:
+        self.in_flows.append(flow)
 
-    def addInMsg(self, msg: Msg) -> None:
-        self.inMsgs.append(msg)
+    def add_in_msg(self, msg: Msg) -> None:
+        self.in_msgs.append(msg)
 
-    def accept(self, visitor: BPMN_Visitor) -> None:
+    def accept(self, visitor: BpmnVisitor) -> None:
         pass
 
     def __repr__(self) -> str:
         return "Name: %s \n\tInFlows: %s \n\tOutFlows: %s\n\tID: %s" % (
             str(self.label),
-            str(self.inFlows),
-            str(self.outFlows),
+            str(self.in_flows),
+            str(self.out_flows),
             str(self.id),
         )
 
 
-# Class representing an event node
 class EventNode(Node):
-    def __init__(
-        self,
-        label: Label = Label("Empty"),
-        inFlows: Optional[List[Flow]] = None,
-        outFlows: Optional[List[Flow]] = None,
-        inMsgs: Optional[List[Msg]] = None,
-        outMsgs: Optional[List[Msg]] = None,
-        id: Optional[str] = None,
-    ):
-        super().__init__(label, inFlows, outFlows, inMsgs, outMsgs, id)
-
-    def accept(self, visitor: BPMN_Visitor) -> None:
+    def accept(self, visitor: BpmnVisitor) -> None:
         visitor.visit_event_node(self)
 
 
-# Class representing an activity node
 class ActivityNode(Node):
-    def __init__(
-        self,
-        label: Label = Label("Empty"),
-        inFlows: Optional[List[Flow]] = None,
-        outFlows: Optional[List[Flow]] = None,
-        inMsgs: Optional[List[Msg]] = None,
-        outMsgs: Optional[List[Msg]] = None,
-        id: Optional[str] = None,
-    ):
-        super().__init__(label, inFlows, outFlows, inMsgs, outMsgs, id)
-
-    def accept(self, visitor: BPMN_Visitor) -> None:
+    def accept(self, visitor: BpmnVisitor) -> None:
         visitor.visit_activity_node(self)
 
 
-# Class representing a start node
 class StartNode(Node):
-    def __init__(
-        self,
-        label: Label = Label("Empty"),
-        inFlows: Optional[List[Flow]] = None,
-        outFlows: Optional[List[Flow]] = None,
-        inMsgs: Optional[List[Msg]] = None,
-        outMsgs: Optional[List[Msg]] = None,
-        id: Optional[str] = None,
-    ):
-        super().__init__(label, inFlows, outFlows, inMsgs, outMsgs, id)
-
-    def accept(self, visitor: BPMN_Visitor) -> None:
+    def accept(self, visitor: BpmnVisitor) -> None:
         visitor.visit_start_node(self)
 
 
-# Class representing a gateway node
 class GatewayNode(Node):
-    def __init__(
-        self,
-        label: Label = Label("Empty"),
-        inFlows: Optional[List[Flow]] = None,
-        outFlows: Optional[List[Flow]] = None,
-        inMsgs: Optional[List[Msg]] = None,
-        outMsgs: Optional[List[Msg]] = None,
-        id: Optional[str] = None,
-    ):
-        super().__init__(label, inFlows, outFlows, inMsgs, outMsgs, id)
-
-    def accept(self, visitor: BPMN_Visitor) -> None:
+    def accept(self, visitor: BpmnVisitor) -> None:
         visitor.visit_gateway_node(self)
 
 
-# Class representing an XOR gateway node
 class XorGatewayNode(GatewayNode):
-    def __init__(
-        self,
-        label: Label = Label("Empty"),
-        inFlows: Optional[List[Flow]] = None,
-        outFlows: Optional[List[Flow]] = None,
-        inMsgs: Optional[List[Msg]] = None,
-        outMsgs: Optional[List[Msg]] = None,
-        id: Optional[str] = None,
-    ):
-        super().__init__(label, inFlows, outFlows, inMsgs, outMsgs, id)
-
-    def accept(self, visitor: BPMN_Visitor) -> None:
+    def accept(self, visitor: BpmnVisitor) -> None:
         visitor.visit_xor_gateway_node(self)
 
 
-# Class representing a parallel gateway join node
 class ParallelGatewayJoinNode(GatewayNode):
-    def __init__(
-        self,
-        label: Label = Label("Empty"),
-        inFlows: Optional[List[Flow]] = None,
-        outFlows: Optional[List[Flow]] = None,
-        inMsgs: Optional[List[Msg]] = None,
-        outMsgs: Optional[List[Msg]] = None,
-        id: Optional[str] = None,
-    ):
-        super().__init__(label, inFlows, outFlows, inMsgs, outMsgs, id)
-
-    def accept(self, visitor: BPMN_Visitor) -> None:
+    def accept(self, visitor: BpmnVisitor) -> None:
         visitor.visit_parallel_gateway_join_node(self)
 
 
-# Class representing a parallel gateway fork node
 class ParallelGatewayForkNode(GatewayNode):
-    def __init__(
-        self,
-        label: Label = Label("Empty"),
-        inFlows: Optional[List[Flow]] = None,
-        outFlows: Optional[List[Flow]] = None,
-        inMsgs: Optional[List[Msg]] = None,
-        outMsgs: Optional[List[Msg]] = None,
-        id: Optional[str] = None,
-    ):
-        super().__init__(label, inFlows, outFlows, inMsgs, outMsgs, id)
-
-    def accept(self, visitor: BPMN_Visitor) -> None:
+    def accept(self, visitor: BpmnVisitor) -> None:
         visitor.visit_parallel_gateway_fork_node(self)
 
 
-# Class representing an end node
 class EndNode(Node):
-    def __init__(
-        self,
-        label: Label = Label("Empty"),
-        inFlows: Optional[List[Flow]] = None,
-        outFlows: Optional[List[Flow]] = None,
-        inMsgs: Optional[List[Msg]] = None,
-        outMsgs: Optional[List[Msg]] = None,
-        id: Optional[str] = None,
-    ):
-        super().__init__(label, inFlows, outFlows, inMsgs, outMsgs, id)
-
-    def accept(self, visitor: BPMN_Visitor) -> None:
+    def accept(self, visitor: BpmnVisitor) -> None:
         visitor.visit_end_node(self)
 
 
-# Abstract class representing an intermediate node
 class IntermediateNode(Node, ABC):
-    def __init__(
-        self,
-        label: Label = Label("Empty"),
-        inFlows: Optional[List[Flow]] = None,
-        outFlows: Optional[List[Flow]] = None,
-        inMsgs: Optional[List[Msg]] = None,
-        outMsgs: Optional[List[Msg]] = None,
-        id: Optional[str] = None,
-    ):
-        super().__init__(label, inFlows, outFlows, inMsgs, outMsgs, id)
+    pass
 
 
-# Class representing a message intermediate node
 class MsgIntermediateNode(IntermediateNode):
-    def __init__(
-        self,
-        label: Label = Label("Empty"),
-        inFlows: Optional[List[Flow]] = None,
-        outFlows: Optional[List[Flow]] = None,
-        inMsgs: Optional[List[Msg]] = None,
-        outMsgs: Optional[List[Msg]] = None,
-        id: Optional[str] = None,
-    ):
-        super().__init__(label, inFlows, outFlows, inMsgs, outMsgs, id)
-
-    def accept(self, visitor: BPMN_Visitor) -> None:
+    def accept(self, visitor: BpmnVisitor) -> None:
         visitor.visit_msg_intermediate_node(self)
 
 
-# Class representing a timer intermediate node
 class TimerIntermediateNode(IntermediateNode):
-    def __init__(
-        self,
-        label: Label = Label("Empty"),
-        inFlows: Optional[List[Flow]] = None,
-        outFlows: Optional[List[Flow]] = None,
-        inMsgs: Optional[List[Msg]] = None,
-        outMsgs: Optional[List[Msg]] = None,
-        id: Optional[str] = None,
-    ):
-        super().__init__(label, inFlows, outFlows, inMsgs, outMsgs, id)
-
-    def accept(self, visitor: BPMN_Visitor) -> None:
+    def accept(self, visitor: BpmnVisitor) -> None:
         visitor.visit_timer_intermediate_node(self)
 
 
-# Class representing a process
-class Process:
-    def __init__(self, name: str, startStateList: Optional[List[StartNode]] = None):
-        if startStateList is None:
-            self.startStateList = []
-        else:
-            self.startStateList = startStateList
+class Process(BpmnElement):
+    def __init__(self, name: str, start_state_list: Optional[List[StartNode]] = None):
+        self.start_state_list = start_state_list if start_state_list is not None else []
         self.name = name
 
-    def addStartState(self, startState: StartNode) -> None:
-        self.startStateList.append(startState)
+    def add_start_state(self, start_state: StartNode) -> None:
+        self.start_state_list.append(start_state)
 
-    def accept(self, visitor: BPMN_Visitor) -> None:
+    def accept(self, visitor: BpmnVisitor) -> None:
         visitor.visit_process(self)
 
 
-# Class representing a model
-class Model:
+class Model(BpmnElement):
     def __init__(
         self,
-        processList: Optional[List[Process]] = None,
-        rawIngestRef: Optional[ET.ElementTree] = None,
+        process_list: Optional[List[Process]] = None,
+        raw_ingest_ref: Optional[ET.ElementTree] = None,
     ):
-        if processList is None:
-            self.processList = []
-        else:
-            self.processList = processList
-        self.rawIngestRef = rawIngestRef
+        self.process_list = process_list if process_list is not None else []
+        self.raw_ingest_ref = raw_ingest_ref
 
-    def addProcess(self, process: Process) -> None:
-        self.processList.append(process)
+    def add_process(self, process: Process) -> None:
+        self.process_list.append(process)
 
-    def accept(self, visitor: BPMN_Visitor) -> None:
+    def accept(self, visitor: BpmnVisitor) -> None:
         visitor.visit_model(self)
 
-    def exportXML(self, outputFile: str) -> None:
-        if isinstance(self.rawIngestRef, ET.ElementTree):
-            self.rawIngestRef.write(outputFile, encoding="UTF-8", xml_declaration=True)
+    def export_xml(self, output_file: str) -> None:
+        if isinstance(self.raw_ingest_ref, ET.ElementTree):
+            self.raw_ingest_ref.write(
+                output_file, encoding="UTF-8", xml_declaration=True
+            )
 
 
 if __name__ == "__main__":

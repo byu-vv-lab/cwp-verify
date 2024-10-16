@@ -27,14 +27,14 @@ from bpmncwpverify.bpmn.BPMN import (
     TimerIntermediateNode,
     Model,
     Process,
-    BPMN_Visitor,
+    BpmnVisitor,
 )
 from bpmncwpverify.xml_ingest.BPMNXMLIngestor import BPMNXMLIngestor
 import sys
 import os
 
 
-class Promela_gen_visitor(BPMN_Visitor):
+class Promela_gen_visitor(BpmnVisitor):
     tokenHelpers = """#define hasToken(place) (place != 0)
 
     #define putToken(place) place = 1
@@ -143,7 +143,7 @@ class Promela_gen_visitor(BPMN_Visitor):
 
     def genXORHasOptionMacro(self, gateway: XorGatewayNode) -> None:
         macro = "#define {}_hasOption \\\n".format(gateway.label)
-        conditions = [str(flow.label) for flow in gateway.outFlows]
+        conditions = [str(flow.label) for flow in gateway.out_flows]
         macro += "(\\\n\t"
         macro += "||\\\n\t".join(conditions)
         macro += "\\\n)\n"
@@ -170,36 +170,36 @@ class Promela_gen_visitor(BPMN_Visitor):
             consumeLocations.append(self.getLocation(element))
             guard += "hasToken({})".format(self.getLocation(element))
         else:
-            for flow in element.inFlows:
+            for flow in element.in_flows:
                 consumeLocations.append(self.getLocation(element, flow))
-            if element.inFlows:
+            if element.in_flows:
                 guard += "( "
                 if type == "Parallel-join":
                     guard += "&&".join(
                         [
                             "hasToken({})".format(self.getLocation(element, loc))
-                            for loc in element.inFlows
+                            for loc in element.in_flows
                         ]
                     )
                 else:
                     guard += "||".join(
                         [
                             "hasToken({})".format(self.getLocation(element, loc))
-                            for loc in element.inFlows
+                            for loc in element.in_flows
                         ]
                     )
                 guard += " )\n"
         if type != "Task":
-            for msg in element.inMsgs:
+            for msg in element.in_msgs:
                 consumeLocations.append(self.getLocation(element, msg))
-            if element.inMsgs:
-                if element.inFlows or type == "Task-END":
+            if element.in_msgs:
+                if element.in_msgs or type == "Task-END":
                     guard += "&&"
                 guard += "( "
                 guard += "&&".join(
                     [
                         "hasToken({})".format(self.getLocation(element, loc))
-                        for loc in element.inMsgs
+                        for loc in element.in_msgs
                     ]
                 )
                 guard += " )\n"
@@ -212,28 +212,28 @@ class Promela_gen_visitor(BPMN_Visitor):
         if type == "Task":
             putFlowIDs.append(elementID)
             putLocations.append(self.getLocation(element))
-            for msg in element.outMsgs:
+            for msg in element.out_msgs:
                 if msg.id:
                     putFlowIDs.append(msg.id)
                 else:
                     raise Exception("msg does not have id")
-                putLocations.append(self.getLocation(msg.toNode, msg))
+                putLocations.append(self.getLocation(msg.to_node, msg))
         else:
-            for flow in element.outFlows:
+            for flow in element.out_flows:
                 if flow.id:
                     putFlowIDs.append(flow.id)
                 else:
                     raise Exception("flow does not have id")
-                putLocations.append(self.getLocation(flow.toNode, flow))
+                putLocations.append(self.getLocation(flow.to_node, flow))
                 if type == "XOR":
                     putConditions.append(str(flow.label))
             if type != "Task-END":
-                for msg in element.outMsgs:
+                for msg in element.out_msgs:
                     if msg.id:
                         putFlowIDs.append(msg.id)
                     else:
                         raise Exception("msg does not have id")
-                    putLocations.append(self.getLocation(msg.toNode, msg))
+                    putLocations.append(self.getLocation(msg.to_node, msg))
         if startGuard:
             guard = startGuard
             consumeLocations.append(self.getLocation(element))
@@ -251,12 +251,12 @@ class Promela_gen_visitor(BPMN_Visitor):
         )
 
     def genPlaces(self, element: Node) -> None:
-        if not element.inFlows and not element.inMsgs:
+        if not element.in_flows and not element.in_msgs:
             self.flowPlaces.append(self.getLocation(element))
         else:
-            for flow in element.inFlows:
+            for flow in element.in_flows:
                 self.flowPlaces.append(self.getLocation(element, flow))
-            for msg in element.inMsgs:
+            for msg in element.in_msgs:
                 self.flowPlaces.append(self.getLocation(element, msg))
         if isinstance(element, ActivityNode):
             self.flowPlaces.append(self.getLocation(element))
@@ -267,7 +267,7 @@ class Promela_gen_visitor(BPMN_Visitor):
         element.seen = True
         self.genPlaces(element)
         self.genActivationOption(element)
-        for flow in element.outFlows:
+        for flow in element.out_flows:
             flow.accept(self)
 
     def visit_gateway_node(self, element: GatewayNode) -> None:
@@ -277,7 +277,7 @@ class Promela_gen_visitor(BPMN_Visitor):
         if element.seen:
             return
         element.seen = True
-        target = element.toNode
+        target = element.to_node
 
         if target:
             target.accept(self)
@@ -300,7 +300,7 @@ class Promela_gen_visitor(BPMN_Visitor):
         self.genPlaces(element)
         self.genActivationOption(element, type="Task")
         self.genActivationOption(element, type="Task-END")
-        for flow in element.outFlows:
+        for flow in element.out_flows:
             flow.accept(self)
 
     def visit_xor_gateway_node(self, element: XorGatewayNode) -> None:
@@ -308,12 +308,12 @@ class Promela_gen_visitor(BPMN_Visitor):
             return
         element.seen = True
         self.genPlaces(element)
-        if len(element.outFlows) == 1:
+        if len(element.out_flows) == 1:
             self.genActivationOption(element, type="XOR-JOIN")
         else:
             self.genXORHasOptionMacro(element)
             self.genActivationOption(element, type="XOR")
-        for flow in element.outFlows:
+        for flow in element.out_flows:
             flow.accept(self)
 
     def visit_parallel_gateway_join_node(
@@ -324,7 +324,7 @@ class Promela_gen_visitor(BPMN_Visitor):
         element.seen = True
         self.genPlaces(element)
         self.genActivationOption(element, type="Parallel-join")
-        for flow in element.outFlows:
+        for flow in element.out_flows:
             flow.accept(self)
 
     def visit_parallel_gateway_fork_node(
@@ -335,7 +335,7 @@ class Promela_gen_visitor(BPMN_Visitor):
         element.seen = True
         self.genPlaces(element)
         self.genActivationOption(element, type="Parallel-fork")
-        for flow in element.outFlows:
+        for flow in element.out_flows:
             flow.accept(self)
 
     def visit_timer_intermediate_node(self, element: TimerIntermediateNode) -> None:
@@ -348,14 +348,14 @@ class Promela_gen_visitor(BPMN_Visitor):
         if element.seen:
             return
         element.seen = True
-        if element.inMsgs:
+        if element.in_msgs:
             self.genPlaces(element)
             self.genActivationOption(element)
         else:
             self.genPlaces(element)
             guard = "(hasToken({}))".format(element.label)
             self.genActivationOption(element, startGuard=guard)
-        for flow in element.outFlows:
+        for flow in element.out_flows:
             flow.accept(self)
 
     def visit_end_node(self, element: EndNode) -> None:
@@ -371,8 +371,8 @@ class Promela_gen_visitor(BPMN_Visitor):
         self.workflowIndent += 1
         # self.writeWorkflowLines("updateState()")
         self.writeWorkflowLines("pid me = _pid")
-        for startNode in element.startStateList:
-            if not startNode.inMsgs:
+        for startNode in element.start_state_list:
+            if not startNode.in_msgs:
                 self.writeWorkflowLines("putToken({x})".format(x=startNode.label))
         self.writeWorkflowLines("do")
         # self.workflowIndent += 1
@@ -381,7 +381,7 @@ class Promela_gen_visitor(BPMN_Visitor):
         # self.writeWorkflowLines(":: (!mutex[me]) -> ")
         # self.workflowIndent += 1
         # self.writeWorkflowLines("if")
-        for startNode in element.startStateList:
+        for startNode in element.start_state_list:
             startNode.accept(self)
         # self.writeWorkflowLines("fi")
         # self.workflowIndent -= 1
@@ -408,12 +408,12 @@ class Promela_gen_visitor(BPMN_Visitor):
         initLines = "init {\n"
         initLines += "\tatomic{\n"
         initLines += "\t\tupdateState()\n"
-        for process in element.processList:
+        for process in element.process_list:
             initLines += "\t\trun {}()\n".format(process.name)
         initLines += "\t}\n"
         initLines += "}\n\n"
         self.writeInitLines(initLines)
-        for process in element.processList:
+        for process in element.process_list:
             process.accept(self)
         for place in self.flowPlaces:
             self.writePlacesLines("bit {x} = 0".format(x=str(place)))
@@ -423,8 +423,8 @@ class Promela_gen_visitor(BPMN_Visitor):
     ) -> str:
         if not element:
             return "Error: element provided = None"
-        if flowOrMsg and flowOrMsg.fromNode:
-            return str(element.label) + "_FROM_" + str(flowOrMsg.fromNode.label)
+        if flowOrMsg and flowOrMsg.from_node:
+            return str(element.label) + "_FROM_" + str(flowOrMsg.from_node.label)
         else:
             if isinstance(element, ActivityNode):
                 return str(element.label) + "_END"

@@ -124,7 +124,7 @@ class BPMNXMLIngestor:
                 toNode.addInMsg(message)
         return BPMNmodel
 
-    def processProc(self, process) -> BPMN.Process:
+    def _processProc(self, process: BPMN.Process) -> BPMN.Process:
         BPMNproc = BPMN.Process(
             self.cleanup_name(self.participantMap[process.get("id")])
         )
