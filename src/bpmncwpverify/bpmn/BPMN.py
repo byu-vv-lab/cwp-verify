@@ -240,10 +240,10 @@ class Process(BpmnElement):
 class Model(BpmnElement):
     def __init__(
         self,
-        process_list: Optional[List[Process]] = None,
+        process_list: List[Process] = [],
         raw_ingest_ref: Optional[ET.ElementTree] = None,
     ):
-        self.process_list = process_list if process_list is not None else []
+        self.process_list = process_list
         self.raw_ingest_ref = raw_ingest_ref
 
     def add_process(self, process: Process) -> None:
@@ -257,7 +257,3 @@ class Model(BpmnElement):
             self.raw_ingest_ref.write(
                 output_file, encoding="UTF-8", xml_declaration=True
             )
-
-
-if __name__ == "__main__":
-    pass
