@@ -14,28 +14,27 @@ from bpmncwpverify.bpmn import BPMN
 from bpmncwpverify.state import SymbolTable
 from returns.pipeline import is_successful  # type: ignore
 
-BPMNNamespaceMap = {"bpmn": "http://www.omg.org/spec/BPMN/20100524/MODEL"}
+bpmn_namespace_map = {"bpmn": "http://www.omg.org/spec/BPMN/20100524/MODEL"}
 
 
 class BPMNXMLIngestor:
-    def __init__(self, symbolTable=None, ns=None) -> None:
+    def __init__(self, symbol_table=None, ns=None) -> None:
         if ns is None:
             self.ns = []
         else:
             self.ns = ns
-        self.inputfile = ""
-        self.storedElems = {}
-        self.generateStub = False
-        self.condParser = None  # TODO: put expressions here
-        self.symbolTable = symbolTable
-        # self.condParser.setVarList(self.varList)
+        self.input_file = ""
+        self.stored_elems = {}
+        self.generate_stub = False
+        self.cond_parser = None  # TODO: put expressions here
+        self.symbol_table = symbol_table
         self.root = None
 
-    def createInlineStubFile(self) -> str:
-        fileString = ""
+    def create_inline_stub_file(self) -> str:
+        file_string = ""
         for process in self.processes:
             for element in process:
-                updateState = False
+                update_state = False
                 if "sequenceFlow" not in element.tag:
                     if "task" in element.tag or "Task" in element.tag:
                         name = (
@@ -44,7 +43,7 @@ class BPMNXMLIngestor:
                             else self.cleanup_name(element.get("id"))
                         )
 
-                        updateState = True
+                        update_state = True
                     else:
                         name = (
                             self.cleanup_name(element.get("name"))
@@ -52,23 +51,25 @@ class BPMNXMLIngestor:
                             else self.cleanup_name(element.get("id"))
                         )
                     if "parallel" in element.tag:
-                        updateState = True
-                    fileString += "//{x}\n".format(x=name)
-                    fileString = self.writeInlineStub(name, fileString, updateState)
-        return fileString
+                        update_state = True
+                    file_string += "//{x}\n".format(x=name)
+                    file_string = self.write_inline_stub(
+                        name, file_string, update_state
+                    )
+        return file_string
 
-    def writeInlineStub(self, placeName, fileString, updateState=False) -> str:
-        fileString += "inline {x}_BehaviorModel(){{\n".format(x=placeName)
-        fileString += "\tskip\n"
-        fileString += "}\n"
-        return fileString
+    def write_inline_stub(self, place_name, file_string, update_state=False) -> str:
+        file_string += "inline {x}_BehaviorModel(){{\n".format(x=place_name)
+        file_string += "\tskip\n"
+        file_string += "}\n"
+        return file_string
 
-    def parseXML(self, xmlFile) -> ET.ElementTree:
-        tree = ET.parse(xmlFile)
+    def parse_xml(self, xml_file) -> ET.ElementTree:
+        tree = ET.parse(xml_file)
         return tree
 
-    def parseInput(self, argv) -> None:
-        self.inputfile = ""
+    def parse_input(self, argv) -> None:
+        self.input_file = ""
         try:
             opts, args = getopt.getopt(argv, "si:o:", ["stub"])
         except getopt.GetoptError:
@@ -76,36 +77,36 @@ class BPMNXMLIngestor:
             sys.exit(2)
         for opt, arg in opts:
             if opt == "-i":
-                self.inputfile = arg
+                self.input_file = arg
             if opt == "-o":
-                self.outputfile = arg
+                self.output_file = arg
 
     def execute(self) -> BPMN.Model:
-        model = self.processXML()
+        model = self.process_xml()
 
-        if self.generateStub:
-            self.createInlineStubFile()
+        if self.generate_stub:
+            self.create_inline_stub_file()
 
         return model
 
-    def processXML(self) -> BPMN.Model:
-        tree = self.parseXML(self.inputfile)
+    def process_xml(self) -> BPMN.Model:
+        tree = self.parse_xml(self.input_file)
         self.root = tree.getroot()
 
         self.collab = self.root.find("bpmn:collaboration", self.ns)
 
         if self.collab:
-            self.participantMap = {
+            self.participant_map = {
                 participant.get("processRef"): participant.get("name")
                 for participant in self.collab.findall("bpmn:participant", self.ns)
             }
 
         self.processes = self.root.findall("bpmn:process", self.ns)
 
-        BPMNmodel = BPMN.Model(rawIngestRef=tree)
+        bpmn_model = BPMN.Model(raw_ingest_ref=tree)
         for process in self.processes:
-            BPMNproc = self.processProc(process)
-            BPMNmodel.addProcess(BPMNproc)
+            bpmn_proc = self._process_proc(process)
+            bpmn_model.add_process(bpmn_proc)
         if self.collab:
             for msg in self.collab.findall("bpmn:messageFlow", self.ns):
                 raw_id = msg.get("id")
@@ -114,19 +115,19 @@ class BPMNXMLIngestor:
                 if name is None:
                     name = id
                 message = BPMN.Msg(name, id=raw_id)
-                sourceRef = msg.get("sourceRef")
-                targetRef = msg.get("targetRef")
-                fromNode = self.storedElems[sourceRef]
-                toNode = self.storedElems[targetRef]
-                message.setToNode(toNode)
-                message.setFromNode(fromNode)
-                fromNode.addOutMsg(message)
-                toNode.addInMsg(message)
-        return BPMNmodel
+                source_ref = msg.get("sourceRef")
+                target_ref = msg.get("targetRef")
+                from_node = self.stored_elems[source_ref]
+                to_node = self.stored_elems[target_ref]
+                message.set_to_node(to_node)
+                message.set_from_node(from_node)
+                from_node.add_out_msg(message)
+                to_node.add_in_msg(message)
+        return bpmn_model
 
-    def _processProc(self, process: BPMN.Process) -> BPMN.Process:
-        BPMNproc = BPMN.Process(
-            self.cleanup_name(self.participantMap[process.get("id")])
+    def _process_proc(self, process: BPMN.Process) -> BPMN.Process:
+        bpmn_proc = BPMN.Process(
+            self.cleanup_name(self.participant_map[process.get("id")])
         )
         for element in process:
             if "task" in element.tag.lower():
@@ -141,7 +142,7 @@ class BPMNXMLIngestor:
                 name = id
             if "startEvent" in element.tag:
                 event = BPMN.StartNode(name, id=raw_id)
-                BPMNproc.addStartState(event)
+                bpmn_proc.add_start_state(event)
             elif "sendTask" in element.tag:
                 itm = BPMN.MsgIntermediateNode(name, id=raw_id)
             elif "task" in element.tag.lower():
@@ -155,7 +156,7 @@ class BPMNXMLIngestor:
             elif "exclusiveGateway" in element.tag:
                 itm = BPMN.XorGatewayNode(name, id=raw_id)
             elif "parallelGateway" in element.tag:
-                if self.hasMultipleOutEdges(element):
+                if self.has_multiple_out_edges(element):
                     itm = BPMN.ParallelGatewayForkNode(name, id=raw_id)
                 else:
                     itm = BPMN.ParallelGatewayJoinNode(name, id=raw_id)
@@ -164,7 +165,7 @@ class BPMNXMLIngestor:
             elif "endEvent" in element.tag:
                 itm = BPMN.EndNode(name, id=raw_id)
 
-            self.storedElems[id] = itm
+            self.stored_elems[id] = itm
         for element in process:
             raw_id = element.get("id")
             name = self.cleanup_flow(element.get("name"))
@@ -172,50 +173,39 @@ class BPMNXMLIngestor:
             if name is None:
                 name = id
             if "sequenceFlow" in element.tag:
-                sourceRef = element.get("sourceRef")
-                targetRef = element.get("targetRef")
-                fromNode = self.storedElems[sourceRef]
-                toNode = self.storedElems[targetRef]
-
-                # TODO: follow this logic but with new expression parser
-                # if isinstance(
-                #     fromNode, BPMN.XorGatewayNode
-                # ) and self.BPMNhasMultipleOutEdges(fromNode):
-                #     # root = self.condParser.execute(name)
-                #     # newroot = TreeNode(value="()", type=TokenType.PAREN, left=root)
-                #     # flow = BPMN.Flow(newroot, id=raw_id)
-                #     pass
-                # else:
-                # flow = BPMN.Flow(name, id=raw_id)
+                source_ref = element.get("sourceRef")
+                target_ref = element.get("targetRef")
+                from_node = self.stored_elems[source_ref]
+                to_node = self.stored_elems[target_ref]
 
                 flow = BPMN.Flow(name, id=raw_id)
 
-                flow.setToNode(toNode)
-                flow.setFromNode(fromNode)
-                fromNode.addOutFlow(flow)
-                toNode.addInFlow(flow)
-        return BPMNproc
+                flow.set_to_node(to_node)
+                flow.set_from_node(from_node)
+                from_node.add_out_flow(flow)
+                to_node.add_in_flow(flow)
+        return bpmn_proc
 
-    def BPMNhasMultipleOutEdges(self, node):
-        if len(node.outFlows) > 1:
+    def bpmn_has_multiple_out_edges(self, node):
+        if len(node.out_flows) > 1:
             return True
         else:
             return False
 
-    def hasMultipleOutEdges(self, element):
+    def has_multiple_out_edges(self, element):
         if len(element.findall("bpmn:outgoing", self.ns)) > 1:
             return True
         else:
             return False
 
-    # cleans up flow name (make it Promela Compliant)
+    # cleans up flow name (make it Promela compliant)
     def cleanup_flow(self, name):
         # Get rid of newlines in flows
         if name:
             name = name.replace("\n", "")
         return name
 
-    # cleans up a name (make is Promela Compliant)
+    # cleans up a name (make it Promela compliant)
     def cleanup_name(self, name):
         if name is None:
             return name
@@ -244,7 +234,7 @@ def main(argv):
     result = SymbolTable.build(read_state(path + "/src/bpmncwpverify/state.txt"))
     assert is_successful(result)
     symbol_table: SymbolTable = result.unwrap()
-    ingestor = BPMNXMLIngestor(symbolTable=symbol_table, ns=BPMNNamespaceMap)
+    ingestor = BPMNXMLIngestor(symbolTable=symbol_table, ns=bpmn_namespace_map)
     ingestor.parseInput(argv)
     myBPMN = ingestor.execute()
     myBPMN.exportXML("./../../output/XMLOut.bpmn")
