@@ -1,51 +1,24 @@
 from typing import Optional, List
+from abc import ABC
 
 
+# Base class for all BPMN elements
 class BpmnElement:
-    def __init__(self, id: str) -> None:
+    def __init__(self, id: str, label: str = "") -> None:
         self.id = id
-
-
-class Node(BpmnElement):
-    def __init__(self, label: str, id: str) -> None:
-        super().__init__(id)
         self.label = label
+
+
+# Base class for nodes that can have incoming and outgoing flows
+class Node(BpmnElement, ABC):
+    def __init__(self, id: str, label: str = "") -> None:
+        super().__init__(id, label)
         self.in_flows: List["SequenceFlow"] = []
         self.out_flows: List["SequenceFlow"] = []
 
 
-# Gateway Node
-class GatewayNode(Node):
-    pass
-
-
-class ExclusiveGatewayNode(GatewayNode):
-    pass
-
-
-class ParallelGatewayJoinNode(GatewayNode):
-    pass
-
-
-class ParallelGatewayForkNode(GatewayNode):
-    pass
-
-
-# Activity Node
-class Activity(Node):
-    pass
-
-
-class Task(Activity):
-    pass
-
-
-class SubProcess(Activity):
-    pass
-
-
-# Event Node
-class Event(Node):
+# Event classes
+class Event(Node, ABC):
     pass
 
 
@@ -61,29 +34,49 @@ class IntermediateEvent(Event):
     pass
 
 
-# Flow
-class Flow(BpmnElement):
+# Activity classes
+class Activity(Node, ABC):
+    pass
+
+
+class Task(Activity):
+    pass
+
+
+class SubProcess(Activity):
+    pass
+
+
+# Gateway classes
+class GatewayNode(Node, ABC):
+    pass
+
+
+class ExclusiveGatewayNode(GatewayNode):
+    pass
+
+
+class ParallelGatewayNode(GatewayNode):
+    def __init__(self, id: str, label: str = "", is_fork: bool = False) -> None:
+        super().__init__(id, label)
+        self.is_fork = is_fork  # True for fork, False for join
+
+
+# Flow classes
+class Flow(BpmnElement, ABC):
     def __init__(
         self,
-        label: str,
         id: str,
-        to_node: Optional["Node"] = None,
+        label: str = "",
         from_node: Optional["Node"] = None,
-    ):
-        super().__init__(id)
-        self.label = label
-        self.to_node = to_node
+        to_node: Optional["Node"] = None,
+    ) -> None:
+        super().__init__(id, label)
         self.from_node = from_node
+        self.to_node = to_node
         self.seen = False
 
-    def set_to_node(self, to_node: "Node") -> None:
-        self.to_node = to_node
 
-    def set_from_node(self, from_node: "Node") -> None:
-        self.from_node = from_node
-
-
-# Specific Flow types
 class SequenceFlow(Flow):
     pass
 
@@ -92,12 +85,24 @@ class MessageFlow(Flow):
     pass
 
 
+# Process class
 class Process(BpmnElement):
-    def __init__(self) -> None:
-        self.start_event_list: List[StartEvent] = []
+    def __init__(self, id: str, label: str = "") -> None:
+        super().__init__(id, label)
+        self.elements: List[BpmnElement] = []
+        self.flows: List[Flow] = []
+
+    def add_element(self, element: BpmnElement) -> None:
+        self.elements.append(element)
+
+    def add_flow(self, flow: Flow) -> None:
+        self.flows.append(flow)
 
 
+# BPMN diagram class
 class Bpmn:
     def __init__(self) -> None:
-        self.bpmn_element_list: List[BpmnElement] = []
-        self.flow_list: List[Flow] = []
+        self.process_list: List[Process] = []
+
+    def add_process(self, process: Process) -> None:
+        self.process_list.append(process)
