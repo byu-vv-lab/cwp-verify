@@ -1,108 +1,111 @@
-from typing import Optional, List
+from typing import Optional, List, Dict
 from abc import ABC
+from xml.etree.ElementTree import Element
 
 
 # Base class for all BPMN elements
 class BpmnElement:
-    def __init__(self, id: str, label: str = "") -> None:
-        self.id = id
-        self.label = label
+    def __init__(self, element: Element) -> None:
+        self.element = element
+        self.id = element.attrib["id"]
+        self.name = element.attrib.get("name")
 
 
 # Base class for nodes that can have incoming and outgoing flows
 class Node(BpmnElement, ABC):
-    def __init__(self, id: str, label: str = "") -> None:
-        super().__init__(id, label)
+    def __init__(self, element: Element) -> None:
+        super().__init__(element)
         self.in_flows: List["SequenceFlow"] = []
         self.out_flows: List["SequenceFlow"] = []
 
 
 # Event classes
 class Event(Node, ABC):
-    pass
+    def __init__(self, element: Element):
+        super().__init__(element)
 
 
 class StartEvent(Event):
-    pass
+    def __init__(self, element: Element):
+        super().__init__(element)
 
 
 class EndEvent(Event):
-    pass
+    def __init__(self, element: Element):
+        super().__init__(element)
 
 
 class IntermediateEvent(Event):
-    pass
+    def __init__(self, element: Element):
+        super().__init__(element)
 
 
 # Activity classes
 class Activity(Node, ABC):
-    pass
+    def __init__(self, element: Element):
+        super().__init__(element)
 
 
 class Task(Activity):
-    pass
+    def __init__(self, element: Element):
+        super().__init__(element)
 
 
 class SubProcess(Activity):
-    pass
+    def __init__(self, element: Element):
+        super().__init__(element)
 
 
 # Gateway classes
 class GatewayNode(Node, ABC):
-    pass
+    def __init__(self, element: Element):
+        super().__init__(element)
 
 
 class ExclusiveGatewayNode(GatewayNode):
-    pass
+    def __init__(self, element: Element):
+        super().__init__(element)
 
 
 class ParallelGatewayNode(GatewayNode):
-    def __init__(self, id: str, label: str = "", is_fork: bool = False) -> None:
-        super().__init__(id, label)
-        self.is_fork = is_fork  # True for fork, False for join
+    def __init__(self, element: Element, is_fork: bool = False):
+        super().__init__(element)
+        self.is_fork = is_fork
 
 
 # Flow classes
 class Flow(BpmnElement, ABC):
     def __init__(
         self,
-        id: str,
-        label: str = "",
+        element: Element,
         from_node: Optional["Node"] = None,
         to_node: Optional["Node"] = None,
     ) -> None:
-        super().__init__(id, label)
+        super().__init__(element)
         self.from_node = from_node
         self.to_node = to_node
         self.seen = False
 
 
 class SequenceFlow(Flow):
-    pass
+    def __init__(self, element: Element):
+        super().__init__(element)
 
 
 class MessageFlow(Flow):
-    pass
+    def __init__(self, element: Element):
+        super().__init__(element)
 
 
 # Process class
 class Process(BpmnElement):
-    def __init__(self, id: str, label: str = "") -> None:
-        super().__init__(id, label)
-        self.elements: List[BpmnElement] = []
-        self.flows: List[Flow] = []
-
-    def add_element(self, element: BpmnElement) -> None:
-        self.elements.append(element)
-
-    def add_flow(self, flow: Flow) -> None:
-        self.flows.append(flow)
+    def __init__(self, element: Element):
+        super().__init__(element)
+        self.elements: Dict[str, BpmnElement] = {}
+        self.flows: Dict[str, Flow] = {}
+        self.graph: Dict[str, List[str]] = {}
 
 
-# BPMN diagram class
 class Bpmn:
     def __init__(self) -> None:
-        self.process_list: List[Process] = []
-
-    def add_process(self, process: Process) -> None:
-        self.process_list.append(process)
+        self.processes: List[Process] = []
