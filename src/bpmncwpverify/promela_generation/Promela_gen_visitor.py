@@ -1,2 +1,0 @@
-class PromelaGenVisitor:
-    pass

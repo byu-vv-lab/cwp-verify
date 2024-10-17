@@ -1,5 +1,5 @@
 # type: ignore
-from bpmncwpverify.xml_ingest.BPMNXMLIngestor import get_bpmn_from_xml
+from bpmncwpverify.xml_ingest.bpmn_xml_ingestor import get_bpmn_from_xml
 
 
 def test_get_root():
