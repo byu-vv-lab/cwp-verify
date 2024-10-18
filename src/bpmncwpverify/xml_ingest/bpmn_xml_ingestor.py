@@ -40,7 +40,7 @@ def _build_graph(process: Process) -> None:
                 target_ref = flow.element.attrib["targetRef"]
 
                 # add target node id to neighbor list of current element
-                process.graph[element_id].append(target_ref)
+                process.adj_list[element_id].append(target_ref)
 
                 # update flow's source_node
                 flow.source_node = process.elements[source_ref]
@@ -64,7 +64,7 @@ def _traverse_process(process_element: Element) -> Process:
             element_id = element_instance.id
             process.elements[element_id] = element_instance
 
-            process.graph[element_id] = []
+            process.adj_list[element_id] = []
         elif tag_local in FLOW_MAPPING:
             flow_id = element.attrib["id"]
             element_class = FLOW_MAPPING[tag_local]
@@ -79,7 +79,7 @@ def _traverse_process(process_element: Element) -> Process:
 def _print_bpmn(bpmn: Bpmn) -> None:
     for process in bpmn.processes:
         print(f"Process ID: {process.id}, Name: {process.name}")
-        for element_id, outgoing_ids in process.graph.items():
+        for element_id, outgoing_ids in process.adj_list.items():
             element_instance = process.elements[element_id]
             name = element_instance.name
             print(f"  Element ID: {element_id}, Name: {name}")

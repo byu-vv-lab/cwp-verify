@@ -1,5 +1,4 @@
 from typing import Optional, List, Dict
-from abc import ABC
 from xml.etree.ElementTree import Element
 
 
@@ -12,7 +11,7 @@ class BpmnElement:
 
 
 # Base class for nodes that can have incoming and outgoing flows
-class Node(BpmnElement, ABC):
+class Node(BpmnElement):
     def __init__(self, element: Element) -> None:
         super().__init__(element)
         self.in_flows: List[Flow] = []
@@ -20,7 +19,7 @@ class Node(BpmnElement, ABC):
 
 
 # Event classes
-class Event(Node, ABC):
+class Event(Node):
     def __init__(self, element: Element):
         super().__init__(element)
 
@@ -41,7 +40,7 @@ class IntermediateEvent(Event):
 
 
 # Activity classes
-class Activity(Node, ABC):
+class Activity(Node):
     def __init__(self, element: Element):
         super().__init__(element)
 
@@ -57,7 +56,7 @@ class SubProcess(Activity):
 
 
 # Gateway classes
-class GatewayNode(Node, ABC):
+class GatewayNode(Node):
     def __init__(self, element: Element):
         super().__init__(element)
 
@@ -74,7 +73,7 @@ class ParallelGatewayNode(GatewayNode):
 
 
 # Flow classes
-class Flow(BpmnElement, ABC):
+class Flow(BpmnElement):
     def __init__(
         self,
         element: Element,
@@ -101,7 +100,7 @@ class Process(BpmnElement):
         super().__init__(element)
         self.elements: Dict[str, Node] = {}
         self.flows: Dict[str, Flow] = {}
-        self.graph: Dict[str, List[str]] = {}
+        self.adj_list: Dict[str, List[str]] = {}
 
 
 class Bpmn:
