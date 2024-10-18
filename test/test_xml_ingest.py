@@ -1,6 +1,7 @@
 # type: ignore
 from bpmncwpverify.xml_ingest.bpmn_xml_ingestor import get_bpmn_from_xml
 from bpmncwpverify.bpmn.BPMN import Bpmn, ParallelGatewayNode
+import os
 
 # List of flows with their source and target node IDs
 flows_to_test = [
@@ -31,9 +32,11 @@ def assert_flow(process, flow_id, source_id, target_id):
 
 
 def test_get_root():
-    bpmn: Bpmn = get_bpmn_from_xml(
-        "/workspaces/bpmn_cwp_verify/test/example/workflow.bpmn"
-    )
+    current_directory = os.path.dirname(os.path.abspath(__file__))
+
+    workflow_bpmn_path = os.path.join(current_directory, "example", "workflow.bpmn")
+
+    bpmn: Bpmn = get_bpmn_from_xml(workflow_bpmn_path)
 
     assert len(bpmn.processes) == 1
 
