@@ -28,4 +28,4 @@ jobs:
       uses: pre-commit/action@v3.0.1
     - name: Test pass-off
       run: |
-        pytest --no-header --no-summary -s -v -vv
+        pytest --no-header -s -v -vv
