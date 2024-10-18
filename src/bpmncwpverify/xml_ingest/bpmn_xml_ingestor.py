@@ -10,7 +10,6 @@ from bpmncwpverify.bpmn.BPMN import (
     Process,
 )
 
-# Define the BPMN namespace
 
 ################
 # Constants
@@ -29,6 +28,18 @@ FLOW_MAPPING = {"sequenceFlow": SequenceFlow}
 ################
 
 
+def _build_graph(process: Process) -> None:
+    for element_id, element_instance in process.elements.items():
+        for outgoing in element_instance.element.findall("bpmn:outgoing", NAMESPACES):
+            flow_id = outgoing.text
+            if not flow_id:
+                raise Exception("flow id is None")
+            flow = process.flows.get(flow_id.strip())
+            if flow is not None:
+                target_ref = flow.element.attrib["targetRef"]
+                process.graph[element_id].append(target_ref)
+
+
 def _traverse_process(process_element: Element) -> Process:
     process = Process(process_element)
 
@@ -39,6 +50,7 @@ def _traverse_process(process_element: Element) -> Process:
             element_instance = element_class(element)
             element_id = element_instance.id
             process.elements[element_id] = element_instance
+
             process.graph[element_id] = []
         elif tag_local in FLOW_MAPPING:
             flow_id = element.attrib["id"]
@@ -46,13 +58,7 @@ def _traverse_process(process_element: Element) -> Process:
             element_instance = element_class(element)
             process.flows[flow_id] = element_instance
 
-    for element_id, element_instance in process.elements.items():
-        for outgoing in element_instance.element.findall("bpmn:outgoing", NAMESPACES):
-            flow_id = outgoing.text.strip()
-            flow = process.flows.get(flow_id)
-            if flow is not None:
-                target_ref = flow.element.attrib["targetRef"]
-                process.graph[element_id].append(target_ref)
+    _build_graph(process)
 
     return process
 
@@ -69,7 +75,7 @@ def _print_bpmn(bpmn: Bpmn) -> None:
                 target_element = process.elements.get(target_id)
                 target_name = target_element.name if target_element else "Unknown"
                 print(f"      Element ID: {target_id}, Name: {target_name}")
-        print()  # Add an empty line between processes
+        print()
 
 
 def get_bpmn_from_xml(xml_file: str) -> Bpmn:
@@ -82,8 +88,3 @@ def get_bpmn_from_xml(xml_file: str) -> Bpmn:
         bpmn.processes.append(process)
 
     return bpmn
-
-
-if __name__ == "__main__":
-    bpmn = get_bpmn_from_xml("/workspaces/bpmn_cwp_verify/test/example/workflow.bpmn")
-    _print_bpmn(bpmn)
