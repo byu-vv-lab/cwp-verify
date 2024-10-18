@@ -14,7 +14,7 @@ from bpmncwpverify.bpmn.BPMN import (
 ################
 # Constants
 ################
-NAMESPACES = {"bpmn": "http://www.omg.org/spec/BPMN/20100524/MODEL"}
+from bpmncwpverify.constants import NAMESPACES
 
 TAG_CLASS_MAPPING = {
     "task": Task,
@@ -36,8 +36,21 @@ def _build_graph(process: Process) -> None:
                 raise Exception("flow id is None")
             flow = process.flows.get(flow_id.strip())
             if flow is not None:
+                source_ref = flow.element.attrib["sourceRef"]
                 target_ref = flow.element.attrib["targetRef"]
+
+                # add target node id to neighbor list of current element
                 process.graph[element_id].append(target_ref)
+
+                # update flow's source_node
+                flow.source_node = process.elements[source_ref]
+                # update flow's target_node
+                flow.target_node = process.elements[target_ref]
+
+                # update source node's out flows array
+                process.elements[source_ref].out_flows.append(flow)
+                # update target node's in flows array
+                process.elements[target_ref].in_flows.append(flow)
 
 
 def _traverse_process(process_element: Element) -> Process:

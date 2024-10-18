@@ -15,8 +15,8 @@ class BpmnElement:
 class Node(BpmnElement, ABC):
     def __init__(self, element: Element) -> None:
         super().__init__(element)
-        self.in_flows: List["SequenceFlow"] = []
-        self.out_flows: List["SequenceFlow"] = []
+        self.in_flows: List[Flow] = []
+        self.out_flows: List[Flow] = []
 
 
 # Event classes
@@ -78,12 +78,10 @@ class Flow(BpmnElement, ABC):
     def __init__(
         self,
         element: Element,
-        from_node: Optional["Node"] = None,
-        to_node: Optional["Node"] = None,
     ) -> None:
         super().__init__(element)
-        self.from_node = from_node
-        self.to_node = to_node
+        self.source_node: Optional[Node] = None
+        self.target_node: Optional[Node] = None
         self.seen = False
 
 
@@ -101,7 +99,7 @@ class MessageFlow(Flow):
 class Process(BpmnElement):
     def __init__(self, element: Element):
         super().__init__(element)
-        self.elements: Dict[str, BpmnElement] = {}
+        self.elements: Dict[str, Node] = {}
         self.flows: Dict[str, Flow] = {}
         self.graph: Dict[str, List[str]] = {}
 
