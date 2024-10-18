@@ -2,6 +2,33 @@
 from bpmncwpverify.xml_ingest.bpmn_xml_ingestor import get_bpmn_from_xml
 from bpmncwpverify.bpmn.BPMN import Bpmn, ParallelGatewayNode
 
+# List of flows with their source and target node IDs
+flows_to_test = [
+    ("Flow_1oezfcg", "Activity_1unsjkg", "Gateway_0s1i42o"),
+    ("Flow_14s5onf", "Activity_1t579ox", "Gateway_0s1i42o"),
+    ("Flow_0feadgd", "Gateway_0s1i42o", "Gateway_1pm4ghz"),
+    ("Flow_127sd29", "Activity_1bckz5y", "Gateway_1pm4ghz"),
+    ("Flow_00oxr95", "Activity_1mktua2", "Gateway_1pm4ghz"),
+    ("Flow_0yqye0v", "Gateway_1pm4ghz", "Activity_0a5xzqf"),
+    ("Flow_0diuub0", "Gateway_1pm4ghz", "Event_0wqympo"),
+    ("Flow_0q6dz8p", "Gateway_1pm4ghz", "Activity_1bckz5y"),
+    ("Flow_0koz64j", "Gateway_1pm4ghz", "Activity_1mktua2"),
+    ("Flow_0ct87dl", "Activity_0a5xzqf", "Gateway_000lymc"),
+    ("Flow_0jmvvxc", "Gateway_000lymc", "Activity_1qqx4aq"),
+    ("Flow_1y66pph", "Gateway_000lymc", "Activity_1rfm4sh"),
+    ("Flow_0znbe82", "Activity_1qqx4aq", "Gateway_0cy7rs7"),
+    ("Flow_1sx1rdt", "Activity_1rfm4sh", "Gateway_0cy7rs7"),
+    ("Flow_1cm84v3", "Gateway_0cy7rs7", "Event_1y6wxsp"),
+    ("Flow_0oiwgjd", "StartEvent_1y8wbre", "Activity_1qm7qck"),
+]
+
+
+def assert_flow(process, flow_id, source_id, target_id):
+    flow = process.flows.get(flow_id)
+    assert flow is not None, f"Flow {flow_id} not found"
+    assert flow.source_node.id == source_id, f"Flow {flow_id} source node mismatch"
+    assert flow.target_node.id == target_id, f"Flow {flow_id} target node mismatch"
+
 
 def test_get_root():
     bpmn: Bpmn = get_bpmn_from_xml(
@@ -130,102 +157,5 @@ def test_get_root():
     assert "Flow_0oiwgjd" in {flow.id for flow in start_event_1y8wbre.out_flows}
 
     # Flows
-    flow_0koz64j = process.flows.get("Flow_08e7qxg")
-    assert flow_0koz64j is not None
-    assert flow_0koz64j.source_node.id == "Gateway_1pm4ghz"
-    assert flow_0koz64j.target_node.id == "Gateway_12r266n"
-
-    Flow_1wl740o = process.flows.get("Flow_1wl740o")
-    assert Flow_1wl740o is not None
-    assert Flow_1wl740o.source_node.id == "Activity_1qm7qck"
-    assert Flow_1wl740o.target_node.id == "Gateway_12r266n"
-
-    Flow_1kx5xjv = process.flows.get("Flow_1kx5xjv")
-    assert Flow_1kx5xjv is not None
-    assert Flow_1kx5xjv.source_node.id == "Gateway_12r266n"
-    assert Flow_1kx5xjv.target_node.id == "Activity_1unsjkg"
-
-    Flow_13xpfx7 = process.flows.get("Flow_13xpfx7")
-    assert Flow_13xpfx7 is not None
-    assert Flow_13xpfx7.source_node.id == "Gateway_12r266n"
-    assert Flow_13xpfx7.target_node.id == "Activity_1t579ox"
-
-    Flow_1oezfcg = process.flows.get("Flow_1oezfcg")
-    assert Flow_1oezfcg is not None
-    assert Flow_1oezfcg.source_node.id == "Activity_1unsjkg"
-    assert Flow_1oezfcg.target_node.id == "Gateway_0s1i42o"
-
-    Flow_14s5onf = process.flows.get("Flow_14s5onf")
-    assert Flow_14s5onf is not None
-    assert Flow_14s5onf.source_node.id == "Activity_1t579ox"
-    assert Flow_14s5onf.target_node.id == "Gateway_0s1i42o"
-
-    Flow_0feadgd = process.flows.get("Flow_0feadgd")
-    assert Flow_0feadgd is not None
-    assert Flow_0feadgd.source_node.id == "Gateway_0s1i42o"
-    assert Flow_0feadgd.target_node.id == "Gateway_1pm4ghz"
-
-    Flow_127sd29 = process.flows.get("Flow_127sd29")
-    assert Flow_127sd29 is not None
-    assert Flow_127sd29.source_node.id == "Activity_1bckz5y"
-    assert Flow_127sd29.target_node.id == "Gateway_1pm4ghz"
-
-    Flow_00oxr95 = process.flows.get("Flow_00oxr95")
-    assert Flow_00oxr95 is not None
-    assert Flow_00oxr95.source_node.id == "Activity_1mktua2"
-    assert Flow_00oxr95.target_node.id == "Gateway_1pm4ghz"
-
-    Flow_0yqye0v = process.flows.get("Flow_0yqye0v")
-    assert Flow_0yqye0v is not None
-    assert Flow_0yqye0v.source_node.id == "Gateway_1pm4ghz"
-    assert Flow_0yqye0v.target_node.id == "Activity_0a5xzqf"
-
-    Flow_0diuub0 = process.flows.get("Flow_0diuub0")
-    assert Flow_0diuub0 is not None
-    assert Flow_0diuub0.source_node.id == "Gateway_1pm4ghz"
-    assert Flow_0diuub0.target_node.id == "Event_0wqympo"
-
-    Flow_0q6dz8p = process.flows.get("Flow_0q6dz8p")
-    assert Flow_0q6dz8p is not None
-    assert Flow_0q6dz8p.source_node.id == "Gateway_1pm4ghz"
-    assert Flow_0q6dz8p.target_node.id == "Activity_1bckz5y"
-
-    Flow_0koz64j = process.flows.get("Flow_0koz64j")
-    assert Flow_0koz64j is not None
-    assert Flow_0koz64j.source_node.id == "Gateway_1pm4ghz"
-    assert Flow_0koz64j.target_node.id == "Activity_1mktua2"
-
-    Flow_0ct87dl = process.flows.get("Flow_0ct87dl")
-    assert Flow_0ct87dl is not None
-    assert Flow_0ct87dl.source_node.id == "Activity_0a5xzqf"
-    assert Flow_0ct87dl.target_node.id == "Gateway_000lymc"
-
-    Flow_0jmvvxc = process.flows.get("Flow_0jmvvxc")
-    assert Flow_0jmvvxc is not None
-    assert Flow_0jmvvxc.source_node.id == "Gateway_000lymc"
-    assert Flow_0jmvvxc.target_node.id == "Activity_1qqx4aq"
-
-    Flow_1y66pph = process.flows.get("Flow_1y66pph")
-    assert Flow_1y66pph is not None
-    assert Flow_1y66pph.source_node.id == "Gateway_000lymc"
-    assert Flow_1y66pph.target_node.id == "Activity_1rfm4sh"
-
-    Flow_0znbe82 = process.flows.get("Flow_0znbe82")
-    assert Flow_0znbe82 is not None
-    assert Flow_0znbe82.source_node.id == "Activity_1qqx4aq"
-    assert Flow_0znbe82.target_node.id == "Gateway_0cy7rs7"
-
-    Flow_1sx1rdt = process.flows.get("Flow_1sx1rdt")
-    assert Flow_1sx1rdt is not None
-    assert Flow_1sx1rdt.source_node.id == "Activity_1rfm4sh"
-    assert Flow_1sx1rdt.target_node.id == "Gateway_0cy7rs7"
-
-    Flow_1cm84v3 = process.flows.get("Flow_1cm84v3")
-    assert Flow_1cm84v3 is not None
-    assert Flow_1cm84v3.source_node.id == "Gateway_0cy7rs7"
-    assert Flow_1cm84v3.target_node.id == "Event_1y6wxsp"
-
-    Flow_0oiwgjd = process.flows.get("Flow_0oiwgjd")
-    assert Flow_0oiwgjd is not None
-    assert Flow_0oiwgjd.source_node.id == "StartEvent_1y8wbre"
-    assert Flow_0oiwgjd.target_node.id == "Activity_1qm7qck"
+    for flow_id, source_id, target_id in flows_to_test:
+        assert_flow(process, flow_id, source_id, target_id)
