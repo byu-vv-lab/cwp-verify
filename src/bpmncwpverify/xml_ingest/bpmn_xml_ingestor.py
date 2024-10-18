@@ -28,6 +28,9 @@ FLOW_MAPPING = {"sequenceFlow": SequenceFlow}
 ################
 
 
+# TODO: Add collaboration logic
+
+
 def _build_graph(process: Process) -> None:
     for element_id, element_instance in process.elements.items():
         for outgoing in element_instance.element.findall("bpmn:outgoing", NAMESPACES):
