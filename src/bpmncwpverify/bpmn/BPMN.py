@@ -14,8 +14,8 @@ class BpmnElement:
 class Node(BpmnElement):
     def __init__(self, element: Element) -> None:
         super().__init__(element)
-        self.in_flows: List[Flow] = []
-        self.out_flows: List[Flow] = []
+        self.in_flows: List[SequenceFlow] = []
+        self.out_flows: List[SequenceFlow] = []
 
 
 # Event classes

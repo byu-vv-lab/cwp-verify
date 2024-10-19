@@ -12,7 +12,7 @@ from bpmncwpverify.bpmn.BPMN import (
 )
 
 
-class BpmnVisitor(ABC):
+class BpmnListener(ABC):
     @abstractmethod
     def enterStartEvent(self, event: StartEvent) -> bool:
         pass
