@@ -17,25 +17,28 @@ class BpmnTraverser:
 
     def walk(self, node: Node) -> None:
         if isinstance(node, StartEvent):
-            self.listener.enterStartEvent(node)
+            result = self.listener.enterStartEvent(node)
         elif isinstance(node, Task):
-            self.listener.enterTask(node)
+            result = self.listener.enterTask(node)
         elif isinstance(node, EndEvent):
-            self.listener.enterEndEvent(node)
+            result = self.listener.enterEndEvent(node)
         elif isinstance(node, IntermediateEvent):
-            self.listener.enterIntermediateEvent(node)
+            result = self.listener.enterIntermediateEvent(node)
         elif isinstance(node, SubProcess):
-            self.listener.enterSubProcess(node)
+            result = self.listener.enterSubProcess(node)
         elif isinstance(node, ExclusiveGatewayNode):
-            self.listener.enterExclusiveGateway(node)
+            result = self.listener.enterExclusiveGateway(node)
         elif isinstance(node, ParallelGatewayNode):
-            self.listener.enterParallelGateway(node)
+            result = self.listener.enterParallelGateway(node)
+        else:
+            raise Exception("node not recognized")
 
-        for flow in node.out_flows:
-            self.listener.enterSequenceFlow(flow)
-            if flow.target_node is not None:
-                self.walk(flow.target_node)
-            self.listener.exitSequenceFlow(flow)
+        if result:
+            for flow in node.out_flows:
+                self.listener.enterSequenceFlow(flow)
+                if flow.target_node is not None:
+                    self.walk(flow.target_node)
+                self.listener.exitSequenceFlow(flow)
 
         if isinstance(node, StartEvent):
             self.listener.exitStartEvent(node)
@@ -51,3 +54,5 @@ class BpmnTraverser:
             self.listener.exitExclusiveGateway(node)
         elif isinstance(node, ParallelGatewayNode):
             self.listener.exitParallelGateway(node)
+        else:
+            raise Exception("node not recognized")
