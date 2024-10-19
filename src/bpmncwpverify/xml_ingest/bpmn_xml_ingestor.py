@@ -32,7 +32,7 @@ FLOW_MAPPING = {"sequenceFlow": SequenceFlow}
 
 
 def _build_graph(process: Process) -> None:
-    for element_id, element_instance in process.elements.items():
+    for element_id, element_instance in process.items():
         for outgoing in element_instance.element.findall("bpmn:outgoing", NAMESPACES):
             flow_id = outgoing.text
             if not flow_id:
@@ -46,14 +46,14 @@ def _build_graph(process: Process) -> None:
                 process.adj_list[element_id].append(target_ref)
 
                 # update flow's source_node
-                flow.source_node = process.elements[source_ref]
+                flow.source_node = process[source_ref]
                 # update flow's target_node
-                flow.target_node = process.elements[target_ref]
+                flow.target_node = process[target_ref]
 
                 # update source node's out flows array
-                process.elements[source_ref].out_flows.append(flow)
+                process[source_ref].out_flows.append(flow)
                 # update target node's in flows array
-                process.elements[target_ref].in_flows.append(flow)
+                process[target_ref].in_flows.append(flow)
 
 
 def _traverse_process(process_element: Element) -> Process:
@@ -65,7 +65,7 @@ def _traverse_process(process_element: Element) -> Process:
             element_class = TAG_CLASS_MAPPING[tag_local]
             element_instance = element_class(element)
             element_id = element_instance.id
-            process.elements[element_id] = element_instance
+            process[element_id] = element_instance
 
             process.adj_list[element_id] = []
         elif tag_local in FLOW_MAPPING:
@@ -83,12 +83,12 @@ def _print_bpmn(bpmn: Bpmn) -> None:
     for process in bpmn.processes:
         print(f"Process ID: {process.id}, Name: {process.name}")
         for element_id, outgoing_ids in process.adj_list.items():
-            element_instance = process.elements[element_id]
+            element_instance = process[element_id]
             name = element_instance.name
             print(f"  Element ID: {element_id}, Name: {name}")
             print("    Outgoing to:")
             for target_id in outgoing_ids:
-                target_element = process.elements.get(target_id)
+                target_element = process[target_id]
                 target_name = target_element.name if target_element else "Unknown"
                 print(f"      Element ID: {target_id}, Name: {target_name}")
         print()

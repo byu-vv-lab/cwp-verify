@@ -1,4 +1,4 @@
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, Tuple
 from xml.etree.ElementTree import Element
 
 
@@ -98,9 +98,26 @@ class MessageFlow(Flow):
 class Process(BpmnElement):
     def __init__(self, element: Element):
         super().__init__(element)
-        self.elements: Dict[str, Node] = {}
-        self.flows: Dict[str, Flow] = {}
+        self._elements: Dict[str, Node] = {}
+        self._start_states: Dict[str, StartEvent] = {}
+        self.flows: Dict[str, SequenceFlow] = {}
         self.adj_list: Dict[str, List[str]] = {}
+
+    def __setitem__(self, key: str, node: Node) -> None:
+        if isinstance(node, StartEvent):
+            self._start_states[key] = node
+        else:
+            self._elements[key] = node
+
+    def __getitem__(self, key: str) -> Node:
+        if key in self._elements:
+            return self._elements[key]
+        elif key in self._start_states:
+            return self._start_states[key]
+        raise ValueError("key not found in either elements or start states")
+
+    def items(self) -> List[Tuple[str, Node]]:
+        return list(self._elements.items()) + list(self._start_states.items())
 
 
 class Bpmn:
