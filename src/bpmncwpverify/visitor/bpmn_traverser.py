@@ -17,7 +17,6 @@ class BpmnTraverser:
         self.listener = listener
 
     def _walk_helper(self, node: Node) -> None:
-        node.seen = True
         if isinstance(node, StartEvent):
             result = self.listener.enterStartEvent(node)
         elif isinstance(node, Task):
