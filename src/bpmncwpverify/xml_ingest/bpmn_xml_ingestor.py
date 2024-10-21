@@ -1,6 +1,7 @@
 from xml.etree.ElementTree import Element, parse
 from bpmncwpverify.bpmn.BPMN import (
     Bpmn,
+    Node,
     Task,
     StartEvent,
     EndEvent,
@@ -29,6 +30,25 @@ FLOW_MAPPING = {"sequenceFlow": SequenceFlow}
 
 
 # TODO: Add collaboration logic
+
+
+def _find_cycles(bpmn: Bpmn) -> None:
+    visited = set()
+
+    def detect_cycles(node: Node) -> None:
+        visited.add(node)
+
+        for flow in node.out_flows:
+            if flow.target_node in visited:
+                flow.cycle_flow = True
+            elif flow.target_node:
+                detect_cycles(flow.target_node)
+            else:
+                raise Exception("Node is none when it should not be")
+
+    for process in bpmn.processes:
+        for start_node in process.get_start_states().values():
+            detect_cycles(start_node)
 
 
 def _build_graph(process: Process) -> None:
@@ -102,5 +122,7 @@ def get_bpmn_from_xml(xml_file: str) -> Bpmn:
     for process_element in processes:
         process = _traverse_process(process_element)
         bpmn.processes.append(process)
+
+    _find_cycles(bpmn)
 
     return bpmn

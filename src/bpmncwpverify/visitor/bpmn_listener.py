@@ -70,7 +70,7 @@ class BpmnListener(ABC):
         pass
 
     @abstractmethod
-    def enterSequenceFlow(self, flow: SequenceFlow) -> bool:
+    def enterSequenceFlow(self, flow: SequenceFlow) -> None:
         pass
 
     @abstractmethod
@@ -78,7 +78,7 @@ class BpmnListener(ABC):
         pass
 
     @abstractmethod
-    def enterMessageFlow(self, flow: MessageFlow) -> bool:
+    def enterMessageFlow(self, flow: MessageFlow) -> None:
         pass
 
     @abstractmethod

@@ -56,14 +56,14 @@ class PromelaGenListener(BpmnListener):
     def exitParallelGateway(self, gateway: ParallelGatewayNode) -> None:
         pass
 
-    def enterSequenceFlow(self, flow: SequenceFlow) -> bool:
-        return True
+    def enterSequenceFlow(self, flow: SequenceFlow) -> None:
+        pass
 
     def exitSequenceFlow(self, flow: SequenceFlow) -> None:
         pass
 
-    def enterMessageFlow(self, flow: MessageFlow) -> bool:
-        return True
+    def enterMessageFlow(self, flow: MessageFlow) -> None:
+        pass
 
     def exitMessageFlow(self, flow: MessageFlow) -> None:
         pass

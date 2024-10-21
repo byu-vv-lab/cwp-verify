@@ -82,6 +82,7 @@ class Flow(BpmnElement):
         super().__init__(element)
         self.source_node: Optional[Node] = None
         self.target_node: Optional[Node] = None
+        self.cycle_flow: bool = False
 
 
 class SequenceFlow(Flow):

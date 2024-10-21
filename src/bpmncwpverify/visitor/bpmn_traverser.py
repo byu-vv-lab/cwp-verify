@@ -17,6 +17,7 @@ class BpmnTraverser:
         self.listener = listener
 
     def _walk_helper(self, node: Node) -> None:
+        node.seen = True
         if isinstance(node, StartEvent):
             result = self.listener.enterStartEvent(node)
         elif isinstance(node, Task):
@@ -37,7 +38,7 @@ class BpmnTraverser:
         if result:
             for flow in node.out_flows:
                 self.listener.enterSequenceFlow(flow)
-                if flow.target_node is not None:
+                if flow.target_node and not flow.cycle_flow:
                     self._walk_helper(flow.target_node)
                 self.listener.exitSequenceFlow(flow)
 
