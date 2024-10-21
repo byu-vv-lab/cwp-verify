@@ -16,6 +16,7 @@ class Node(BpmnElement):
         super().__init__(element)
         self.in_flows: List[SequenceFlow] = []
         self.out_flows: List[SequenceFlow] = []
+        self.seen: bool = False
 
 
 # Event classes
@@ -81,7 +82,6 @@ class Flow(BpmnElement):
         super().__init__(element)
         self.source_node: Optional[Node] = None
         self.target_node: Optional[Node] = None
-        self.seen = False
 
 
 class SequenceFlow(Flow):
@@ -118,6 +118,9 @@ class Process(BpmnElement):
 
     def items(self) -> List[Tuple[str, Node]]:
         return list(self._elements.items()) + list(self._start_states.items())
+
+    def get_start_states(self) -> Dict[str, StartEvent]:
+        return self._start_states
 
 
 class Bpmn:

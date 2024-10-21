@@ -1,5 +1,6 @@
 from bpmncwpverify.visitor.bpmn_listener import BpmnListener
 from bpmncwpverify.bpmn.BPMN import (
+    Bpmn,
     Node,
     StartEvent,
     Task,
@@ -15,7 +16,7 @@ class BpmnTraverser:
     def __init__(self, listener: BpmnListener):
         self.listener = listener
 
-    def walk(self, node: Node) -> None:
+    def _walk_helper(self, node: Node) -> None:
         if isinstance(node, StartEvent):
             result = self.listener.enterStartEvent(node)
         elif isinstance(node, Task):
@@ -37,7 +38,7 @@ class BpmnTraverser:
             for flow in node.out_flows:
                 self.listener.enterSequenceFlow(flow)
                 if flow.target_node is not None:
-                    self.walk(flow.target_node)
+                    self._walk_helper(flow.target_node)
                 self.listener.exitSequenceFlow(flow)
 
         if isinstance(node, StartEvent):
@@ -56,3 +57,8 @@ class BpmnTraverser:
             self.listener.exitParallelGateway(node)
         else:
             raise Exception("node not recognized")
+
+    def walk(self, bpmn: Bpmn) -> None:
+        for process in bpmn.processes:
+            for start_event in process.get_start_states().values():
+                self._walk_helper(start_event)

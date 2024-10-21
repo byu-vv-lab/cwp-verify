@@ -1,9 +1,14 @@
 # type: ignore
 from bpmncwpverify.xml_ingest.bpmn_xml_ingestor import get_bpmn_from_xml
 from bpmncwpverify.bpmn.BPMN import Bpmn, ParallelGatewayNode
+from bpmncwpverify.visitor.promela_gen_listener import PromelaGenListener
+from bpmncwpverify.visitor.bpmn_traverser import BpmnTraverser
 import os
 
 # List of flows with their source and target node IDs
+current_directory = os.path.dirname(os.path.abspath(__file__))
+
+workflow_bpmn_path = os.path.join(current_directory, "example", "workflow.bpmn")
 flows_to_test = [
     ("Flow_1oezfcg", "Activity_1unsjkg", "Gateway_0s1i42o"),
     ("Flow_14s5onf", "Activity_1t579ox", "Gateway_0s1i42o"),
@@ -32,10 +37,6 @@ def assert_flow(process, flow_id, source_id, target_id):
 
 
 def test_xml_parser():
-    current_directory = os.path.dirname(os.path.abspath(__file__))
-
-    workflow_bpmn_path = os.path.join(current_directory, "example", "workflow.bpmn")
-
     bpmn: Bpmn = get_bpmn_from_xml(workflow_bpmn_path)
 
     assert len(bpmn.processes) == 1
@@ -165,8 +166,8 @@ def test_xml_parser():
         assert_flow(process, flow_id, source_id, target_id)
 
 
-# def test_listener_and_parser():
-#     promela_gen_listener = PromelaGenListener()
-#     bpmn_traverser = BpmnTraverser(promela_gen_listener)
-
-#     bpmn_traverser.walk()
+def test_listener_and_parser():
+    promela_gen_listener = PromelaGenListener()
+    bpmn_traverser = BpmnTraverser(promela_gen_listener)
+    bpmn = get_bpmn_from_xml(workflow_bpmn_path)
+    bpmn_traverser.walk(bpmn)
