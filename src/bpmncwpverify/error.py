@@ -9,6 +9,14 @@ class Error:
         pass
 
 
+class ExpressionSyntaxError(Error):
+    __slots__ = "msg"
+
+    def __init__(self, msg: str) -> None:
+        self.msg = msg
+        super().__init__()
+
+
 class NotImplementedError(Error):
     def __init__(self) -> None:
         super().__init__()

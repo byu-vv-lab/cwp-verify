@@ -1,61 +1,36 @@
-grammar State;
+grammar Expr;
 
-state
-  : (enum_type_decl)* (const_var_decl)* (var_decl)+ EOF
+expr
+  : (strictly_math_expr)* (binary_expr)* (implies_expr) + EOF
   ;
 
-enum_type_decl
-  : ENUM ID LCURLY (ID)+ RCURLY
+strictly_math_expr
+  : (ID | MINUS ID) (MINUS | STRICTLY_MATH) (ID | MINUS ID)
   ;
 
-const_var_decl
-  : CONST ID COLON ID EQUALS ID
+binary_expr
+  : (ID | NOT ID) BINARYOP (ID | NOT ID)
   ;
 
-var_decl
-  : VAR ID COLON ID EQUALS ID (LCURLY (ID)+ RCURLY)?
+implies_expr
+  : (ID | NOT ID | binary_expr) IMPLIESOP (ID | NOT ID | binary_expr)
   ;
 
 // ---------------------------------------------------------------------------
 // Lexer Rules
 // ---------------------------------------------------------------------------
-
-COLON
-  : ':'
-  ;
-
-CONST
-  : 'const'
-  ;
-
-ENUM
-  : 'enum'
-  ;
-
-EQUALS
-  : '='
-  ;
-
-LCURLY
-  : '{'
-  ;
-
-RCURLY
-  : '}'
-  ;
-
-VAR
-  : 'var'
-  ;
-
 ID
   : [a-zA-Z0-9_]+
   ;
 
 WS : [ \t\n\r]+ -> skip ;
 
-ANDOR   : '&' '&' | '|' '|';
+NOT : '!';
 
-BINARYOP    : '+' | '-' | '*' | '/' | '%' | '&' | '^' | '|'
-    | '>' | '<' | '>' '=' | '<' '=' | '=' '=' | '!' '='
-    | '<' '<' | '>' '>' | ANDOR;
+MINUS : '-';
+
+STRICTLY_MATH : '*' | '/' | '//' | '%' | '+' | '>' | '<' | '>' '=' | '<' '=';
+
+BINARYOP    :  '&' '&' | '|' '|' | '=' '=' | '!' '=';
+
+IMPLIESOP   : '=' '=' '>' | '<' '=' '=' | '<' '=' '=' '>';

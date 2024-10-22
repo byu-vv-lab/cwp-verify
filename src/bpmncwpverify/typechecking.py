@@ -1,5 +1,5 @@
 from returns.result import Failure, Result, Success
-from typing import Final
+from typing import Final, Callable
 
 from bpmncwpverify.error import (
     Error,
@@ -24,7 +24,11 @@ INTMIN: Final[int] = -2147483648
 INTMAX: Final[int] = 2147483647
 
 
-def get_type_assign(ltype: str, rtype: str) -> Result[str, Error]:
+def get_type_assign(
+    ltype: str,
+    rtype: str,
+    error: Callable[[str, str], Error] = TypingAssignCompatabilityError,
+) -> Result[str, Error]:
     if ltype == rtype:
         return Success(ltype)
     if ltype == BYTE and (rtype == BIT):
@@ -33,7 +37,7 @@ def get_type_assign(ltype: str, rtype: str) -> Result[str, Error]:
         return Success(ltype)
     if ltype == INT and (rtype == BIT or rtype == BYTE or rtype == SHORT):
         return Success(ltype)
-    return Failure(TypingAssignCompatabilityError(ltype, rtype))
+    return Failure(error(ltype, rtype))
 
 
 def get_type_literal(literal: str) -> Result[str, TypingNoTypeError]:
