@@ -15,7 +15,12 @@ from bpmncwpverify.state import SymbolTable
 from bpmncwpverify import typechecking
 
 
-from bpmncwpverify.error import Error, ExpressionSyntaxError
+from bpmncwpverify.error import (
+    Error,
+    ExpressionSyntaxError,
+    ExpressionUnknownVariableError,
+    ExpressionVariableCompatabilityError,
+)
 
 # UNKNOWN SYMBOL ERROR
 # TYPECHECK ERROR
@@ -94,10 +99,13 @@ class ExpressionTypeChecker:
 
     def typeCompare(self, id_1: str, id_2: str) -> Result[str, Error]:
         result: Result[str, Error] = typechecking.get_type_assign(
-            id_1, id_2
-        )  # Catch error and replace
+            id_1, id_2, ExpressionVariableCompatabilityError
+        )
         return result
 
     def indType(self, id: str) -> Result[str, Error]:
         result: Result[str, Error] = self._table.get_type(id)  # Catch error and replace
-        return result
+        if is_successful(result):
+            return result
+        else:
+            return Failure(ExpressionUnknownVariableError(id))

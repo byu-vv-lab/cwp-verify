@@ -17,6 +17,28 @@ class ExpressionSyntaxError(Error):
         super().__init__()
 
 
+class ExpressionUnknownVariableError(Error):
+    __slots__ = "id"
+
+    def __init__(self, id: str) -> None:
+        super().__init__()
+        self.id = id
+
+
+class ExpressionVariableCompatabilityError(Error):
+    __slots__ = ("ltype", "rtype")
+
+    def __init__(self, ltype: str, rtype: str) -> None:
+        super().__init__()
+        self.ltype = ltype
+        self.rtype = rtype
+
+    def __eq__(self, other: typing.Any) -> bool:
+        if isinstance(other, ExpressionVariableCompatabilityError):
+            return self.ltype == other.ltype and self.rtype == other.rtype
+        return False
+
+
 class NotImplementedError(Error):
     def __init__(self) -> None:
         super().__init__()
