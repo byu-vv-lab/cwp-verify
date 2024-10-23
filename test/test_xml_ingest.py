@@ -1,6 +1,5 @@
 # type: ignore
-from bpmncwpverify.xml_ingest.bpmn_xml_ingestor import get_bpmn_from_xml
-from bpmncwpverify.bpmn.BPMN import Bpmn, ParallelGatewayNode
+from bpmncwpverify.BPMN import Bpmn, ParallelGatewayNode
 import os
 
 # List of flows with their source and target node IDs
@@ -36,7 +35,7 @@ def test_get_root():
 
     workflow_bpmn_path = os.path.join(current_directory, "example", "workflow.bpmn")
 
-    bpmn: Bpmn = get_bpmn_from_xml(workflow_bpmn_path)
+    bpmn: Bpmn = Bpmn.from_xml(workflow_bpmn_path)
 
     assert len(bpmn.processes) == 1
 

@@ -185,7 +185,7 @@ class Bpmn:
         return process
 
     @staticmethod
-    def get_bpmn_from_xml(xml_file: str) -> "Bpmn":
+    def from_xml(xml_file: str) -> "Bpmn":
         tree = parse(xml_file)
         root = tree.getroot()
         bpmn = Bpmn()
