@@ -166,17 +166,20 @@ class Bpmn:
     def _traverse_process(self, process_element: Element) -> Process:
         process = Process(process_element)
 
+        def get_tag_name(element: Element) -> str:
+            return element.tag.partition("}")[2]
+
         for element in process_element:
-            tag_local = element.tag.partition("}")[2]
-            if tag_local in Bpmn._TAG_CLASS_MAPPING:
-                element_class = Bpmn._TAG_CLASS_MAPPING[tag_local]
+            tag_name = get_tag_name(element)
+            if tag_name in Bpmn._TAG_CLASS_MAPPING:
+                element_class = Bpmn._TAG_CLASS_MAPPING[tag_name]
                 element_instance = element_class(element)
                 element_id = element_instance.id
                 process.elements[element_id] = element_instance
 
-            elif tag_local in Bpmn._FLOW_MAPPING:
+            elif tag_name in Bpmn._FLOW_MAPPING:
                 flow_id = element.attrib["id"]
-                element_class = Bpmn._FLOW_MAPPING[tag_local]
+                element_class = Bpmn._FLOW_MAPPING[tag_name]
                 element_instance = element_class(element)
                 process.flows[flow_id] = element_instance
 
