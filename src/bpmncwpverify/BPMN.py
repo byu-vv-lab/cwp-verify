@@ -1,8 +1,11 @@
 from typing import List, Dict
 from abc import ABC, abstractmethod
 from xml.etree.ElementTree import Element
+from returns.result import Failure, Result, Success
 from defusedxml.ElementTree import parse
 from bpmncwpverify.constants import NAMESPACES
+
+from bpmncwpverify.error import Error
 
 
 ###################
@@ -213,7 +216,8 @@ class Process(BpmnElement):
         return self._start_states
 
     def accept(self, visitor: "BpmnVisitor") -> None:
-        pass
+        for start_event in self.get_start_states().values():
+            start_event.accept(visitor)
 
 
 ###################
@@ -221,7 +225,7 @@ class Process(BpmnElement):
 ###################
 class Bpmn:
     _TAG_CLASS_MAPPING = {
-        "task": Node,
+        "task": Task,
         "startEvent": StartEvent,
         "endEvent": EndEvent,
         "exclusiveGateway": ExclusiveGatewayNode,
@@ -297,17 +301,24 @@ class Bpmn:
 
         return process
 
-    @staticmethod
-    def from_xml(xml_file: str) -> "Bpmn":
-        tree = parse(xml_file)
-        root = tree.getroot()
-        bpmn = Bpmn()
-        processes = root.findall("bpmn:process", NAMESPACES)
-        for process_element in processes:
-            process = bpmn._traverse_process(process_element)
-            bpmn.processes.append(process)
+    def accept(self, visitor: "BpmnVisitor") -> None:
+        for process in self.processes:
+            process.accept(visitor)
 
-        return bpmn
+    @staticmethod
+    def from_xml(xml_file: str) -> Result["Bpmn", Error]:
+        try:
+            tree = parse(xml_file)
+            root = tree.getroot()
+            bpmn = Bpmn()
+            processes = root.findall("bpmn:process", NAMESPACES)
+            for process_element in processes:
+                process = bpmn._traverse_process(process_element)
+                bpmn.processes.append(process)
+
+            return Success(bpmn)
+        except Exception as e:
+            return Failure(e)
 
 
 ###################

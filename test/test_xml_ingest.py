@@ -1,4 +1,5 @@
 # type: ignore
+from returns.pipeline import is_successful
 from bpmncwpverify.BPMN import Bpmn, ParallelGatewayNode
 import os
 
@@ -35,6 +36,10 @@ def assert_flow(process, flow_id, source_id, target_id):
 
 def test_xml_parser():
     bpmn: Bpmn = Bpmn.from_xml(workflow_bpmn_path)
+
+    assert is_successful(bpmn)
+
+    bpmn = bpmn.unwrap()
 
     assert len(bpmn.processes) == 1
 
