@@ -2,16 +2,12 @@ from typing import List, Dict
 from abc import ABC, abstractmethod
 from xml.etree.ElementTree import Element
 from defusedxml.ElementTree import parse
-
-################
-# Constants
-################
 from bpmncwpverify.constants import NAMESPACES
 
-################
 
-
+###################
 # Base class for all BPMN elements
+###################
 class BpmnElement:
     def __init__(self, element: Element) -> None:
         self.element = element
@@ -19,7 +15,9 @@ class BpmnElement:
         self.name = element.attrib.get("name")
 
 
+###################
 # Base class for nodes that can have incoming and outgoing flows
+###################
 class Node(BpmnElement):
     def __init__(self, element: Element) -> None:
         super().__init__(element)
@@ -27,7 +25,9 @@ class Node(BpmnElement):
         self.out_flows: List[Flow] = []
 
 
+###################
 # Event classes
+###################
 class Event(Node):
     def __init__(self, element: Element):
         super().__init__(element)
@@ -48,7 +48,9 @@ class IntermediateEvent(Event):
         super().__init__(element)
 
 
+###################
 # Activity classes
+###################
 class Activity(Node):
     def __init__(self, element: Element):
         super().__init__(element)
@@ -64,7 +66,9 @@ class SubProcess(Activity):
         super().__init__(element)
 
 
+###################
 # Gateway classes
+###################
 class GatewayNode(Node):
     def __init__(self, element: Element):
         super().__init__(element)
@@ -81,7 +85,9 @@ class ParallelGatewayNode(GatewayNode):
         self.is_fork = is_fork
 
 
+###################
 # Flow classes
+###################
 class Flow(BpmnElement):
     def __init__(
         self,
@@ -110,7 +116,9 @@ class MessageFlow(Flow):
         visitor.endVisitMessageFlow(self)
 
 
+###################
 # Process class
+###################
 class Process(BpmnElement):
     def __init__(self, element: Element):
         super().__init__(element)
@@ -138,6 +146,9 @@ class Process(BpmnElement):
         return self._start_states
 
 
+###################
+# Bpmn class (building graph from xml happens here)
+###################
 class Bpmn:
     _TAG_CLASS_MAPPING = {
         "task": Node,
@@ -229,6 +240,9 @@ class Bpmn:
         return bpmn
 
 
+###################
+# Bpmn Visitor interface
+###################
 class BpmnVisitor(ABC):
     @abstractmethod
     def visitStartEvent(self, event: StartEvent) -> bool:
