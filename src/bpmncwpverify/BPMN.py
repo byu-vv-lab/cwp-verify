@@ -1,4 +1,5 @@
 from typing import List, Dict
+from abc import ABC, abstractmethod
 from xml.etree.ElementTree import Element
 from defusedxml.ElementTree import parse
 
@@ -95,18 +96,46 @@ class SequenceFlow(Flow):
     def __init__(self, element: Element):
         super().__init__(element)
 
+    def accept(self, visitor: "BpmnVisitor") -> None:
+        visitor.visitSequenceFlow(self)
+        visitor.endVisitSequenceFlow(self)
+
 
 class MessageFlow(Flow):
     def __init__(self, element: Element):
         super().__init__(element)
+
+    def accept(self, visitor: "BpmnVisitor") -> None:
+        visitor.visitMessageFlow(self)
+        visitor.endVisitMessageFlow(self)
 
 
 # Process class
 class Process(BpmnElement):
     def __init__(self, element: Element):
         super().__init__(element)
-        self.elements: Dict[str, Node] = {}
         self.flows: Dict[str, Flow] = {}
+        self._elements: Dict[str, Node] = {}
+        self._start_states: Dict[str, StartEvent] = {}
+
+    def __setitem__(self, key: str, node: Node) -> None:
+        if isinstance(node, StartEvent):
+            self._start_states[key] = node
+        else:
+            self._elements[key] = node
+
+    def __getitem__(self, key: str) -> Node:
+        if key in self._elements:
+            return self._elements[key]
+        elif key in self._start_states:
+            return self._start_states[key]
+        raise ValueError("key not found in either elements or start states")
+
+    def all_items(self) -> Dict[str, Node]:
+        return self._elements | self._start_states
+
+    def get_start_states(self) -> Dict[str, StartEvent]:
+        return self._start_states
 
 
 class Bpmn:
@@ -127,11 +156,11 @@ class Bpmn:
         build_arr: List[str] = []
         for process in self.processes:
             build_arr.append(f"Process ID: {process.id}, Name: {process.name}")
-            for element_id, element in process.elements.items():
+            for element_id, element in process.all_items().items():
                 build_arr.append(f"  Element ID: {element_id}, Name: {element.name}")
                 build_arr.append("    Outgoing to:")
                 for flow in element.out_flows:
-                    target_element = process.elements.get(flow.target_node.id)
+                    target_element = process.all_items().get(flow.target_node.id)
                     target_name = target_element.name if target_element else "Unknown"
                     build_arr.append(
                         f"      Element ID: {flow.target_node.id}, Name: {target_name}"
@@ -141,7 +170,7 @@ class Bpmn:
         return "\n".join(build_arr)
 
     def _build_graph(self, process: Process) -> None:
-        for element_id, element_instance in process.elements.items():
+        for element_id, element_instance in process.all_items().items():
             for outgoing in element_instance.element.findall(
                 "bpmn:outgoing", NAMESPACES
             ):
@@ -154,14 +183,14 @@ class Bpmn:
                     target_ref = flow.element.attrib["targetRef"]
 
                     # update flow's source_node
-                    flow.source_node = process.elements[source_ref]
+                    flow.source_node = process[source_ref]
                     # update flow's target_node
-                    flow.target_node = process.elements[target_ref]
+                    flow.target_node = process[target_ref]
 
                     # update source node's out flows array
-                    process.elements[source_ref].out_flows.append(flow)
+                    process[source_ref].out_flows.append(flow)
                     # update target node's in flows array
-                    process.elements[target_ref].in_flows.append(flow)
+                    process[target_ref].in_flows.append(flow)
 
     def _traverse_process(self, process_element: Element) -> Process:
         process = Process(process_element)
@@ -175,7 +204,7 @@ class Bpmn:
                 element_class = Bpmn._TAG_CLASS_MAPPING[tag_name]
                 element_instance = element_class(element)
                 element_id = element_instance.id
-                process.elements[element_id] = element_instance
+                process[element_id] = element_instance
 
             elif tag_name in Bpmn._FLOW_MAPPING:
                 flow_id = element.attrib["id"]
@@ -198,3 +227,77 @@ class Bpmn:
             bpmn.processes.append(process)
 
         return bpmn
+
+
+class BpmnVisitor(ABC):
+    @abstractmethod
+    def visitStartEvent(self, event: StartEvent) -> bool:
+        pass
+
+    @abstractmethod
+    def endVisitStartEvent(self, event: StartEvent) -> None:
+        pass
+
+    @abstractmethod
+    def visitEndEvent(self, event: EndEvent) -> bool:
+        pass
+
+    @abstractmethod
+    def endVisitEndEvent(self, event: EndEvent) -> None:
+        pass
+
+    @abstractmethod
+    def visitIntermediateEvent(self, event: IntermediateEvent) -> bool:
+        pass
+
+    @abstractmethod
+    def endVisitIntermediateEvent(self, event: IntermediateEvent) -> None:
+        pass
+
+    @abstractmethod
+    def visitTask(self, task: Task) -> bool:
+        pass
+
+    @abstractmethod
+    def endVisitTask(self, task: Task) -> None:
+        pass
+
+    @abstractmethod
+    def visitSubProcess(self, subprocess: SubProcess) -> bool:
+        pass
+
+    @abstractmethod
+    def endVisitSubProcess(self, subprocess: SubProcess) -> None:
+        pass
+
+    @abstractmethod
+    def visitExclusiveGateway(self, gateway: ExclusiveGatewayNode) -> bool:
+        pass
+
+    @abstractmethod
+    def endVisitExclusiveGateway(self, gateway: ExclusiveGatewayNode) -> None:
+        pass
+
+    @abstractmethod
+    def visitParallelGateway(self, gateway: ParallelGatewayNode) -> bool:
+        pass
+
+    @abstractmethod
+    def endVisitParallelGateway(self, gateway: ParallelGatewayNode) -> None:
+        pass
+
+    @abstractmethod
+    def visitSequenceFlow(self, flow: SequenceFlow) -> None:
+        pass
+
+    @abstractmethod
+    def endVisitSequenceFlow(self, flow: SequenceFlow) -> None:
+        pass
+
+    @abstractmethod
+    def visitMessageFlow(self, flow: MessageFlow) -> None:
+        pass
+
+    @abstractmethod
+    def endVisitMessageFlow(self, flow: MessageFlow) -> None:
+        pass

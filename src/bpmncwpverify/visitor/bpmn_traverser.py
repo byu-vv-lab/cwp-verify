@@ -1,5 +1,4 @@
-from bpmncwpverify.visitor.bpmn_listener import BpmnListener
-from bpmncwpverify.bpmn.BPMN import (
+from bpmncwpverify.BPMN import (
     Bpmn,
     Node,
     StartEvent,
@@ -9,11 +8,12 @@ from bpmncwpverify.bpmn.BPMN import (
     SubProcess,
     ParallelGatewayNode,
     ExclusiveGatewayNode,
+    BpmnVisitor,
 )
 
 
 class BpmnTraverser:
-    def __init__(self, listener: BpmnListener):
+    def __init__(self, listener: BpmnVisitor):
         self.listener = listener
 
     def _walk_helper(self, node: Node) -> None:
