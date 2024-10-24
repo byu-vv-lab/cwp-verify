@@ -3,7 +3,6 @@ import unittest
 from xml.etree.ElementTree import Element
 from unittest.mock import MagicMock
 from returns.pipeline import is_successful
-from collections import defaultdict
 from bpmncwpverify.promela_gen_visitor import PromelaGenVisitor
 from bpmncwpverify.BPMN import (
     Bpmn,
@@ -225,8 +224,6 @@ class TestBpmnFlowTraversal(unittest.TestCase):
             node.accept = MagicMock(wraps=node.accept)
             node.out_flows = []
 
-        self.expected_call_counts = defaultdict(int)
-
         for flow_id, source_id, target_id, is_back_edge in flows_to_test:
             source_node = self.process.all_items[source_id]
             target_node = self.process.all_items[target_id]
@@ -240,13 +237,6 @@ class TestBpmnFlowTraversal(unittest.TestCase):
             source_node.out_flows.append(flow)
             flow.source_node = source_node
 
-            if not flow.is_back_edge:
-                self.expected_call_counts[target_id] += 1
-
-        self.visitor.visitSequenceFlow.return_value = True
-        self.visitor.visitTask.return_value = True
-        self.visitor.visitExclusiveGateway.return_value = True
-
         self.bpmn = Bpmn()
         self.bpmn.accept = MagicMock(wraps=self.bpmn.accept)
 
@@ -254,9 +244,6 @@ class TestBpmnFlowTraversal(unittest.TestCase):
 
     def test_flow_traversal(self):
         self.bpmn.accept(self.visitor)
-        print()
+        EXPECTED_CALL_COUNT = 1
         for node_id, node in self.process.all_items.items():
-            print(f"{node_id} accept call count: {node.accept.call_count}")
-            expected_count = self.expected_call_counts.get(node_id, 0)
-            print(f"EXPECTED: {expected_count}")
-            # self.assertEqual(node.accept.call_count, expected_count)
+            self.assertEqual(node.accept.call_count, EXPECTED_CALL_COUNT)

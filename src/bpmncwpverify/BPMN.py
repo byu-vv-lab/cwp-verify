@@ -17,10 +17,6 @@ class BpmnElement(ABC):
         self.id = element.attrib["id"]
         self.name = element.attrib.get("name")
 
-    @abstractmethod
-    def accept(self, visitor: "BpmnVisitor") -> None:
-        pass
-
 
 ###################
 # Base class for nodes that can have incoming and outgoing flows
@@ -30,9 +26,27 @@ class Node(BpmnElement):
         super().__init__(element)
         self.in_flows: List[Flow] = []
         self.out_flows: List[Flow] = []
+
+        # This field is for when accepting each node, we make sure it is not
+        # visited twice
+        self.visited = False
+
         # These fields are to detect back edges
         self.pre = -1
         self.post = -1
+
+    def accept(self, visitor: "BpmnVisitor") -> None:
+        self.visited = True
+        self._accept(visitor)
+
+    def visit_out_flows(self, visitor: "BpmnVisitor", result: bool) -> None:
+        if result:
+            for flow in self.out_flows:
+                flow.accept(visitor)
+
+    @abstractmethod
+    def _accept(self, visitor: "BpmnVisitor") -> None:
+        raise NotImplementedError("Subclasses must implement _accept method.")
 
 
 ###################
@@ -47,13 +61,9 @@ class StartEvent(Event):
     def __init__(self, element: Element):
         super().__init__(element)
 
-    def accept(self, visitor: "BpmnVisitor") -> None:
+    def _accept(self, visitor: "BpmnVisitor") -> None:
         result = visitor.visitStartEvent(self)
-
-        if result:
-            for flow in self.out_flows:
-                flow.accept(visitor)
-
+        self.visit_out_flows(visitor, result)
         visitor.endVisitStartEvent(self)
 
 
@@ -61,13 +71,9 @@ class EndEvent(Event):
     def __init__(self, element: Element):
         super().__init__(element)
 
-    def accept(self, visitor: "BpmnVisitor") -> None:
+    def _accept(self, visitor: "BpmnVisitor") -> None:
         result = visitor.visitEndEvent(self)
-
-        if result:
-            for flow in self.out_flows:
-                flow.accept(visitor)
-
+        self.visit_out_flows(visitor, result)
         visitor.endVisitEndEvent(self)
 
 
@@ -75,13 +81,9 @@ class IntermediateEvent(Event):
     def __init__(self, element: Element):
         super().__init__(element)
 
-    def accept(self, visitor: "BpmnVisitor") -> None:
+    def _accept(self, visitor: "BpmnVisitor") -> None:
         result = visitor.visitIntermediateEvent(self)
-
-        if result:
-            for flow in self.out_flows:
-                flow.accept(visitor)
-
+        self.visit_out_flows(visitor, result)
         visitor.endVisitIntermediateEvent(self)
 
 
@@ -97,13 +99,9 @@ class Task(Activity):
     def __init__(self, element: Element):
         super().__init__(element)
 
-    def accept(self, visitor: "BpmnVisitor") -> None:
+    def _accept(self, visitor: "BpmnVisitor") -> None:
         result = visitor.visitTask(self)
-
-        if result:
-            for flow in self.out_flows:
-                flow.accept(visitor)
-
+        self.visit_out_flows(visitor, result)
         visitor.endVisitTask(self)
 
 
@@ -111,13 +109,9 @@ class SubProcess(Activity):
     def __init__(self, element: Element):
         super().__init__(element)
 
-    def accept(self, visitor: "BpmnVisitor") -> None:
+    def _accept(self, visitor: "BpmnVisitor") -> None:
         result = visitor.visitSubProcess(self)
-
-        if result:
-            for flow in self.out_flows:
-                flow.accept(visitor)
-
+        self.visit_out_flows(visitor, result)
         visitor.endVisitSubProcess(self)
 
 
@@ -133,13 +127,9 @@ class ExclusiveGatewayNode(GatewayNode):
     def __init__(self, element: Element):
         super().__init__(element)
 
-    def accept(self, visitor: "BpmnVisitor") -> None:
+    def _accept(self, visitor: "BpmnVisitor") -> None:
         result = visitor.visitExclusiveGateway(self)
-
-        if result:
-            for flow in self.out_flows:
-                flow.accept(visitor)
-
+        self.visit_out_flows(visitor, result)
         visitor.endVisitExclusiveGateway(self)
 
 
@@ -148,13 +138,9 @@ class ParallelGatewayNode(GatewayNode):
         super().__init__(element)
         self.is_fork = is_fork
 
-    def accept(self, visitor: "BpmnVisitor") -> None:
+    def _accept(self, visitor: "BpmnVisitor") -> None:
         result = visitor.visitParallelGateway(self)
-
-        if result:
-            for flow in self.out_flows:
-                flow.accept(visitor)
-
+        self.visit_out_flows(visitor, result)
         visitor.endVisitParallelGateway(self)
 
 
@@ -171,6 +157,10 @@ class Flow(BpmnElement):
         self.target_node: Node
         self.is_back_edge: bool = False
 
+    @abstractmethod
+    def accept(self, visitor: "BpmnVisitor") -> None:
+        pass
+
 
 class SequenceFlow(Flow):
     def __init__(self, element: Element):
@@ -178,7 +168,7 @@ class SequenceFlow(Flow):
 
     def accept(self, visitor: "BpmnVisitor") -> None:
         visitor.visitSequenceFlow(self)
-        if not self.is_back_edge:
+        if not (self.is_back_edge or self.target_node.visited):
             self.target_node.accept(visitor)
         visitor.endVisitSequenceFlow(self)
 
@@ -189,7 +179,7 @@ class MessageFlow(Flow):
 
     def accept(self, visitor: "BpmnVisitor") -> None:
         visitor.visitMessageFlow(self)
-        if not self.is_back_edge:
+        if not (self.is_back_edge or self.target_node.visited):
             self.target_node.accept(visitor)
         visitor.endVisitMessageFlow(self)
 
