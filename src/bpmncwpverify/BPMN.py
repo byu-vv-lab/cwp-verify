@@ -123,7 +123,7 @@ class Bpmn:
     def __init__(self) -> None:
         self.processes: List[Process] = []
 
-    def __repr__(self) -> str:
+    def __str__(self) -> str:
         build_arr: List[str] = []
         for process in self.processes:
             build_arr.append(f"Process ID: {process.id}, Name: {process.name}")
