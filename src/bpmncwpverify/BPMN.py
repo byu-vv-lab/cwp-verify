@@ -178,6 +178,8 @@ class SequenceFlow(Flow):
 
     def accept(self, visitor: "BpmnVisitor") -> None:
         visitor.visitSequenceFlow(self)
+        if not self.is_back_edge:
+            self.target_node.accept(visitor)
         visitor.endVisitSequenceFlow(self)
 
 
@@ -187,6 +189,8 @@ class MessageFlow(Flow):
 
     def accept(self, visitor: "BpmnVisitor") -> None:
         visitor.visitMessageFlow(self)
+        if not self.is_back_edge:
+            self.target_node.accept(visitor)
         visitor.endVisitMessageFlow(self)
 
 

@@ -1,5 +1,6 @@
 # type: ignore
 from returns.pipeline import is_successful
+from bpmncwpverify.promela_gen_visitor import PromelaGenVisitor
 from bpmncwpverify.BPMN import Bpmn, ParallelGatewayNode
 import os
 
@@ -174,5 +175,8 @@ def test_xml_parser():
 
 
 def test_listener_and_parser():
-    Bpmn.from_xml(workflow_bpmn_path)
-    # bpmn_traverser.walk(bpmn)
+    bpmn = Bpmn.from_xml(workflow_bpmn_path)
+    visitor = PromelaGenVisitor()
+    assert is_successful(bpmn)
+    bpmn = bpmn.unwrap()
+    bpmn.accept(visitor)
