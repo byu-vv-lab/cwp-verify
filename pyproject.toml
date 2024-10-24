@@ -13,6 +13,7 @@ dependencies = [
   "pandas>=2.2.2",
   "returns",
   "antlr4-python3-runtime",
+  "defusedxml",
 ]
 
 [project.scripts]
