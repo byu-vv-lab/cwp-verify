@@ -3,6 +3,7 @@ import unittest
 from xml.etree.ElementTree import Element
 from unittest.mock import MagicMock
 from returns.pipeline import is_successful
+from collections import defaultdict
 from bpmncwpverify.promela_gen_visitor import PromelaGenVisitor
 from bpmncwpverify.BPMN import (
     Bpmn,
@@ -192,6 +193,7 @@ class TestBpmnFlowTraversal(unittest.TestCase):
         self.visitor = MagicMock(spec=PromelaGenVisitor)
         mock_element = MagicMock(spec=Element)
         self.process = Process(mock_element)
+        self.process.accept = MagicMock(wraps=self.process.accept)
 
         self.process._elements = {
             "Gateway_1pm4ghz": ExclusiveGatewayNode(mock_element),
@@ -220,13 +222,17 @@ class TestBpmnFlowTraversal(unittest.TestCase):
         self.process.all_items = self.process._elements | self.process._start_states
 
         for node_id, node in self.process.all_items.items():
+            node.accept = MagicMock(wraps=node.accept)
             node.out_flows = []
+
+        self.expected_call_counts = defaultdict(int)
 
         for flow_id, source_id, target_id, is_back_edge in flows_to_test:
             source_node = self.process.all_items[source_id]
             target_node = self.process.all_items[target_id]
 
             flow = SequenceFlow(mock_element)
+            flow.accept = MagicMock(wraps=flow.accept)
             flow.is_back_edge = is_back_edge
             flow.target_node = target_node
             self.process.flows[flow_id] = flow
@@ -234,12 +240,23 @@ class TestBpmnFlowTraversal(unittest.TestCase):
             source_node.out_flows.append(flow)
             flow.source_node = source_node
 
+            if not flow.is_back_edge:
+                self.expected_call_counts[target_id] += 1
+
         self.visitor.visitSequenceFlow.return_value = True
         self.visitor.visitTask.return_value = True
         self.visitor.visitExclusiveGateway.return_value = True
 
         self.bpmn = Bpmn()
+        self.bpmn.accept = MagicMock(wraps=self.bpmn.accept)
+
         self.bpmn.processes = [self.process]
 
     def test_flow_traversal(self):
         self.bpmn.accept(self.visitor)
+        print()
+        for node_id, node in self.process.all_items.items():
+            print(f"{node_id} accept call count: {node.accept.call_count}")
+            expected_count = self.expected_call_counts.get(node_id, 0)
+            print(f"EXPECTED: {expected_count}")
+            # self.assertEqual(node.accept.call_count, expected_count)
