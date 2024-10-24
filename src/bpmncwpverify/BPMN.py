@@ -30,6 +30,9 @@ class Node(BpmnElement):
         super().__init__(element)
         self.in_flows: List[Flow] = []
         self.out_flows: List[Flow] = []
+        # These fields are to detect back edges
+        self.pre = -1
+        self.post = -1
 
 
 ###################
@@ -166,6 +169,7 @@ class Flow(BpmnElement):
         super().__init__(element)
         self.source_node: Node
         self.target_node: Node
+        self.is_back_edge: bool = False
 
 
 class SequenceFlow(Flow):
@@ -236,6 +240,33 @@ class Bpmn:
 
     def __init__(self) -> None:
         self.processes: List[Process] = []
+
+    def _detect_cycles(bpmn: "Bpmn") -> None:
+        def get_back_edges(node: Node) -> None:
+            for flow in node.out_flows:
+                if flow.target_node.post > node.post:
+                    flow.is_back_edge = True
+                else:
+                    get_back_edges(flow.target_node)
+
+        def dfs(node: Node, current_pre: int) -> int:
+            node.pre = current_pre
+            current_pre += 1
+            for flow in node.out_flows:
+                if flow.target_node.pre == -1:
+                    current_pre = dfs(flow.target_node, current_pre)
+            node.post = current_pre
+            return current_pre + 1
+
+        # First pass: pre and post order each node
+        for process in bpmn.processes:
+            for node in process.get_start_states().values():
+                dfs(node, 1)
+
+        # Second pass: determine whether any back edges exist
+        for process in bpmn.processes:
+            for node in process.get_start_states().values():
+                get_back_edges(node)
 
     def __str__(self) -> str:
         build_arr: List[str] = []
@@ -316,6 +347,7 @@ class Bpmn:
                 process = bpmn._traverse_process(process_element)
                 bpmn.processes.append(process)
 
+            bpmn._detect_cycles()
             return Success(bpmn)
         except Exception as e:
             return Failure(e)

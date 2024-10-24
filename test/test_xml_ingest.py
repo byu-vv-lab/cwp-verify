@@ -8,28 +8,33 @@ current_directory = os.path.dirname(os.path.abspath(__file__))
 
 workflow_bpmn_path = os.path.join(current_directory, "example", "workflow.bpmn")
 flows_to_test = [
-    ("Flow_1oezfcg", "Activity_1unsjkg", "Gateway_0s1i42o"),
-    ("Flow_14s5onf", "Activity_1t579ox", "Gateway_0s1i42o"),
-    ("Flow_0feadgd", "Gateway_0s1i42o", "Gateway_1pm4ghz"),
-    ("Flow_127sd29", "Activity_1bckz5y", "Gateway_1pm4ghz"),
-    ("Flow_00oxr95", "Activity_1mktua2", "Gateway_1pm4ghz"),
-    ("Flow_0yqye0v", "Gateway_1pm4ghz", "Activity_0a5xzqf"),
-    ("Flow_0diuub0", "Gateway_1pm4ghz", "Event_0wqympo"),
-    ("Flow_0q6dz8p", "Gateway_1pm4ghz", "Activity_1bckz5y"),
-    ("Flow_0koz64j", "Gateway_1pm4ghz", "Activity_1mktua2"),
-    ("Flow_0ct87dl", "Activity_0a5xzqf", "Gateway_000lymc"),
-    ("Flow_0jmvvxc", "Gateway_000lymc", "Activity_1qqx4aq"),
-    ("Flow_1y66pph", "Gateway_000lymc", "Activity_1rfm4sh"),
-    ("Flow_0znbe82", "Activity_1qqx4aq", "Gateway_0cy7rs7"),
-    ("Flow_1sx1rdt", "Activity_1rfm4sh", "Gateway_0cy7rs7"),
-    ("Flow_1cm84v3", "Gateway_0cy7rs7", "Event_1y6wxsp"),
-    ("Flow_0oiwgjd", "StartEvent_1y8wbre", "Activity_1qm7qck"),
+    ("Flow_08e7qxg", "Gateway_1pm4ghz", "Gateway_12r266n", True),
+    ("Flow_1wl740o", "Activity_1qm7qck", "Gateway_12r266n", False),
+    ("Flow_1kx5xjv", "Gateway_12r266n", "Activity_1unsjkg", False),
+    ("Flow_13xpfx7", "Gateway_12r266n", "Activity_1t579ox", False),
+    ("Flow_1oezfcg", "Activity_1unsjkg", "Gateway_0s1i42o", False),
+    ("Flow_14s5onf", "Activity_1t579ox", "Gateway_0s1i42o", False),
+    ("Flow_0feadgd", "Gateway_0s1i42o", "Gateway_1pm4ghz", False),
+    ("Flow_127sd29", "Activity_1bckz5y", "Gateway_1pm4ghz", True),
+    ("Flow_00oxr95", "Activity_1mktua2", "Gateway_1pm4ghz", True),
+    ("Flow_0yqye0v", "Gateway_1pm4ghz", "Activity_0a5xzqf", False),
+    ("Flow_0diuub0", "Gateway_1pm4ghz", "Event_0wqympo", False),
+    ("Flow_0q6dz8p", "Gateway_1pm4ghz", "Activity_1bckz5y", False),
+    ("Flow_0koz64j", "Gateway_1pm4ghz", "Activity_1mktua2", False),
+    ("Flow_0ct87dl", "Activity_0a5xzqf", "Gateway_000lymc", False),
+    ("Flow_0jmvvxc", "Gateway_000lymc", "Activity_1qqx4aq", False),
+    ("Flow_1y66pph", "Gateway_000lymc", "Activity_1rfm4sh", False),
+    ("Flow_0znbe82", "Activity_1qqx4aq", "Gateway_0cy7rs7", False),
+    ("Flow_1sx1rdt", "Activity_1rfm4sh", "Gateway_0cy7rs7", False),
+    ("Flow_1cm84v3", "Gateway_0cy7rs7", "Event_1y6wxsp", False),
+    ("Flow_0oiwgjd", "StartEvent_1y8wbre", "Activity_1qm7qck", False),
 ]
 
 
-def assert_flow(process, flow_id, source_id, target_id):
+def assert_flow(process, flow_id, source_id, target_id, is_back_edge):
     flow = process.flows.get(flow_id)
     assert flow is not None, f"Flow {flow_id} not found"
+    assert flow.is_back_edge == is_back_edge
     assert flow.source_node.id == source_id, f"Flow {flow_id} source node mismatch"
     assert flow.target_node.id == target_id, f"Flow {flow_id} target node mismatch"
 
@@ -164,8 +169,8 @@ def test_xml_parser():
     assert "Flow_0oiwgjd" in {flow.id for flow in start_event_1y8wbre.out_flows}
 
     # Flows
-    for flow_id, source_id, target_id in flows_to_test:
-        assert_flow(process, flow_id, source_id, target_id)
+    for flow_id, source_id, target_id, is_back_edge in flows_to_test:
+        assert_flow(process, flow_id, source_id, target_id, is_back_edge)
 
 
 def test_listener_and_parser():
