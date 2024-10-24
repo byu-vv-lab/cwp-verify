@@ -8,11 +8,15 @@ from bpmncwpverify.constants import NAMESPACES
 ###################
 # Base class for all BPMN elements
 ###################
-class BpmnElement:
+class BpmnElement(ABC):
     def __init__(self, element: Element) -> None:
         self.element = element
         self.id = element.attrib["id"]
         self.name = element.attrib.get("name")
+
+    @abstractmethod
+    def accept(self, visitor: "BpmnVisitor") -> None:
+        pass
 
 
 ###################
@@ -37,15 +41,42 @@ class StartEvent(Event):
     def __init__(self, element: Element):
         super().__init__(element)
 
+    def accept(self, visitor: "BpmnVisitor") -> None:
+        result = visitor.visitStartEvent(self)
+
+        if result:
+            for flow in self.out_flows:
+                flow.accept(visitor)
+
+        visitor.endVisitStartEvent(self)
+
 
 class EndEvent(Event):
     def __init__(self, element: Element):
         super().__init__(element)
 
+    def accept(self, visitor: "BpmnVisitor") -> None:
+        result = visitor.visitEndEvent(self)
+
+        if result:
+            for flow in self.out_flows:
+                flow.accept(visitor)
+
+        visitor.endVisitEndEvent(self)
+
 
 class IntermediateEvent(Event):
     def __init__(self, element: Element):
         super().__init__(element)
+
+    def accept(self, visitor: "BpmnVisitor") -> None:
+        result = visitor.visitIntermediateEvent(self)
+
+        if result:
+            for flow in self.out_flows:
+                flow.accept(visitor)
+
+        visitor.endVisitIntermediateEvent(self)
 
 
 ###################
@@ -60,16 +91,34 @@ class Task(Activity):
     def __init__(self, element: Element):
         super().__init__(element)
 
+    def accept(self, visitor: "BpmnVisitor") -> None:
+        result = visitor.visitTask(self)
+
+        if result:
+            for flow in self.out_flows:
+                flow.accept(visitor)
+
+        visitor.endVisitTask(self)
+
 
 class SubProcess(Activity):
     def __init__(self, element: Element):
         super().__init__(element)
 
+    def accept(self, visitor: "BpmnVisitor") -> None:
+        result = visitor.visitSubProcess(self)
+
+        if result:
+            for flow in self.out_flows:
+                flow.accept(visitor)
+
+        visitor.endVisitSubProcess(self)
+
 
 ###################
 # Gateway classes
 ###################
-class GatewayNode(Node):
+class GatewayNode(Node, ABC):
     def __init__(self, element: Element):
         super().__init__(element)
 
@@ -78,11 +127,29 @@ class ExclusiveGatewayNode(GatewayNode):
     def __init__(self, element: Element):
         super().__init__(element)
 
+    def accept(self, visitor: "BpmnVisitor") -> None:
+        result = visitor.visitExclusiveGateway(self)
+
+        if result:
+            for flow in self.out_flows:
+                flow.accept(visitor)
+
+        visitor.endVisitExclusiveGateway(self)
+
 
 class ParallelGatewayNode(GatewayNode):
     def __init__(self, element: Element, is_fork: bool = False):
         super().__init__(element)
         self.is_fork = is_fork
+
+    def accept(self, visitor: "BpmnVisitor") -> None:
+        result = visitor.visitParallelGateway(self)
+
+        if result:
+            for flow in self.out_flows:
+                flow.accept(visitor)
+
+        visitor.endVisitParallelGateway(self)
 
 
 ###################
@@ -144,6 +211,9 @@ class Process(BpmnElement):
 
     def get_start_states(self) -> Dict[str, StartEvent]:
         return self._start_states
+
+    def accept(self, visitor: "BpmnVisitor") -> None:
+        pass
 
 
 ###################
