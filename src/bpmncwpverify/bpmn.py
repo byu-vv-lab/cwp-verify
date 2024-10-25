@@ -47,7 +47,7 @@ class Node(BpmnElement):
 
     @abstractmethod
     def accept(self, visitor: "BpmnVisitor") -> None:
-        raise NotImplementedError("Subclasses must implement _accept method.")
+        raise NotImplementedError("Subclasses must implement accept method.")
 
 
 ###################
@@ -100,7 +100,7 @@ class Task(Activity):
     def __init__(self, element: Element):
         super().__init__(element)
 
-    def _accept(self, visitor: "BpmnVisitor") -> None:
+    def accept(self, visitor: "BpmnVisitor") -> None:
         result = visitor.visitTask(self)
         self.visit_out_flows(visitor, result)
         visitor.endVisitTask(self)
