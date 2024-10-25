@@ -1,4 +1,4 @@
-from bpmncwpverify.BPMN import (
+from bpmncwpverify.bpmn import (
     StartEvent,
     EndEvent,
     IntermediateEvent,

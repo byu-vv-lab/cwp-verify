@@ -2,7 +2,7 @@
 from unittest.mock import MagicMock
 from returns.pipeline import is_successful
 from bpmncwpverify.promela_gen_visitor import PromelaGenVisitor
-from bpmncwpverify.BPMN import (
+from bpmncwpverify.bpmn import (
     Bpmn,
     ParallelGatewayNode,
 )

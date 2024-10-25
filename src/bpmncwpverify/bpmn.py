@@ -26,10 +26,6 @@ class Node(BpmnElement):
         super().__init__(element)
         self.out_flows: List[Flow] = []
 
-        # This field is for when accepting each node, we make sure it is not
-        # visited twice
-        self.visited = False
-
         # These fields are to detect back edges
         self.pre = -1
         self.post = -1
@@ -44,17 +40,13 @@ class Node(BpmnElement):
         self.out_flows.append(flow)
 
     # TODO: remove this due to the side-effect
-    def accept(self, visitor: "BpmnVisitor") -> None:
-        self.visited = True  # remove this
-        self._accept(visitor)
-
     def visit_out_flows(self, visitor: "BpmnVisitor", result: bool) -> None:
         if result:
             for flow in self.out_flows:
                 flow.accept(visitor)
 
     @abstractmethod
-    def _accept(self, visitor: "BpmnVisitor") -> None:
+    def accept(self, visitor: "BpmnVisitor") -> None:
         raise NotImplementedError("Subclasses must implement _accept method.")
 
 
@@ -70,7 +62,7 @@ class StartEvent(Event):
     def __init__(self, element: Element):
         super().__init__(element)
 
-    def _accept(self, visitor: "BpmnVisitor") -> None:
+    def accept(self, visitor: "BpmnVisitor") -> None:
         result = visitor.visitStartEvent(self)
         self.visit_out_flows(visitor, result)
         visitor.endVisitStartEvent(self)
@@ -80,7 +72,7 @@ class EndEvent(Event):
     def __init__(self, element: Element):
         super().__init__(element)
 
-    def _accept(self, visitor: "BpmnVisitor") -> None:
+    def accept(self, visitor: "BpmnVisitor") -> None:
         result = visitor.visitEndEvent(self)
         self.visit_out_flows(visitor, result)
         visitor.endVisitEndEvent(self)
@@ -90,7 +82,7 @@ class IntermediateEvent(Event):
     def __init__(self, element: Element):
         super().__init__(element)
 
-    def _accept(self, visitor: "BpmnVisitor") -> None:
+    def accept(self, visitor: "BpmnVisitor") -> None:
         result = visitor.visitIntermediateEvent(self)
         self.visit_out_flows(visitor, result)
         visitor.endVisitIntermediateEvent(self)
@@ -118,7 +110,7 @@ class SubProcess(Activity):
     def __init__(self, element: Element):
         super().__init__(element)
 
-    def _accept(self, visitor: "BpmnVisitor") -> None:
+    def accept(self, visitor: "BpmnVisitor") -> None:
         result = visitor.visitSubProcess(self)
         self.visit_out_flows(visitor, result)
         visitor.endVisitSubProcess(self)
@@ -136,7 +128,7 @@ class ExclusiveGatewayNode(GatewayNode):
     def __init__(self, element: Element):
         super().__init__(element)
 
-    def _accept(self, visitor: "BpmnVisitor") -> None:
+    def accept(self, visitor: "BpmnVisitor") -> None:
         result = visitor.visitExclusiveGateway(self)
         self.visit_out_flows(visitor, result)
         visitor.endVisitExclusiveGateway(self)
@@ -147,7 +139,7 @@ class ParallelGatewayNode(GatewayNode):
         super().__init__(element)
         self.is_fork = is_fork
 
-    def _accept(self, visitor: "BpmnVisitor") -> None:
+    def accept(self, visitor: "BpmnVisitor") -> None:
         result = visitor.visitParallelGateway(self)
         self.visit_out_flows(visitor, result)
         visitor.endVisitParallelGateway(self)
@@ -169,7 +161,7 @@ class Flow(BpmnElement):
         super().__init__(element)
         self.source_node: Node
         self.target_node: Node
-        self.is_back_edge: bool = False
+        self.is_leaf: bool = False
 
     @abstractmethod
     def accept(self, visitor: "BpmnVisitor") -> None:
@@ -182,7 +174,7 @@ class SequenceFlow(Flow):
 
     def accept(self, visitor: "BpmnVisitor") -> None:
         visitor.visitSequenceFlow(self)
-        if not (self.is_back_edge or self.target_node.visited):
+        if not self.is_leaf:
             self.target_node.accept(visitor)
         visitor.endVisitSequenceFlow(self)
 
@@ -193,7 +185,7 @@ class MessageFlow(Flow):
 
     def accept(self, visitor: "BpmnVisitor") -> None:
         visitor.visitMessageFlow(self)
-        if not (self.is_back_edge or self.target_node.visited):
+        if not self.is_leaf:
             self.target_node.accept(visitor)
         visitor.endVisitMessageFlow(self)
 
@@ -249,33 +241,22 @@ class Bpmn:
     def __init__(self) -> None:
         self.processes: List[Process] = []
 
-    def _detect_cycles(bpmn: "Bpmn") -> None:
-        def get_back_edges(node: Node) -> None:
+    def _set_leaf_flows(self) -> None:
+        visited = set()
+
+        def dfs(node: Node) -> None:
+            nonlocal visited
+
+            visited.add(node)
             for flow in node.out_flows:
-                if flow.target_node.post > node.post:
-                    flow.is_back_edge = True
+                if flow.target_node in visited:
+                    flow.is_leaf = True
                 else:
-                    get_back_edges(flow.target_node)
+                    dfs(flow.target_node)
 
-        # TODO: add visited here to see if vertex has been visited and have attr on edge that is is_leaf children instead of just is_back_edge
-        def dfs(node: Node, current_pre: int) -> int:
-            node.pre = current_pre
-            current_pre += 1
-            for flow in node.out_flows:
-                if flow.target_node.pre == -1:
-                    current_pre = dfs(flow.target_node, current_pre)
-            node.post = current_pre
-            return current_pre + 1
-
-        # First pass: pre and post order each node
-        for process in bpmn.processes:
+        for process in self.processes:
             for node in process.get_start_states().values():
-                dfs(node, 1)
-
-        # Second pass: determine whether any back edges exist
-        for process in bpmn.processes:
-            for node in process.get_start_states().values():
-                get_back_edges(node)
+                dfs(node)
 
     def __str__(self) -> str:
         build_arr: List[str] = []
@@ -354,7 +335,7 @@ class Bpmn:
                 process = bpmn._traverse_process(process_element)
                 bpmn.processes.append(process)
 
-            bpmn._detect_cycles()
+            bpmn._set_leaf_flows()
             return Success(bpmn)
         except Exception as e:
             return Failure(e)
