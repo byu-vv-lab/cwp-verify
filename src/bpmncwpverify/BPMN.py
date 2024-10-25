@@ -24,7 +24,6 @@ class BpmnElement(ABC):
 class Node(BpmnElement):
     def __init__(self, element: Element) -> None:
         super().__init__(element)
-        self.in_flows: List[Flow] = []
         self.out_flows: List[Flow] = []
 
         # This field is for when accepting each node, we make sure it is not
@@ -34,6 +33,9 @@ class Node(BpmnElement):
         # These fields are to detect back edges
         self.pre = -1
         self.post = -1
+
+    def add_out_flow(self, flow: "Flow") -> None:
+        self.out_flows.append(flow)
 
     def accept(self, visitor: "BpmnVisitor") -> None:
         self.visited = True
@@ -142,6 +144,11 @@ class ParallelGatewayNode(GatewayNode):
         result = visitor.visitParallelGateway(self)
         self.visit_out_flows(visitor, result)
         visitor.endVisitParallelGateway(self)
+
+    def add_out_flow(self, flow: "Flow") -> None:
+        super().add_out_flow(flow)
+        if len(self.out_flows) > 1:
+            self.is_fork = True
 
 
 ###################
@@ -298,9 +305,7 @@ class Bpmn:
                     flow.target_node = process[target_ref]
 
                     # update source node's out flows array
-                    process[source_ref].out_flows.append(flow)
-                    # update target node's in flows array
-                    process[target_ref].in_flows.append(flow)
+                    process[source_ref].add_out_flow(flow)
 
     def _traverse_process(self, process_element: Element) -> Process:
         process = Process(process_element)
