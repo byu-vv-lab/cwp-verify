@@ -1,18 +1,10 @@
 # type: ignore
-import unittest
-from xml.etree.ElementTree import Element
 from unittest.mock import MagicMock
 from returns.pipeline import is_successful
 from bpmncwpverify.promela_gen_visitor import PromelaGenVisitor
 from bpmncwpverify.BPMN import (
     Bpmn,
     ParallelGatewayNode,
-    Task,
-    StartEvent,
-    EndEvent,
-    Process,
-    SequenceFlow,
-    ExclusiveGatewayNode,
 )
 import os
 
@@ -186,64 +178,21 @@ def test_xml_parser():
         assert_flow(process, flow_id, source_id, target_id, is_back_edge)
 
 
-class TestBpmnFlowTraversal(unittest.TestCase):
-    def setUp(self):
-        # Mocking the visitor
-        self.visitor = MagicMock(spec=PromelaGenVisitor)
-        mock_element = MagicMock(spec=Element)
-        self.process = Process(mock_element)
-        self.process.accept = MagicMock(wraps=self.process.accept)
+def test_flow_traversal():
+    bpmn: Bpmn = Bpmn.from_xml(workflow_bpmn_path)
+    visitor = PromelaGenVisitor()
 
-        self.process._elements = {
-            "Gateway_1pm4ghz": ExclusiveGatewayNode(mock_element),
-            "Gateway_12r266n": ParallelGatewayNode(mock_element),
-            "Activity_1qm7qck": Task(mock_element),
-            "Activity_1unsjkg": Task(mock_element),
-            "Activity_1t579ox": Task(mock_element),
-            "Gateway_0s1i42o": ParallelGatewayNode(mock_element),
-            "Activity_1bckz5y": Task(mock_element),
-            "Activity_1mktua2": Task(mock_element),
-            "Activity_0a5xzqf": Task(mock_element),
-            "Event_0wqympo": EndEvent(mock_element),
-            "Gateway_000lymc": ParallelGatewayNode(mock_element),
-            "Activity_1qqx4aq": Task(mock_element),
-            "Activity_1rfm4sh": Task(mock_element),
-            "Gateway_0cy7rs7": ParallelGatewayNode(mock_element),
-            "Event_1y6wxsp": EndEvent(mock_element),
-        }
+    assert is_successful(bpmn)
 
-        self.process.flows = {}
+    bpmn = bpmn.unwrap()
 
-        self.process._start_states = {
-            "StartEvent_1y8wbre": StartEvent(mock_element),
-        }
+    for node_id, node in bpmn.processes[0].all_items().items():
+        node.accept = MagicMock(wraps=node.accept)
 
-        self.process.all_items = self.process._elements | self.process._start_states
+    for flow in bpmn.processes[0].flows.values():
+        flow.accept = MagicMock(wraps=flow.accept)
 
-        for node_id, node in self.process.all_items.items():
-            node.accept = MagicMock(wraps=node.accept)
-            node.out_flows = []
-
-        for flow_id, source_id, target_id, is_back_edge in flows_to_test:
-            source_node = self.process.all_items[source_id]
-            target_node = self.process.all_items[target_id]
-
-            flow = SequenceFlow(mock_element)
-            flow.accept = MagicMock(wraps=flow.accept)
-            flow.is_back_edge = is_back_edge
-            flow.target_node = target_node
-            self.process.flows[flow_id] = flow
-
-            source_node.out_flows.append(flow)
-            flow.source_node = source_node
-
-        self.bpmn = Bpmn()
-        self.bpmn.accept = MagicMock(wraps=self.bpmn.accept)
-
-        self.bpmn.processes = [self.process]
-
-    def test_flow_traversal(self):
-        self.bpmn.accept(self.visitor)
-        EXPECTED_CALL_COUNT = 1
-        for node_id, node in self.process.all_items.items():
-            self.assertEqual(node.accept.call_count, EXPECTED_CALL_COUNT)
+    bpmn.accept(visitor)
+    EXPECTED_CALL_COUNT = 1
+    for node_id, node in bpmn.processes[0].all_items().items():
+        assert node.accept.call_count == EXPECTED_CALL_COUNT
