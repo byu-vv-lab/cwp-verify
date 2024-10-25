@@ -196,3 +196,6 @@ def test_flow_traversal():
     EXPECTED_CALL_COUNT = 1
     for node_id, node in bpmn.processes[0].all_items().items():
         assert node.accept.call_count == EXPECTED_CALL_COUNT
+
+    for flow in bpmn.processes[0].flows.values():
+        assert flow.accept.call_count == EXPECTED_CALL_COUNT
