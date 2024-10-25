@@ -143,6 +143,7 @@ def _get_error_message(error: Error) -> str:
 
 
 def get_error_message(error: Error | Exception) -> str:
+    # TODO: register errors from bpmn
     match error:
         case Exception():
             return _get_exception_message(error)
@@ -150,3 +151,6 @@ def get_error_message(error: Error | Exception) -> str:
             return _get_error_message(error)
         case _:
             return "ERROR: unknown error type {0}".format(type(error))
+
+
+# TODO: add exceptions that come from bpmn module in alphabetical order

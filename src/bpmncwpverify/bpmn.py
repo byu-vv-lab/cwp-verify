@@ -34,11 +34,18 @@ class Node(BpmnElement):
         self.pre = -1
         self.post = -1
 
+    # TODO:
+    # - for now, just do the two dot
+    # - write __eq__ method usign a visitor
+    # - push __eq__ down the road, get the two dot working
+    #  - this will req
+    #  - bpmn.toPromela()
     def add_out_flow(self, flow: "Flow") -> None:
         self.out_flows.append(flow)
 
+    # TODO: remove this due to the side-effect
     def accept(self, visitor: "BpmnVisitor") -> None:
-        self.visited = True
+        self.visited = True  # remove this
         self._accept(visitor)
 
     def visit_out_flows(self, visitor: "BpmnVisitor", result: bool) -> None:
@@ -250,6 +257,7 @@ class Bpmn:
                 else:
                     get_back_edges(flow.target_node)
 
+        # TODO: add visited here to see if vertex has been visited and have attr on edge that is is_leaf children instead of just is_back_edge
         def dfs(node: Node, current_pre: int) -> int:
             node.pre = current_pre
             current_pre += 1
