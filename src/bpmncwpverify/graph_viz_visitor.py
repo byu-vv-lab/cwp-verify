@@ -70,12 +70,12 @@ class GraphVizVisitor(BpmnVisitor):  # type: ignore
         pass
 
     def endVisitSequenceFlow(self, flow: SequenceFlow) -> None:
-        self.dot.edge(flow.source_node.id, flow.target_node.id)
+        self.dot.edge(flow.source_node.id, flow.target_node.id, label=flow.name)
         pass
 
     def visitMessageFlow(self, flow: MessageFlow) -> None:
         pass
 
     def endVisitMessageFlow(self, flow: MessageFlow) -> None:
-        self.dot.edge(flow.source_node.id, flow.target_node.id)
+        self.dot.edge(flow.source_node.id, flow.target_node.id, label=flow.name)
         pass

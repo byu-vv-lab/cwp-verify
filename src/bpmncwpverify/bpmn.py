@@ -321,7 +321,7 @@ class Bpmn:
 
             self.accept(graph_viz_visitor)
 
-            graph_viz_visitor.dot.render("doctest-output/round-table.gv")
+            graph_viz_visitor.dot.render("doctest-output/round-table.gv", format="png")
 
     @staticmethod
     def from_xml(xml_file: str) -> Result["Bpmn", Error]:
