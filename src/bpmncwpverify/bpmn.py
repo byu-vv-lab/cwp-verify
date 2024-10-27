@@ -5,7 +5,7 @@ from returns.result import Failure, Result, Success
 from defusedxml.ElementTree import parse
 from bpmncwpverify.constants import NAMESPACES
 
-from bpmncwpverify.error import Error
+from bpmncwpverify.error import Error, NotImplementedError
 
 
 ###################
@@ -26,20 +26,9 @@ class Node(BpmnElement):
         super().__init__(element)
         self.out_flows: List[Flow] = []
 
-        # These fields are to detect back edges
-        self.pre = -1
-        self.post = -1
-
-    # TODO:
-    # - for now, just do the two dot
-    # - write __eq__ method usign a visitor
-    # - push __eq__ down the road, get the two dot working
-    #  - this will req
-    #  - bpmn.toPromela()
     def add_out_flow(self, flow: "Flow") -> None:
         self.out_flows.append(flow)
 
-    # TODO: remove this due to the side-effect
     def visit_out_flows(self, visitor: "BpmnVisitor", result: bool) -> None:
         if result:
             for flow in self.out_flows:
@@ -47,7 +36,7 @@ class Node(BpmnElement):
 
     @abstractmethod
     def accept(self, visitor: "BpmnVisitor") -> None:
-        raise NotImplementedError("Subclasses must implement accept method.")
+        raise NotImplementedError(self.accept.__name__)
 
 
 ###################
@@ -323,6 +312,16 @@ class Bpmn:
     def accept(self, visitor: "BpmnVisitor") -> None:
         for process in self.processes:
             process.accept(visitor)
+
+    def generate_graph_viz(self) -> None:
+        from bpmncwpverify.graph_viz_visitor import GraphVizVisitor
+
+        for process in range(len(self.processes)):
+            graph_viz_visitor = GraphVizVisitor(process + 1)
+
+            self.accept(graph_viz_visitor)
+
+            graph_viz_visitor.dot.render("doctest-output/round-table.gv")
 
     @staticmethod
     def from_xml(xml_file: str) -> Result["Bpmn", Error]:

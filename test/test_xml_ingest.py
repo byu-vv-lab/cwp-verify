@@ -169,3 +169,13 @@ def test_flow_traversal():
 
     for flow in bpmn.processes[0].flows.values():
         assert flow.accept.call_count == EXPECTED_CALL_COUNT
+
+
+def test_graph_viz_generation():
+    bpmn: Bpmn = Bpmn.from_xml(workflow_bpmn_path)
+
+    assert is_successful(bpmn)
+
+    bpmn = bpmn.unwrap()
+
+    bpmn.generate_graph_viz()
