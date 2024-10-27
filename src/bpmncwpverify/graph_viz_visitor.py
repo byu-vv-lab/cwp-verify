@@ -18,52 +18,52 @@ class GraphVizVisitor(BpmnVisitor):  # type: ignore
         self.dot = graphviz.Digraph(comment="Process graph {}".format(process_number))
 
     def visitStartEvent(self, event: StartEvent) -> bool:
+        self.dot.node(event.id, event.name)
         return True
 
     def endVisitStartEvent(self, event: StartEvent) -> None:
-        self.dot.node(event.id, event.name)
         pass
 
     def visitEndEvent(self, event: EndEvent) -> bool:
+        self.dot.node(event.id, event.name)
         return True
 
     def endVisitEndEvent(self, event: EndEvent) -> None:
-        self.dot.node(event.id, event.name)
         pass
 
     def visitIntermediateEvent(self, event: IntermediateEvent) -> bool:
+        self.dot.node(event.id, event.name)
         return True
 
     def endVisitIntermediateEvent(self, event: IntermediateEvent) -> None:
-        self.dot.node(event.id, event.name)
         pass
 
     def visitTask(self, task: Task) -> bool:
+        self.dot.node(task.id, task.name)
         return True
 
     def endVisitTask(self, task: Task) -> None:
-        self.dot.node(task.id, task.name)
         pass
 
     def visitSubProcess(self, subprocess: SubProcess) -> bool:
+        self.dot.node(subprocess.id, subprocess.name)
         return True
 
     def endVisitSubProcess(self, subprocess: SubProcess) -> None:
-        self.dot.node(subprocess.id, subprocess.name)
         pass
 
     def visitExclusiveGateway(self, gateway: ExclusiveGatewayNode) -> bool:
+        self.dot.node(gateway.id, gateway.name)
         return True
 
     def endVisitExclusiveGateway(self, gateway: ExclusiveGatewayNode) -> None:
-        self.dot.node(gateway.id, gateway.name)
         pass
 
     def visitParallelGateway(self, gateway: ParallelGatewayNode) -> bool:
+        self.dot.node(gateway.id, gateway.name)
         return True
 
     def endVisitParallelGateway(self, gateway: ParallelGatewayNode) -> None:
-        self.dot.node(gateway.id, gateway.name)
         pass
 
     def visitSequenceFlow(self, flow: SequenceFlow) -> None:
