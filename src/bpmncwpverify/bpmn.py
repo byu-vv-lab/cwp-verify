@@ -5,7 +5,7 @@ from returns.result import Failure, Result, Success
 from defusedxml.ElementTree import parse
 from bpmncwpverify.constants import NAMESPACES
 
-from bpmncwpverify.error import Error, NotImplementedError
+from bpmncwpverify.error import Error, NotImplementedError as NoImplemntation
 
 
 ###################
@@ -36,7 +36,7 @@ class Node(BpmnElement):
 
     @abstractmethod
     def accept(self, visitor: "BpmnVisitor") -> None:
-        raise NotImplementedError(self.accept.__name__)
+        raise NoImplemntation(self.accept.__name__)
 
 
 ###################
@@ -321,7 +321,7 @@ class Bpmn:
 
             self.accept(graph_viz_visitor)
 
-            graph_viz_visitor.dot.render("doctest-output/round-table.gv", format="png")
+            graph_viz_visitor.dot.render("bpmn_graph/graph.gv", format="png")
 
     @staticmethod
     def from_xml(xml_file: str) -> Result["Bpmn", Error]:
