@@ -8,6 +8,14 @@ class Error:
         pass
 
 
+class BpmnNodeNotFound(Error):
+    __slots__ = ["node_id"]
+
+    def __init__(self, node_id: str):
+        super().__init__()
+        self.node_id = node_id
+
+
 class NotImplementedError(Error):
     __slots__ = ["function"]
 
@@ -111,6 +119,8 @@ def _get_exception_message(error: Exception) -> str:
 
 def _get_error_message(error: Error) -> str:
     match error:
+        case BpmnNodeNotFound(node_id=node_id):
+            return f"BPMN ERROR: node with id: {node_id} not found in graph."
         case NotImplementedError(function=function):
             return "ERROR: not implemented '{}'".format(function)
         case StateInitNotInValues(id=id, line=line, column=column, values=values):
@@ -143,7 +153,6 @@ def _get_error_message(error: Error) -> str:
 
 
 def get_error_message(error: Error | Exception) -> str:
-    # TODO: register errors from bpmn
     match error:
         case Exception():
             return _get_exception_message(error)
@@ -151,6 +160,3 @@ def get_error_message(error: Error | Exception) -> str:
             return _get_error_message(error)
         case _:
             return "ERROR: unknown error type {0}".format(type(error))
-
-
-# TODO: add exceptions that come from bpmn module in alphabetical order

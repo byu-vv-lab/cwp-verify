@@ -5,7 +5,11 @@ from returns.result import Failure, Result, Success
 from defusedxml.ElementTree import parse
 from bpmncwpverify.constants import NAMESPACES
 
-from bpmncwpverify.error import Error, NotImplementedError as NoImplemntation
+from bpmncwpverify.error import (
+    Error,
+    NotImplementedError as NoImplemntation,
+    BpmnNodeNotFound,
+)
 
 
 ###################
@@ -200,7 +204,7 @@ class Process(BpmnElement):
             return self._elements[key]
         elif key in self._start_states:
             return self._start_states[key]
-        raise ValueError("key not found in either elements or start states")
+        raise BpmnNodeNotFound(key)
 
     def all_items(self) -> Dict[str, Node]:
         return self._elements | self._start_states
