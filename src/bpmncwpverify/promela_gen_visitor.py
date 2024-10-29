@@ -15,6 +15,7 @@ from bpmncwpverify.bpmn import (
     Bpmn,
     BpmnElement,
     Node,
+    Flow,
 )
 
 
@@ -60,11 +61,15 @@ class PromelaGenVisitor(BpmnVisitor):  # type: ignore
             ("\n" + text.lstrip()).splitlines(True)
         )
 
-    def get_location(self, element: BpmnElement) -> str:
-        if isinstance(element, Activity):
-            return element.name + "_END"  # type: ignore
+    # TODO: When adding messages, make flow or message a Union with Message
+    def get_location(self, element: BpmnElement, flow_or_msg: Flow = None) -> str:
+        if flow_or_msg:
+            return element.label + "_FROM_" + flow_or_msg.source_node.id  # type: ignore
         else:
-            return element.name  # type: ignore
+            if isinstance(element, Activity):
+                return element.name + "_END"  # type: ignore
+            else:
+                return element.name  # type: ignore
 
     def gen_activation_option(
         self, element: Node, start_guard: str = "", option_type: str = ""
@@ -73,7 +78,7 @@ class PromelaGenVisitor(BpmnVisitor):  # type: ignore
         consume_locations = []
         put_locations = []
         behavior_inline = "skip"
-        put_conditions: list[str] = []
+        put_conditions: List[str] = []
         put_flow_ids = []
         element_id = element.id
         if option_type == "Task-END":
