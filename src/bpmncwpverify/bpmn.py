@@ -213,8 +213,10 @@ class Process(BpmnElement):
         return self._start_states
 
     def accept(self, visitor: "BpmnVisitor") -> None:
+        visitor.visitProcess(self)
         for start_event in self.get_start_states().values():
             start_event.accept(visitor)
+        visitor.endVisitProcess(self)
 
 
 ###################
@@ -314,8 +316,10 @@ class Bpmn:
         return process
 
     def accept(self, visitor: "BpmnVisitor") -> None:
+        visitor.visitBpmn(self)
         for process in self.processes:
             process.accept(visitor)
+        visitor.endVisitBpmn(self)
 
     def generate_graph_viz(self) -> None:
         from bpmncwpverify.graph_viz_visitor import GraphVizVisitor
@@ -418,4 +422,20 @@ class BpmnVisitor(ABC):
 
     @abstractmethod
     def endVisitMessageFlow(self, flow: MessageFlow) -> None:
+        pass
+
+    @abstractmethod
+    def visitProcess(self, process: Process) -> None:
+        pass
+
+    @abstractmethod
+    def endVisitProcess(self, process: Process) -> None:
+        pass
+
+    @abstractmethod
+    def visitBpmn(self, Bpmn: Bpmn) -> None:
+        pass
+
+    @abstractmethod
+    def endVisitBpmn(self, Bpmn: Bpmn) -> None:
         pass
