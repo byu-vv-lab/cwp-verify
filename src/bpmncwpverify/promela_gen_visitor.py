@@ -60,67 +60,67 @@ class PromelaGenVisitor(BpmnVisitor):  # type: ignore
     ####################
     # Visitor Methods
     ####################
-    def visitStartEvent(self, event: StartEvent) -> bool:
+    def visit_start_event(self, event: StartEvent) -> bool:
         return True
 
-    def endVisitStartEvent(self, event: StartEvent) -> None:
+    def end_visit_start_event(self, event: StartEvent) -> None:
         pass
 
-    def visitEndEvent(self, event: EndEvent) -> bool:
+    def visit_end_event(self, event: EndEvent) -> bool:
         return True
 
-    def endVisitEndEvent(self, event: EndEvent) -> None:
+    def end_visit_end_event(self, event: EndEvent) -> None:
         pass
 
-    def visitIntermediateEvent(self, event: IntermediateEvent) -> bool:
+    def visit_intermediate_event(self, event: IntermediateEvent) -> bool:
         return True
 
-    def endVisitIntermediateEvent(self, event: IntermediateEvent) -> None:
+    def end_visit_intermediate_event(self, event: IntermediateEvent) -> None:
         pass
 
-    def visitTask(self, task: Task) -> bool:
+    def visit_task(self, task: Task) -> bool:
         return True
 
-    def endVisitTask(self, task: Task) -> None:
+    def end_visit_task(self, task: Task) -> None:
         pass
 
-    def visitSubProcess(self, subprocess: SubProcess) -> bool:
+    def visit_sub_process(self, subprocess: SubProcess) -> bool:
         return True
 
-    def endVisitSubProcess(self, subprocess: SubProcess) -> None:
+    def end_visit_sub_process(self, subprocess: SubProcess) -> None:
         pass
 
-    def visitExclusiveGateway(self, gateway: ExclusiveGatewayNode) -> bool:
+    def visit_exclusive_gateway(self, gateway: ExclusiveGatewayNode) -> bool:
         return True
 
-    def endVisitExclusiveGateway(self, gateway: ExclusiveGatewayNode) -> None:
+    def end_visit_exclusive_gateway(self, gateway: ExclusiveGatewayNode) -> None:
         pass
 
-    def visitParallelGateway(self, gateway: ParallelGatewayNode) -> bool:
+    def visit_parallel_gateway(self, gateway: ParallelGatewayNode) -> bool:
         return True
 
-    def endVisitParallelGateway(self, gateway: ParallelGatewayNode) -> None:
+    def end_visit_parallel_gateway(self, gateway: ParallelGatewayNode) -> None:
         pass
 
-    def visitSequenceFlow(self, flow: SequenceFlow) -> None:
+    def visit_sequence_flow(self, flow: SequenceFlow) -> None:
         pass
 
-    def endVisitSequenceFlow(self, flow: SequenceFlow) -> None:
+    def end_visit_sequence_flow(self, flow: SequenceFlow) -> None:
         pass
 
-    def visitMessageFlow(self, flow: MessageFlow) -> None:
+    def visit_message_flow(self, flow: MessageFlow) -> None:
         pass
 
-    def endVisitMessageFlow(self, flow: MessageFlow) -> None:
+    def end_visit_message_flow(self, flow: MessageFlow) -> None:
         pass
 
-    def visitProcess(self, process: Process) -> None:
+    def visit_process(self, process: Process) -> None:
         pass
 
-    def endVisitProcess(self, process: Process) -> None:
+    def end_visit_process(self, process: Process) -> None:
         pass
 
-    def visitBpmn(self, bpmn: Bpmn) -> Bpmn:
+    def visit_bpmn(self, bpmn: Bpmn) -> Bpmn:
         init_lines = "init {\n"
         init_lines += "\tatomic{\n"
         init_lines += "\t\tupdateState()\n"
@@ -132,5 +132,5 @@ class PromelaGenVisitor(BpmnVisitor):  # type: ignore
         for place in self.flow_places:
             self.write_places_lines("bit {x} = 0".format(x=str(place)))
 
-    def endVisitBpmn(self, bpmn: Bpmn) -> None:
+    def end_visit_bpmn(self, bpmn: Bpmn) -> None:
         pass

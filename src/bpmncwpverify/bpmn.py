@@ -56,9 +56,9 @@ class StartEvent(Event):
         super().__init__(element)
 
     def accept(self, visitor: "BpmnVisitor") -> None:
-        result = visitor.visitStartEvent(self)
+        result = visitor.visit_start_event(self)
         self.visit_out_flows(visitor, result)
-        visitor.endVisitStartEvent(self)
+        visitor.end_visit_start_event(self)
 
 
 class EndEvent(Event):
@@ -66,9 +66,9 @@ class EndEvent(Event):
         super().__init__(element)
 
     def accept(self, visitor: "BpmnVisitor") -> None:
-        result = visitor.visitEndEvent(self)
+        result = visitor.visit_end_event(self)
         self.visit_out_flows(visitor, result)
-        visitor.endVisitEndEvent(self)
+        visitor.end_visit_end_event(self)
 
 
 class IntermediateEvent(Event):
@@ -76,9 +76,9 @@ class IntermediateEvent(Event):
         super().__init__(element)
 
     def accept(self, visitor: "BpmnVisitor") -> None:
-        result = visitor.visitIntermediateEvent(self)
+        result = visitor.visit_intermediate_event(self)
         self.visit_out_flows(visitor, result)
-        visitor.endVisitIntermediateEvent(self)
+        visitor.end_visit_intermediate_event(self)
 
 
 ###################
@@ -94,9 +94,9 @@ class Task(Activity):
         super().__init__(element)
 
     def accept(self, visitor: "BpmnVisitor") -> None:
-        result = visitor.visitTask(self)
+        result = visitor.visit_task(self)
         self.visit_out_flows(visitor, result)
-        visitor.endVisitTask(self)
+        visitor.end_visit_task(self)
 
 
 class SubProcess(Activity):
@@ -104,9 +104,9 @@ class SubProcess(Activity):
         super().__init__(element)
 
     def accept(self, visitor: "BpmnVisitor") -> None:
-        result = visitor.visitSubProcess(self)
+        result = visitor.visit_sub_process(self)
         self.visit_out_flows(visitor, result)
-        visitor.endVisitSubProcess(self)
+        visitor.end_visit_sub_process(self)
 
 
 ###################
@@ -122,9 +122,9 @@ class ExclusiveGatewayNode(GatewayNode):
         super().__init__(element)
 
     def accept(self, visitor: "BpmnVisitor") -> None:
-        result = visitor.visitExclusiveGateway(self)
+        result = visitor.visit_exclusive_gateway(self)
         self.visit_out_flows(visitor, result)
-        visitor.endVisitExclusiveGateway(self)
+        visitor.end_visit_exclusive_gateway(self)
 
 
 class ParallelGatewayNode(GatewayNode):
@@ -133,9 +133,9 @@ class ParallelGatewayNode(GatewayNode):
         self.is_fork = is_fork
 
     def accept(self, visitor: "BpmnVisitor") -> None:
-        result = visitor.visitParallelGateway(self)
+        result = visitor.visit_parallel_gateway(self)
         self.visit_out_flows(visitor, result)
-        visitor.endVisitParallelGateway(self)
+        visitor.end_visit_parallel_gateway(self)
 
     def add_out_flow(self, flow: "Flow") -> None:
         super().add_out_flow(flow)
@@ -166,10 +166,10 @@ class SequenceFlow(Flow):
         super().__init__(element)
 
     def accept(self, visitor: "BpmnVisitor") -> None:
-        visitor.visitSequenceFlow(self)
+        visitor.visit_sequence_flow(self)
         if not self.is_leaf:
             self.target_node.accept(visitor)
-        visitor.endVisitSequenceFlow(self)
+        visitor.end_visit_sequence_flow(self)
 
 
 class MessageFlow(Flow):
@@ -177,10 +177,10 @@ class MessageFlow(Flow):
         super().__init__(element)
 
     def accept(self, visitor: "BpmnVisitor") -> None:
-        visitor.visitMessageFlow(self)
+        visitor.visit_message_flow(self)
         if not self.is_leaf:
             self.target_node.accept(visitor)
-        visitor.endVisitMessageFlow(self)
+        visitor.end_visit_message_flow(self)
 
 
 ###################
@@ -213,10 +213,10 @@ class Process(BpmnElement):
         return self._start_states
 
     def accept(self, visitor: "BpmnVisitor") -> None:
-        visitor.visitProcess(self)
+        visitor.visit_process(self)
         for start_event in self.get_start_states().values():
             start_event.accept(visitor)
-        visitor.endVisitProcess(self)
+        visitor.end_visit_process(self)
 
 
 ###################
@@ -316,10 +316,10 @@ class Bpmn:
         return process
 
     def accept(self, visitor: "BpmnVisitor") -> None:
-        visitor.visitBpmn(self)
+        visitor.visit_bpmn(self)
         for process in self.processes:
             process.accept(visitor)
-        visitor.endVisitBpmn(self)
+        visitor.end_visit_bpmn(self)
 
     def generate_graph_viz(self) -> None:
         from bpmncwpverify.graph_viz_visitor import GraphVizVisitor
@@ -329,7 +329,7 @@ class Bpmn:
 
             self.accept(graph_viz_visitor)
 
-            graph_viz_visitor.dot.render("bpmn_graph/graph.gv", format="png")
+            graph_viz_visitor.dot.render("graphs/bpmn_graph.gv", format="png")
 
     @staticmethod
     def from_xml(xml_file: str) -> Result["Bpmn", Error]:
@@ -353,89 +353,89 @@ class Bpmn:
 ###################
 class BpmnVisitor(ABC):
     @abstractmethod
-    def visitStartEvent(self, event: StartEvent) -> bool:
+    def visit_start_event(self, event: StartEvent) -> bool:
         pass
 
     @abstractmethod
-    def endVisitStartEvent(self, event: StartEvent) -> None:
+    def end_visit_start_event(self, event: StartEvent) -> None:
         pass
 
     @abstractmethod
-    def visitEndEvent(self, event: EndEvent) -> bool:
+    def visit_end_event(self, event: EndEvent) -> bool:
         pass
 
     @abstractmethod
-    def endVisitEndEvent(self, event: EndEvent) -> None:
+    def end_visit_end_event(self, event: EndEvent) -> None:
         pass
 
     @abstractmethod
-    def visitIntermediateEvent(self, event: IntermediateEvent) -> bool:
+    def visit_intermediate_event(self, event: IntermediateEvent) -> bool:
         pass
 
     @abstractmethod
-    def endVisitIntermediateEvent(self, event: IntermediateEvent) -> None:
+    def end_visit_intermediate_event(self, event: IntermediateEvent) -> None:
         pass
 
     @abstractmethod
-    def visitTask(self, task: Task) -> bool:
+    def visit_task(self, task: Task) -> bool:
         pass
 
     @abstractmethod
-    def endVisitTask(self, task: Task) -> None:
+    def end_visit_task(self, task: Task) -> None:
         pass
 
     @abstractmethod
-    def visitSubProcess(self, subprocess: SubProcess) -> bool:
+    def visit_sub_process(self, subprocess: SubProcess) -> bool:
         pass
 
     @abstractmethod
-    def endVisitSubProcess(self, subprocess: SubProcess) -> None:
+    def end_visit_sub_process(self, subprocess: SubProcess) -> None:
         pass
 
     @abstractmethod
-    def visitExclusiveGateway(self, gateway: ExclusiveGatewayNode) -> bool:
+    def visit_exclusive_gateway(self, gateway: ExclusiveGatewayNode) -> bool:
         pass
 
     @abstractmethod
-    def endVisitExclusiveGateway(self, gateway: ExclusiveGatewayNode) -> None:
+    def end_visit_exclusive_gateway(self, gateway: ExclusiveGatewayNode) -> None:
         pass
 
     @abstractmethod
-    def visitParallelGateway(self, gateway: ParallelGatewayNode) -> bool:
+    def visit_parallel_gateway(self, gateway: ParallelGatewayNode) -> bool:
         pass
 
     @abstractmethod
-    def endVisitParallelGateway(self, gateway: ParallelGatewayNode) -> None:
+    def end_visit_parallel_gateway(self, gateway: ParallelGatewayNode) -> None:
         pass
 
     @abstractmethod
-    def visitSequenceFlow(self, flow: SequenceFlow) -> None:
+    def visit_sequence_flow(self, flow: SequenceFlow) -> None:
         pass
 
     @abstractmethod
-    def endVisitSequenceFlow(self, flow: SequenceFlow) -> None:
+    def end_visit_sequence_flow(self, flow: SequenceFlow) -> None:
         pass
 
     @abstractmethod
-    def visitMessageFlow(self, flow: MessageFlow) -> None:
+    def visit_message_flow(self, flow: MessageFlow) -> None:
         pass
 
     @abstractmethod
-    def endVisitMessageFlow(self, flow: MessageFlow) -> None:
+    def end_visit_message_flow(self, flow: MessageFlow) -> None:
         pass
 
     @abstractmethod
-    def visitProcess(self, process: Process) -> None:
+    def visit_process(self, process: Process) -> None:
         pass
 
     @abstractmethod
-    def endVisitProcess(self, process: Process) -> None:
+    def end_visit_process(self, process: Process) -> None:
         pass
 
     @abstractmethod
-    def visitBpmn(self, Bpmn: Bpmn) -> None:
+    def visit_bpmn(self, bpmn: Bpmn) -> None:
         pass
 
     @abstractmethod
-    def endVisitBpmn(self, Bpmn: Bpmn) -> None:
+    def end_visit_bpmn(self, bpmn: Bpmn) -> None:
         pass
