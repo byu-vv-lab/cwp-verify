@@ -14,6 +14,7 @@ from bpmncwpverify.bpmn import (
     Activity,
     Bpmn,
     BpmnElement,
+    Node
 )
 
 
@@ -65,6 +66,89 @@ class PromelaGenVisitor(BpmnVisitor):  # type: ignore
         else:
             return element.name  # type: ignore
 
+    def genActivationOption(self, element: Node, start_guard: str = "", option_type: str = "") -> None:
+        guard = "("
+        consume_locations = []
+        put_locations = []
+        behavior_inline = "skip"
+        put_conditions: list[str] = []
+        put_flow_ids = []
+        element_id = element.id
+        if option_type == "Task-END":
+            consume_locations.append(self.get_location(element))
+            guard += "hasToken({})".format(self.get_location(element))
+        else:
+            for flow in element.in_flows:
+                consume_locations.append(self.get_location(element, flow))
+            if element.in_flows:
+                guard += "( "
+                if option_type == "Parallel-join":
+                    guard += "&&".join(
+                        [
+                            "hasToken({})".format(self.get_location(element, loc))
+                            for loc in element.in_flows
+                        ]
+                    )
+                else:
+                    guard += "||".join(
+                        [
+                            "hasToken({})".format(self.get_location(element, loc))
+                            for loc in element.in_flows
+                        ]
+                    )
+                guard += " )\n"
+        if option_type != "Task":
+            for msg in element.in_msgs:
+                consume_locations.append(self.get_location(element, msg))
+            if element.in_msgs:
+                if element.in_flows or option_type == "Task-END":
+                    guard += "&&"
+                guard += "( "
+                guard += "&&".join(
+                    [
+                        "hasToken({})".format(self.get_location(element, loc))
+                        for loc in element.in_msgs
+                    ]
+                )
+                guard += " )\n"
+        if option_type == "XOR":
+            guard += "\t&&"
+            guard += "\t({}_hasOption)".format(element.label)
+        guard += ")"
+        if option_type != "Task-END":
+            behavior_inline = "{x}_BehaviorModel()".format(x=element.label)
+        if option_type == "Task":
+            put_flow_ids.append(element_id)
+            put_locations.append(self.get_location(element))
+            for msg in element.out_msgs:
+                put_flow_ids.append(msg.id)
+                put_locations.append(self.get_location(msg.to_node, msg))
+        else:
+            for flow in element.out_flows:
+                put_flow_ids.append(flow.id)
+                put_locations.append(self.get_location(flow.to_node, flow))
+                if option_type == "XOR":
+                    put_conditions.append(flow.label)
+            if option_type != "Task-END":
+                for msg in element.out_msgs:
+                    put_flow_ids.append(msg.id)
+                    put_locations.append(self.get_location(msg.to_node, msg))
+        if start_guard:
+            guard = start_guard
+            consume_locations.append(self.get_location(element))
+        self.write_workflow_lines(
+            self.create_option(
+                guard,
+                consume_locations,
+                behavior_inline,
+                put_conditions,
+                put_locations,
+                put_flow_ids,
+                element_id,
+                option_type,
+            )
+        )
+
     ####################
     # Visitor Methods
     ####################
@@ -78,7 +162,8 @@ class PromelaGenVisitor(BpmnVisitor):  # type: ignore
         return True
 
     def end_visit_end_event(self, event: EndEvent) -> None:
-        pass
+        self.gen_places(event)
+        self.gen_activation_option(event)
 
     def visit_intermediate_event(self, event: IntermediateEvent) -> bool:
         return True
