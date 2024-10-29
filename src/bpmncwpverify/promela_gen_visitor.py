@@ -1,3 +1,4 @@
+from typing import List
 from bpmncwpverify.bpmn import (
     StartEvent,
     EndEvent,
@@ -15,6 +16,50 @@ from bpmncwpverify.bpmn import (
 
 
 class PromelaGenVisitor(BpmnVisitor):  # type: ignore
+    def __init__(self) -> None:
+        self.init_text = ""
+        self.init_indent = 0
+        self.places_text = ""
+        self.places_indent = 0
+        self.constants_indent = 0
+        self.constants_text = ""
+        self.behavior_model_text = ""
+        self.behavior_model_indent = 0
+        self.workflow_text = ""
+        self.workflow_indent = 0
+        self.flow_places: List[str] = []
+
+    ####################
+    # Helper Methods
+    ####################
+    def write_places_lines(self, text: str) -> None:
+        self.places_text += ("\t" * self.places_indent).join(
+            ("\n" + text.lstrip()).splitlines(True)
+        )
+
+    def write_constants_lines(self, text: str) -> None:
+        self.constants_text += ("\t" * self.constants_indent).join(
+            ("\n" + text.lstrip()).splitlines(True)
+        )
+
+    def write_behavior_model_lines(self, text: str) -> None:
+        self.behavior_model_text += ("\t" * self.behavior_model_indent).join(
+            ("\n" + text.lstrip()).splitlines(True)
+        )
+
+    def write_init_lines(self, text: str) -> None:
+        self.init_text += ("\t" * self.init_indent).join(
+            ("\n" + text.lstrip()).splitlines(True)
+        )
+
+    def write_workflow_lines(self, text: str) -> None:
+        self.workflow_text += ("\t" * self.workflow_indent).join(
+            ("\n" + text.lstrip()).splitlines(True)
+        )
+
+    ####################
+    # Visitor Methods
+    ####################
     def visitStartEvent(self, event: StartEvent) -> bool:
         return True
 
@@ -75,8 +120,17 @@ class PromelaGenVisitor(BpmnVisitor):  # type: ignore
     def endVisitProcess(self, process: Process) -> None:
         pass
 
-    def visitBpmn(self, Bpmn: Bpmn) -> Bpmn:
-        pass
+    def visitBpmn(self, bpmn: Bpmn) -> Bpmn:
+        init_lines = "init {\n"
+        init_lines += "\tatomic{\n"
+        init_lines += "\t\tupdateState()\n"
+        for process in bpmn.processes:
+            init_lines += "\t\trun {}()\n".format(process.name)
+        init_lines += "\t}\n"
+        init_lines += "}\n\n"
+        self.write_init_lines(init_lines)
+        for place in self.flow_places:
+            self.write_places_lines("bit {x} = 0".format(x=str(place)))
 
-    def endVisitBpmn(self, Bpmn: Bpmn) -> None:
+    def endVisitBpmn(self, bpmn: Bpmn) -> None:
         pass
