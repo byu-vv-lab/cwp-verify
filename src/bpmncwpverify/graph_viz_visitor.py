@@ -10,6 +10,8 @@ from bpmncwpverify.bpmn import (
     ParallelGatewayNode,
     ExclusiveGatewayNode,
     BpmnVisitor,
+    Process,
+    Bpmn,
 )
 
 
@@ -78,4 +80,16 @@ class GraphVizVisitor(BpmnVisitor):  # type: ignore
 
     def endVisitMessageFlow(self, flow: MessageFlow) -> None:
         self.dot.edge(flow.source_node.id, flow.target_node.id, label=flow.name)
+        pass
+
+    def visitProcess(self, process: Process) -> None:
+        pass
+
+    def endVisitProcess(self, process: Process) -> None:
+        pass
+
+    def visitBpmn(self, Bpmn: Bpmn) -> Bpmn:
+        pass
+
+    def endVisitBpmn(self, Bpmn: Bpmn) -> None:
         pass
