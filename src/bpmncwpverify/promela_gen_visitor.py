@@ -11,7 +11,9 @@ from bpmncwpverify.bpmn import (
     ExclusiveGatewayNode,
     BpmnVisitor,
     Process,
+    Activity,
     Bpmn,
+    BpmnElement,
 )
 
 
@@ -56,6 +58,12 @@ class PromelaGenVisitor(BpmnVisitor):  # type: ignore
         self.workflow_text += ("\t" * self.workflow_indent).join(
             ("\n" + text.lstrip()).splitlines(True)
         )
+
+    def get_location(self, element: BpmnElement) -> str:
+        if isinstance(element, Activity):
+            return element.name + "_END"  # type: ignore
+        else:
+            return element.name  # type: ignore
 
     ####################
     # Visitor Methods
