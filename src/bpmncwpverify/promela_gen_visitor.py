@@ -184,13 +184,16 @@ class PromelaGenVisitor(BpmnVisitor):  # type: ignore
         pass
 
     def visit_end_event(self, event: EndEvent) -> bool:
-        return True
-
-    def end_visit_end_event(self, event: EndEvent) -> None:
         self.gen_places(event)
         self.gen_activation_option(event)
+        return False
+
+    def end_visit_end_event(self, event: EndEvent) -> None:
+        pass
 
     def visit_intermediate_event(self, event: IntermediateEvent) -> bool:
+        self.gen_places(event)
+        self.gen_activation_option(event)
         return True
 
     def end_visit_intermediate_event(self, event: IntermediateEvent) -> None:
@@ -215,6 +218,9 @@ class PromelaGenVisitor(BpmnVisitor):  # type: ignore
         pass
 
     def visit_parallel_gateway(self, gateway: ParallelGatewayNode) -> bool:
+        self.gen_places(gateway)
+        option_type = "Parallel-fork" if gateway.is_fork else "Parallel-join"
+        self.gen_activation_option(gateway, option_type=option_type)
         return True
 
     def end_visit_parallel_gateway(self, gateway: ParallelGatewayNode) -> None:
@@ -227,7 +233,7 @@ class PromelaGenVisitor(BpmnVisitor):  # type: ignore
         pass
 
     def visit_message_flow(self, flow: MessageFlow) -> None:
-        pass
+        self.flow_places.append(flow.name)
 
     def end_visit_message_flow(self, flow: MessageFlow) -> None:
         pass
