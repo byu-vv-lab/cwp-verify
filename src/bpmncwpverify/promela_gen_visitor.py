@@ -36,6 +36,14 @@ class PromelaGenVisitor(BpmnVisitor):  # type: ignore
     ####################
     # Helper Methods
     ####################
+    def gen_excl_gw_has_option_macro(self, gateway: ExclusiveGatewayNode) -> None:
+        macro = "#define {}_hasOption \\\n".format(gateway.name)
+        conditions = [str(flow.name) for flow in gateway.out_flows]
+        macro += "(\\\n\t"
+        macro += "||\\\n\t".join(conditions)
+        macro += "\\\n)\n"
+        self.write_constants_lines(macro)
+
     def write_places_lines(self, text: str) -> None:
         self.places_text += ("\t" * self.places_indent).join(
             ("\n" + text.lstrip()).splitlines(True)
@@ -63,7 +71,7 @@ class PromelaGenVisitor(BpmnVisitor):  # type: ignore
 
     def get_location(self, element: BpmnElement, flow_or_msg: Flow = None) -> str:
         if flow_or_msg:
-            return element.label + "_FROM_" + flow_or_msg.source_node.id  # type: ignore
+            return element.name + "_FROM_" + flow_or_msg.source_node.name  # type: ignore
         else:
             if isinstance(element, Activity):
                 return element.name + "_END"  # type: ignore
@@ -212,6 +220,12 @@ class PromelaGenVisitor(BpmnVisitor):  # type: ignore
         pass
 
     def visit_exclusive_gateway(self, gateway: ExclusiveGatewayNode) -> bool:
+        self.gen_activation_option(gateway)
+        if len(gateway.out_flows) == 1:
+            self.gen_activation_option(gateway, option_type="XOR-JOIN")
+        else:
+            self.gen_excl_gw_has_option_macro(gateway)
+            self.gen_activation_option(gateway, option_type="XOR")
         return True
 
     def end_visit_exclusive_gateway(self, gateway: ExclusiveGatewayNode) -> None:
