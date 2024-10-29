@@ -76,7 +76,7 @@ class PromelaGenVisitor(BpmnVisitor):  # type: ignore
         else:
             for flow in element.in_flows:
                 self.flow_places.append(self.get_location(element, flow))
-            for msg in element.inMsgs:
+            for msg in element.in_msgs:
                 self.flow_places.append(self.get_location(element, msg))
         if isinstance(element, Activity):
             self.flow_places.append(self.get_location(element))
@@ -170,6 +170,14 @@ class PromelaGenVisitor(BpmnVisitor):  # type: ignore
     # Visitor Methods
     ####################
     def visit_start_event(self, event: StartEvent) -> bool:
+        if event.in_msgs:
+            self.gen_places(event)
+            self.gen_activation_option(event)
+        else:
+            self.gen_places(event)
+            guard = "(hasToken({}))".format(event.name)
+            self.gen_activation_option(event, start_guard=guard)
+
         return True
 
     def end_visit_start_event(self, event: StartEvent) -> None:
