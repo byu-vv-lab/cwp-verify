@@ -28,14 +28,22 @@ class BpmnElement(ABC):
 class Node(BpmnElement):
     def __init__(self, element: Element) -> None:
         super().__init__(element)
-        self.out_flows: List[Flow] = []
-        self.in_flows: List[Flow] = []
+        self.out_flows: List[SequenceFlow] = []
+        self.in_flows: List[SequenceFlow] = []
+        self.in_msgs: List[MessageFlow] = []
+        self.out_msgs: List[MessageFlow] = []
 
-    def add_out_flow(self, flow: "Flow") -> None:
+    def add_out_flow(self, flow: "SequenceFlow") -> None:
         self.out_flows.append(flow)
 
-    def add_in_flow(self, flow: "Flow") -> None:
+    def add_in_flow(self, flow: "SequenceFlow") -> None:
         self.in_flows.append(flow)
+
+    def add_out_msg(self, flow: "MessageFlow") -> None:
+        self.out_msgs.append(flow)
+
+    def add_in_msg(self, flow: "MessageFlow") -> None:
+        self.in_msgs.append(flow)
 
     def visit_out_flows(self, visitor: "BpmnVisitor", result: bool) -> None:
         if result:
@@ -142,7 +150,7 @@ class ParallelGatewayNode(GatewayNode):
         self.visit_out_flows(visitor, result)
         visitor.end_visit_parallel_gateway(self)
 
-    def add_out_flow(self, flow: "Flow") -> None:
+    def add_out_flow(self, flow: "SequenceFlow") -> None:
         super().add_out_flow(flow)
         if len(self.out_flows) > 1:
             self.is_fork = True
@@ -194,7 +202,7 @@ class MessageFlow(Flow):
 class Process(BpmnElement):
     def __init__(self, element: Element):
         super().__init__(element)
-        self.flows: Dict[str, Flow] = {}
+        self.flows: Dict[str, SequenceFlow] = {}
         self._elements: Dict[str, Node] = {}
         self._start_states: Dict[str, StartEvent] = {}
 
