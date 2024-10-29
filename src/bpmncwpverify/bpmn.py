@@ -54,6 +54,7 @@ class Event(Node):
 class StartEvent(Event):
     def __init__(self, element: Element):
         super().__init__(element)
+        # TODO: add in_msgs attribute
 
     def accept(self, visitor: "BpmnVisitor") -> None:
         result = visitor.visit_start_event(self)

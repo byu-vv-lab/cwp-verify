@@ -123,10 +123,19 @@ class PromelaGenVisitor(BpmnVisitor):  # type: ignore
         pass
 
     def visit_process(self, process: Process) -> None:
-        pass
+        # TODO: maybe give process a name instead of using id here
+        self.write_workflow_lines("proctype {x}() {{".format(x=process.id))
+        self.workflow_indent += 1
+        self.write_workflow_lines("pid me = _pid")
+        # TODO: handle start states with in_msgs here
+        for start_node in process.get_start_states():
+            self.write_workflow_lines("putToken({x})".format(x=start_node.label))
+        self.write_workflow_lines("do")
 
     def end_visit_process(self, process: Process) -> None:
-        pass
+        self.write_workflow_lines("od")
+        self.workflow_indent -= 1
+        self.write_workflow_lines("}")
 
     def visit_bpmn(self, bpmn: Bpmn) -> Bpmn:
         init_lines = "init {\n"
@@ -137,8 +146,7 @@ class PromelaGenVisitor(BpmnVisitor):  # type: ignore
         init_lines += "\t}\n"
         init_lines += "}\n\n"
         self.write_init_lines(init_lines)
-        for place in self.flow_places:
-            self.write_places_lines("bit {x} = 0".format(x=str(place)))
 
     def end_visit_bpmn(self, bpmn: Bpmn) -> None:
-        pass
+        for place in self.flow_places:
+            self.write_places_lines("bit {x} = 0".format(x=str(place)))
