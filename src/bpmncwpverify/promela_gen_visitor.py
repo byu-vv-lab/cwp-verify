@@ -61,7 +61,6 @@ class PromelaGenVisitor(BpmnVisitor):  # type: ignore
             ("\n" + text.lstrip()).splitlines(True)
         )
 
-    # TODO: When adding messages, make flow or message a Union with Message
     def get_location(self, element: BpmnElement, flow_or_msg: Flow = None) -> str:
         if flow_or_msg:
             return element.label + "_FROM_" + flow_or_msg.source_node.id  # type: ignore
@@ -70,6 +69,17 @@ class PromelaGenVisitor(BpmnVisitor):  # type: ignore
                 return element.name + "_END"  # type: ignore
             else:
                 return element.name  # type: ignore
+
+    def gen_places(self, element: Node) -> None:
+        if not element.in_flows and not element.in_msgs:
+            self.flow_places.append(self.get_location(element))
+        else:
+            for flow in element.in_flows:
+                self.flow_places.append(self.get_location(element, flow))
+            for msg in element.inMsgs:
+                self.flow_places.append(self.get_location(element, msg))
+        if isinstance(element, Activity):
+            self.flow_places.append(self.get_location(element))
 
     def gen_activation_option(
         self, element: Node, start_guard: str = "", option_type: str = ""
