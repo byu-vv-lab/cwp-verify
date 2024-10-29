@@ -304,7 +304,34 @@ class Bpmn:
                     # update source node's out flows array
                     process[source_ref].add_out_flow(flow)
                     # update target node's in flows array
-                    process[target_ref].in_flows.append(flow)
+                    process[target_ref].add_in_flow(flow)
+
+    def _traverse_messages(self, root: Element) -> None:
+        all_elements = {
+            id: element
+            for process in self.processes
+            for id, element in process.all_items().items()
+        }
+        self.collab = root.find("bpmn:collaboration", NAMESPACES)
+        if self.collab is not None:
+            for msg in self.collab.findall("bpmn:messageFlow", NAMESPACES):
+                id = msg.get("id")
+                name = msg.get("name")
+                if name is None:
+                    name = id
+                message = MessageFlow(msg)
+                sourceRef = msg.get("sourceRef")
+                targetRef = msg.get("targetRef")
+                if not (sourceRef and targetRef):
+                    raise Exception(
+                        "source ref or target ref not included with message"
+                    )
+                fromNode = all_elements[sourceRef]
+                toNode = all_elements[targetRef]
+                message.target_node = toNode
+                message.source_node = fromNode
+                fromNode.add_out_msg(message)
+                toNode.add_in_msg(message)
 
     def _traverse_process(self, process_element: Element) -> Process:
         process = Process(process_element)
@@ -357,6 +384,7 @@ class Bpmn:
                 process = bpmn._traverse_process(process_element)
                 bpmn.processes.append(process)
 
+            bpmn._traverse_messages(root)
             bpmn._set_leaf_flows()
             return Success(bpmn)
         except Exception as e:
