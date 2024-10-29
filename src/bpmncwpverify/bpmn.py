@@ -29,9 +29,13 @@ class Node(BpmnElement):
     def __init__(self, element: Element) -> None:
         super().__init__(element)
         self.out_flows: List[Flow] = []
+        self.in_flows: List[Flow] = []
 
     def add_out_flow(self, flow: "Flow") -> None:
         self.out_flows.append(flow)
+
+    def add_in_flow(self, flow: "Flow") -> None:
+        self.in_flows.append(flow)
 
     def visit_out_flows(self, visitor: "BpmnVisitor", result: bool) -> None:
         if result:
@@ -291,6 +295,8 @@ class Bpmn:
 
                     # update source node's out flows array
                     process[source_ref].add_out_flow(flow)
+                    # update target node's in flows array
+                    process[target_ref].in_flows.append(flow)
 
     def _traverse_process(self, process_element: Element) -> Process:
         process = Process(process_element)

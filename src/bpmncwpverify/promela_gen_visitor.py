@@ -14,7 +14,7 @@ from bpmncwpverify.bpmn import (
     Activity,
     Bpmn,
     BpmnElement,
-    Node
+    Node,
 )
 
 
@@ -66,7 +66,9 @@ class PromelaGenVisitor(BpmnVisitor):  # type: ignore
         else:
             return element.name  # type: ignore
 
-    def genActivationOption(self, element: Node, start_guard: str = "", option_type: str = "") -> None:
+    def gen_activation_option(
+        self, element: Node, start_guard: str = "", option_type: str = ""
+    ) -> None:
         guard = "("
         consume_locations = []
         put_locations = []
