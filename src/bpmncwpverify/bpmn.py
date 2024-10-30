@@ -378,6 +378,9 @@ class Bpmn:
         visitor = PromelaGenVisitor()
         self.accept(visitor)
 
+        with open("hello.pml", "w+") as f:
+            f.write(str(visitor))
+
     @staticmethod
     def from_xml(xml_file: str) -> Result["Bpmn", Error]:
         try:

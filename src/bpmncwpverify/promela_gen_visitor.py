@@ -36,6 +36,20 @@ class PromelaGenVisitor(BpmnVisitor):  # type: ignore
     ####################
     # Helper Methods
     ####################
+    def __repr__(self) -> str:
+        return (
+            self.constants_text
+            + "\n\n"
+            + self.places_text
+            + "\n\n"
+            + self.behavior_model_text
+            + "\n\n"
+            + self.init_text
+            + "\n\n"
+            + self.workflow_text
+            + "\n\n"
+        )
+
     def gen_excl_gw_has_option_macro(self, gateway: ExclusiveGatewayNode) -> None:
         macro = "#define {}_hasOption \\\n".format(gateway.name)
         conditions = [str(flow.name) for flow in gateway.out_flows]
