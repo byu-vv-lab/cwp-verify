@@ -2,6 +2,7 @@ from typing import List, Dict
 from abc import ABC, abstractmethod
 from xml.etree.ElementTree import Element
 from returns.result import Failure, Result, Success
+import re
 from defusedxml.ElementTree import parse
 from bpmncwpverify.constants import NAMESPACES
 
@@ -20,6 +21,19 @@ class BpmnElement(ABC):
         self.element = element
         self.id = element.attrib["id"]
         self.name = element.attrib.get("name")
+        self.cleanup()
+
+    def cleanup(self) -> None:
+        if self.name is None:
+            return
+        # Remove punctuation
+        self.name = re.sub("[?,+=/]", "", self.name)
+        # replace all dashes with spaces
+        self.name = re.sub("[-]", " ", self.name)
+        # Replace all runs of whitespace with a single underscore
+        self.name = re.sub(r"\s+", "_", self.name)
+
+        self.name = self.name.strip()
 
 
 ###################
@@ -28,10 +42,22 @@ class BpmnElement(ABC):
 class Node(BpmnElement):
     def __init__(self, element: Element) -> None:
         super().__init__(element)
-        self.out_flows: List[Flow] = []
+        self.out_flows: List[SequenceFlow] = []
+        self.in_flows: List[SequenceFlow] = []
+        self.in_msgs: List[MessageFlow] = []
+        self.out_msgs: List[MessageFlow] = []
 
-    def add_out_flow(self, flow: "Flow") -> None:
+    def add_out_flow(self, flow: "SequenceFlow") -> None:
         self.out_flows.append(flow)
+
+    def add_in_flow(self, flow: "SequenceFlow") -> None:
+        self.in_flows.append(flow)
+
+    def add_out_msg(self, flow: "MessageFlow") -> None:
+        self.out_msgs.append(flow)
+
+    def add_in_msg(self, flow: "MessageFlow") -> None:
+        self.in_msgs.append(flow)
 
     def traverse_outflows_if_result(self, visitor: "BpmnVisitor", result: bool) -> None:
         if result:
@@ -98,6 +124,12 @@ class Task(Activity):
         self.traverse_outflows_if_result(visitor, result)
         visitor.end_visit_task(self)
 
+    def cleanup(self) -> None:
+        if self.name is None:
+            return
+        self.name = "T" + self.name.split("-", 1)[0]
+        self.name.strip()
+
 
 class SubProcess(Activity):
     def __init__(self, element: Element):
@@ -137,7 +169,7 @@ class ParallelGatewayNode(GatewayNode):
         self.traverse_outflows_if_result(visitor, result)
         visitor.end_visit_parallel_gateway(self)
 
-    def add_out_flow(self, flow: "Flow") -> None:
+    def add_out_flow(self, flow: "SequenceFlow") -> None:
         super().add_out_flow(flow)
         if len(self.out_flows) > 1:
             self.is_fork = True
@@ -155,6 +187,10 @@ class Flow(BpmnElement):
         self.source_node: Node
         self.target_node: Node
         self.is_leaf: bool = False
+
+    def cleanup(self) -> None:
+        if self.name:
+            self.name = self.name.replace("\n", "")
 
     @abstractmethod
     def accept(self, visitor: "BpmnVisitor") -> None:
@@ -189,7 +225,7 @@ class MessageFlow(Flow):
 class Process(BpmnElement):
     def __init__(self, element: Element):
         super().__init__(element)
-        self.flows: Dict[str, Flow] = {}
+        self.flows: Dict[str, SequenceFlow] = {}
         self._elements: Dict[str, Node] = {}
         self._start_states: Dict[str, StartEvent] = {}
 
@@ -290,6 +326,35 @@ class Bpmn:
 
                     # update source node's out flows array
                     process[source_ref].add_out_flow(flow)
+                    # update target node's in flows array
+                    process[target_ref].add_in_flow(flow)
+
+    def _traverse_messages(self, root: Element) -> None:
+        all_elements = {
+            id: element
+            for process in self.processes
+            for id, element in process.all_items().items()
+        }
+        self.collab = root.find("bpmn:collaboration", NAMESPACES)
+        if self.collab is not None:
+            for msg in self.collab.findall("bpmn:messageFlow", NAMESPACES):
+                id = msg.get("id")
+                name = msg.get("name")
+                if name is None:
+                    name = id
+                message = MessageFlow(msg)
+                sourceRef = msg.get("sourceRef")
+                targetRef = msg.get("targetRef")
+                if not (sourceRef and targetRef):
+                    raise Exception(
+                        "source ref or target ref not included with message"
+                    )
+                fromNode = all_elements[sourceRef]
+                toNode = all_elements[targetRef]
+                message.target_node = toNode
+                message.source_node = fromNode
+                fromNode.add_out_msg(message)
+                toNode.add_in_msg(message)
 
     def _traverse_process(self, process_element: Element) -> Process:
         process = Process(process_element)
@@ -331,6 +396,15 @@ class Bpmn:
 
             graph_viz_visitor.dot.render("graphs/bpmn_graph.gv", format="png")
 
+    def generate_promela(self) -> None:
+        from bpmncwpverify.promela_gen_visitor import PromelaGenVisitor
+
+        visitor = PromelaGenVisitor()
+        self.accept(visitor)
+
+        with open("hello.pml", "w+") as f:
+            f.write(str(visitor))
+
     @staticmethod
     def from_xml(xml_file: str) -> Result["Bpmn", Error]:
         try:
@@ -342,6 +416,7 @@ class Bpmn:
                 process = bpmn._traverse_process(process_element)
                 bpmn.processes.append(process)
 
+            bpmn._traverse_messages(root)
             bpmn._set_leaf_flows()
             return Success(bpmn)
         except Exception as e:
