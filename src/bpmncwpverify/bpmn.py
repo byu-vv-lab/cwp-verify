@@ -373,6 +373,12 @@ class Bpmn:
 
             graph_viz_visitor.dot.render("graphs/bpmn_graph.gv", format="png")
 
+    def generate_promela(self) -> None:
+        from bpmncwpverify.promela_gen_visitor import PromelaGenVisitor
+
+        visitor = PromelaGenVisitor()
+        self.accept(visitor)
+
     @staticmethod
     def from_xml(xml_file: str) -> Result["Bpmn", Error]:
         try:

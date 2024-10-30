@@ -208,6 +208,9 @@ class PromelaGenVisitor(BpmnVisitor):  # type: ignore
         pass
 
     def visit_task(self, task: Task) -> bool:
+        self.gen_places(task)
+        self.gen_activation_option(task, option_type="Task")
+        self.gen_activation_option(task, option_type="Task-END")
         return True
 
     def end_visit_task(self, task: Task) -> None:

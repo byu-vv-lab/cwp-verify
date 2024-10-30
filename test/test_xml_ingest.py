@@ -220,3 +220,13 @@ def test_graph_viz_generation():
     bpmn = bpmn.unwrap()
 
     bpmn.generate_graph_viz()
+
+
+def test_promela_generation():
+    bpmn: Bpmn = Bpmn.from_xml(workflow_bpmn_path)
+
+    assert is_successful(bpmn)
+
+    bpmn = bpmn.unwrap()
+
+    bpmn.generate_promela()
