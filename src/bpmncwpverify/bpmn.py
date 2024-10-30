@@ -1,4 +1,4 @@
-from typing import List, Dict, Optional
+from typing import List, Dict
 from abc import ABC, abstractmethod
 from xml.etree.ElementTree import Element
 from returns.result import Failure, Result, Success
@@ -21,19 +21,19 @@ class BpmnElement(ABC):
         self.element = element
         self.id = element.attrib["id"]
         self.name = element.attrib.get("name")
-        self.cleanup(self.name)
+        self.cleanup()
 
-    def cleanup(self, name: Optional[str]) -> Optional[str]:
-        if name is None:
-            return name
+    def cleanup(self) -> None:
+        if self.name is None:
+            return
         # Remove punctuation
-        name = re.sub("[?,+=/]", "", name)
+        self.name = re.sub("[?,+=/]", "", self.name)
         # replace all dashes with spaces
-        name = re.sub("[-]", " ", name)
+        self.name = re.sub("[-]", " ", self.name)
         # Replace all runs of whitespace with a single underscore
-        name = re.sub(r"\s+", "_", name)
+        self.name = re.sub(r"\s+", "_", self.name)
 
-        return name.strip()
+        self.name = self.name.strip()
 
 
 ###################
@@ -124,11 +124,11 @@ class Task(Activity):
         self.traverse_outflows_if_result(visitor, result)
         visitor.end_visit_task(self)
 
-    def cleanup(self, name: Optional[str]) -> Optional[str]:
-        if name is None:
-            return name
-        name = "T" + name.split("-", 1)[0]
-        return name.strip()
+    def cleanup(self) -> None:
+        if self.name is None:
+            return
+        self.name = "T" + self.name.split("-", 1)[0]
+        self.name.strip()
 
 
 class SubProcess(Activity):
@@ -188,10 +188,9 @@ class Flow(BpmnElement):
         self.target_node: Node
         self.is_leaf: bool = False
 
-    def cleanup(self, name: Optional[str]) -> Optional[str]:
-        if name:
-            name = name.replace("\n", "")
-        return name
+    def cleanup(self) -> None:
+        if self.name:
+            self.name = self.name.replace("\n", "")
 
     @abstractmethod
     def accept(self, visitor: "BpmnVisitor") -> None:
