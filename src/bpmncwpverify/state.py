@@ -56,7 +56,7 @@ def _get_parser(file_contents: str) -> Result[StateParser, Error]:
 
 def _parse_state(parser: StateParser) -> Result[StateParser.StateContext, Error]:
     try:
-        tree: StateParser.StateContext = parser.state()  # type: ignore[no-untyped-call]
+        tree: StateParser.StateContext = parser.state()
         return Success(tree)
     except ParseCancellationException as exception:
         msg = str(exception)
@@ -67,7 +67,7 @@ def _parse_state(parser: StateParser) -> Result[StateParser.StateContext, Error]
 class SymbolTable:
     __slots__ = ["_consts", "_enums", "_id2type", "_vars"]
 
-    class _Listener(StateListener):
+    class _Listener(StateListener):  # type: ignore
         __slots__ = ["_duplicates", "_first_def", "_symbol_table"]
 
         def __init__(self) -> None:
@@ -116,10 +116,10 @@ class SymbolTable:
 
         def exitEnum_type_decl(self, ctx: StateParser.Enum_type_declContext) -> None:
             get_id = SymbolTable._Listener._get_id_and_add_definition
-            id: str = get_id(self._first_def, ctx.ID())  # type: ignore[no-untyped-call]
+            id: str = get_id(self._first_def, ctx.ID())
             values: set[str] = SymbolTable._Listener._get_values(
                 self._first_def,
-                ctx.id_set(),  # type: ignore[no-untyped-call]
+                ctx.id_set(),
             )
 
             self._symbol_table._add_enum_type_decl(id, values)
@@ -127,7 +127,7 @@ class SymbolTable:
         def exitConst_var_decl(self, ctx: StateParser.Const_var_declContext) -> None:
             get_id = SymbolTable._Listener._get_id_and_add_definition
             id: str = get_id(self._first_def, ctx.ID(0))
-            type_: str = ctx.type_().getText()  # type: ignore[no-untyped-call]
+            type_: str = ctx.type_().getText()
             init: str = ctx.ID(1).getText()
 
             self._symbol_table._add_const_decl(id, type_, init)
@@ -135,14 +135,14 @@ class SymbolTable:
         def exitVar_decl(self, ctx: StateParser.Var_declContext) -> None:
             get_id = SymbolTable._Listener._get_id_and_add_definition
             id: str = get_id(self._first_def, ctx.ID(0))
-            type_: str = ctx.type_().getText()  # type: ignore[no-untyped-call]
+            type_: str = ctx.type_().getText()
             init_node: TerminalNode = ctx.ID(1)
             init: str = init_node.getText()
 
             definitions: dict[str, tuple[int, int]] = dict()
             values: set[str] = SymbolTable._Listener._get_values(
                 definitions,
-                ctx.id_set(),  # type: ignore[no-untyped-call]
+                ctx.id_set(),
             )
 
             if len(values) != 0 and init not in values:
