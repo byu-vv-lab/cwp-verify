@@ -1,7 +1,8 @@
-from typing import List, Dict
+from typing import List, Dict, Optional
 from abc import ABC, abstractmethod
 from xml.etree.ElementTree import Element
 from returns.result import Failure, Result, Success
+import re
 from defusedxml.ElementTree import parse
 from bpmncwpverify.constants import NAMESPACES
 
@@ -20,6 +21,19 @@ class BpmnElement(ABC):
         self.element = element
         self.id = element.attrib["id"]
         self.name = element.attrib.get("name")
+        self.cleanup(self.name)
+
+    def cleanup(self, name: Optional[str]) -> Optional[str]:
+        if name is None:
+            return name
+        # Remove punctuation
+        name = re.sub("[?,+=/]", "", name)
+        # replace all dashes with spaces
+        name = re.sub("[-]", " ", name)
+        # Replace all runs of whitespace with a single underscore
+        name = re.sub(r"\s+", "_", name)
+
+        return name.strip()
 
 
 ###################
@@ -110,6 +124,12 @@ class Task(Activity):
         self.traverse_outflows_if_result(visitor, result)
         visitor.end_visit_task(self)
 
+    def cleanup(self, name: Optional[str]) -> Optional[str]:
+        if name is None:
+            return name
+        name = "T" + name.split("-", 1)[0]
+        return name.strip()
+
 
 class SubProcess(Activity):
     def __init__(self, element: Element):
@@ -167,6 +187,11 @@ class Flow(BpmnElement):
         self.source_node: Node
         self.target_node: Node
         self.is_leaf: bool = False
+
+    def cleanup(self, name: Optional[str]) -> Optional[str]:
+        if name:
+            name = name.replace("\n", "")
+        return name
 
     @abstractmethod
     def accept(self, visitor: "BpmnVisitor") -> None:
