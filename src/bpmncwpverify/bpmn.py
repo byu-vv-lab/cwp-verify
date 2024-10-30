@@ -33,7 +33,7 @@ class Node(BpmnElement):
     def add_out_flow(self, flow: "Flow") -> None:
         self.out_flows.append(flow)
 
-    def visit_out_flows(self, visitor: "BpmnVisitor", result: bool) -> None:
+    def traverse_outflows_if_result(self, visitor: "BpmnVisitor", result: bool) -> None:
         if result:
             for flow in self.out_flows:
                 flow.accept(visitor)
@@ -57,7 +57,7 @@ class StartEvent(Event):
 
     def accept(self, visitor: "BpmnVisitor") -> None:
         result = visitor.visit_start_event(self)
-        self.visit_out_flows(visitor, result)
+        self.traverse_outflows_if_result(visitor, result)
         visitor.end_visit_start_event(self)
 
 
@@ -67,7 +67,7 @@ class EndEvent(Event):
 
     def accept(self, visitor: "BpmnVisitor") -> None:
         result = visitor.visit_end_event(self)
-        self.visit_out_flows(visitor, result)
+        self.traverse_outflows_if_result(visitor, result)
         visitor.end_visit_end_event(self)
 
 
@@ -77,7 +77,7 @@ class IntermediateEvent(Event):
 
     def accept(self, visitor: "BpmnVisitor") -> None:
         result = visitor.visit_intermediate_event(self)
-        self.visit_out_flows(visitor, result)
+        self.traverse_outflows_if_result(visitor, result)
         visitor.end_visit_intermediate_event(self)
 
 
@@ -95,7 +95,7 @@ class Task(Activity):
 
     def accept(self, visitor: "BpmnVisitor") -> None:
         result = visitor.visit_task(self)
-        self.visit_out_flows(visitor, result)
+        self.traverse_outflows_if_result(visitor, result)
         visitor.end_visit_task(self)
 
 
@@ -105,7 +105,7 @@ class SubProcess(Activity):
 
     def accept(self, visitor: "BpmnVisitor") -> None:
         result = visitor.visit_sub_process(self)
-        self.visit_out_flows(visitor, result)
+        self.traverse_outflows_if_result(visitor, result)
         visitor.end_visit_sub_process(self)
 
 
@@ -123,7 +123,7 @@ class ExclusiveGatewayNode(GatewayNode):
 
     def accept(self, visitor: "BpmnVisitor") -> None:
         result = visitor.visit_exclusive_gateway(self)
-        self.visit_out_flows(visitor, result)
+        self.traverse_outflows_if_result(visitor, result)
         visitor.end_visit_exclusive_gateway(self)
 
 
@@ -134,7 +134,7 @@ class ParallelGatewayNode(GatewayNode):
 
     def accept(self, visitor: "BpmnVisitor") -> None:
         result = visitor.visit_parallel_gateway(self)
-        self.visit_out_flows(visitor, result)
+        self.traverse_outflows_if_result(visitor, result)
         visitor.end_visit_parallel_gateway(self)
 
     def add_out_flow(self, flow: "Flow") -> None:
