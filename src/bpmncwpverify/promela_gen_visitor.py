@@ -89,16 +89,61 @@ class PromelaGenVisitor(BpmnVisitor):  # type: ignore
         if isinstance(element, Activity):
             self.flow_places.append(self.get_location(element))
 
+    def create_option(
+        self,
+        guard: str,
+        consume_locations: List[str],
+        behavior_inline: str,
+        put_conditions: List[str],
+        put_locations: List[str],
+        put_flow_ids: List[str],
+        element_id: str,
+        type: str = "",
+    ) -> str:
+        ret = ":: atomic {{ {x} -> \n".format(x=guard)
+        ret += "\t\t{x}\n".format(x=behavior_inline)
+        ret += "\t\td_step {\n"
+        for location in consume_locations:
+            ret += "\t\t\tconsume_token({x})\n".format(x=location)
+        if "ParallelFALSE" in type:
+            ret += "\t\t\tif\n"
+            ret += "\t\t\t:: (locked[me]) -> locked[me] = false; unlock()\n"
+            ret += "\t\t\t:: (!locked[me]) -> locked[me] = true; lock(me)\n"
+            ret += "\t\t\tfi\n"
+
+        if type == "XOR":
+            ret += "\t\t\tif\n"
+            for condition, location, id in zip(
+                put_conditions, put_locations, put_flow_ids
+            ):
+                ret += "\t\t\t\t:: {x} -> put_token({y})\n".format(
+                    x=condition, y=location
+                )
+            ret += "\t\t\tfi\n"
+        else:
+            for location, id in zip(put_locations, put_flow_ids):
+                ret += "\t\t\tput_token({x})\n".format(x=location)
+        if "ParallelFALSE" in type:
+            ret += "\t\t\tif\n"
+            ret += '\t\t\t:: (!locked[me]) -> printf("###END PARALLEL GATEWAY###\\n")\n'
+            ret += (
+                '\t\t\t:: (locked[me]) -> printf("###START PARALLEL GATEWAY###\\n")\n'
+            )
+            ret += "\t\t\tfi\n"
+        ret += "\t\t}\n"
+        ret += "\t}"
+        return ret
+
     def gen_activation_option(
         self, element: Node, start_guard: str = "", option_type: str = ""
     ) -> None:
-        guard = "("
-        consume_locations = []
-        put_locations = []
-        behavior_inline = "skip"
+        guard: str = "("
+        consume_locations: List[str] = []
+        put_locations: List[str] = []
+        behavior_inline: str = "skip"
         put_conditions: List[str] = []
-        put_flow_ids = []
-        element_id = element.id
+        put_flow_ids: List[str] = []
+        element_id: str = element.id
         if option_type == "Task-END":
             consume_locations.append(self.get_location(element))
             guard += "hasToken({})".format(self.get_location(element))
@@ -138,26 +183,26 @@ class PromelaGenVisitor(BpmnVisitor):  # type: ignore
                 guard += " )\n"
         if option_type == "XOR":
             guard += "\t&&"
-            guard += "\t({}_hasOption)".format(element.label)
+            guard += "\t({}_hasOption)".format(element.name)
         guard += ")"
         if option_type != "Task-END":
-            behavior_inline = "{x}_BehaviorModel()".format(x=element.label)
+            behavior_inline = "{x}_BehaviorModel()".format(x=element.name)
         if option_type == "Task":
             put_flow_ids.append(element_id)
             put_locations.append(self.get_location(element))
             for msg in element.out_msgs:
                 put_flow_ids.append(msg.id)
-                put_locations.append(self.get_location(msg.to_node, msg))
+                put_locations.append(self.get_location(msg.target_node, msg))
         else:
             for flow in element.out_flows:
                 put_flow_ids.append(flow.id)
-                put_locations.append(self.get_location(flow.to_node, flow))
+                put_locations.append(self.get_location(flow.target_node, flow))
                 if option_type == "XOR":
-                    put_conditions.append(flow.label)
+                    put_conditions.append(flow.name)
             if option_type != "Task-END":
                 for msg in element.out_msgs:
                     put_flow_ids.append(msg.id)
-                    put_locations.append(self.get_location(msg.to_node, msg))
+                    put_locations.append(self.get_location(msg.target_node, msg))
         if start_guard:
             guard = start_guard
             consume_locations.append(self.get_location(element))
@@ -261,8 +306,8 @@ class PromelaGenVisitor(BpmnVisitor):  # type: ignore
         self.workflow_indent += 1
         self.write_workflow_lines("pid me = _pid")
         # TODO: handle start states with in_msgs here
-        for start_node in process.get_start_states():
-            self.write_workflow_lines("putToken({x})".format(x=start_node.label))
+        for start_node in process.get_start_states().values():
+            self.write_workflow_lines("putToken({x})".format(x=start_node.name))
         self.write_workflow_lines("do")
 
     def end_visit_process(self, process: Process) -> None:
