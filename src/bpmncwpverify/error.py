@@ -9,6 +9,14 @@ class Error:
         pass
 
 
+class ExpressionNotaNumber(Error):
+    __slots__ = "id"
+
+    def __init__(self, id: str) -> None:
+        super().__init__()
+        self.id = id
+
+
 class ExpressionSyntaxError(Error):
     __slots__ = "msg"
 

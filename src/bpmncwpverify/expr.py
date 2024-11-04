@@ -17,6 +17,7 @@ from bpmncwpverify import typechecking
 
 from bpmncwpverify.error import (
     Error,
+    ExpressionNotaNumber,
     ExpressionSyntaxError,
     ExpressionUnknownVariableError,
     ExpressionVariableCompatabilityError,
@@ -56,7 +57,7 @@ def _get_parser(file_contents: str) -> Result[ExprParser, Error]:
 
 def _parse_expressions(parser: ExprParser) -> Result[ExprParser.ExprContext, Error]:
     try:
-        tree: ExprParser.ExprContext = parser.expr()  # type: ignore[no-untyped-call]
+        tree: ExprParser.ExprContext = parser.expr()
         return Success(tree)
     except ParseCancellationException as exception:
         msg = str(exception)
@@ -75,13 +76,28 @@ class ExpressionTypeChecker:
                 ExpressionTypeChecker(table)
             )
 
-        def exitStrictly_math_expr(
-            self, ctx: ExprParser.Strictly_math_exprContext
+        def exitNumeric_computational_expr(
+            self, ctx: ExprParser.Numeric_computational_exprContext
         ) -> None:
             id_1: str = ctx.ID(0).getText()
             id_2: str = ctx.ID(1).getText()
 
-            self._expressionTypeChecker.typeCheck(id_1, id_2)
+            self._expressionTypeChecker.numericComputationTypeCheck(id_1, id_2)
+
+        def exitNumeric_relational_expr(
+            self, ctx: ExprParser.Numeric_relational_exprContext
+        ) -> None:
+            id_1: str = ctx.ID(0).getText()
+            id_2: str = ctx.ID(1).getText()
+
+            """ self._expressionTypeChecker.numericRelationalTypeCheck(id_1, id_2) """
+
+        def exitBinary_expr(self, ctx: ExprParser.Binary_exprContext) -> None:
+            operation: str = ctx.BINARYOP(0).getText()
+            leftside: str
+            rightside: str
+            for i in ctx.getChildren():
+                continue
 
     def __init__(self, table: SymbolTable) -> None:
         self._table: SymbolTable = table
@@ -97,8 +113,35 @@ class ExpressionTypeChecker:
         else:
             return Failure(result.failure())
 
+    def numericComputationTypeCheck(self, id_1: str, id_2: str) -> Result[str, Error]:
+        result: Result[Result[str, Error], Error] = Result.do(
+            self.computationTypeCompare(a, b)
+            for a in self.numericIndCheck(id_1)
+            for b in self.numericIndCheck(id_2)
+        )
+        if is_successful(result):
+            return result.unwrap()
+        else:
+            return Failure(result.failure())
+
+    """ def numericRelationalTypeCheck(self, id_1: str, id_2: str) -> Result[str, Error]:
+        result: Result[str, Error] = Result.do(
+            self.numericIndCheck(id_1)
+            self.numericIndCheck(id_2)
+        )
+        if is_successful(result):
+            return Success("bool")
+        else:
+            return Failure(result.failure()) """
+
     def typeCompare(self, id_1: str, id_2: str) -> Result[str, Error]:
         result: Result[str, Error] = typechecking.get_type_assign(
+            id_1, id_2, ExpressionVariableCompatabilityError
+        )
+        return result
+
+    def computationTypeCompare(self, id_1: str, id_2: str) -> Result[str, Error]:
+        result: Result[str, Error] = typechecking.get_computation_type_result(
             id_1, id_2, ExpressionVariableCompatabilityError
         )
         return result
@@ -109,3 +152,16 @@ class ExpressionTypeChecker:
             return result
         else:
             return Failure(ExpressionUnknownVariableError(id))
+
+    def numericIndCheck(self, id: str) -> Result[str, Error]:
+        result: Result[str, Error] = self._table.get_type(id)
+        if not is_successful(result):
+            return Failure(ExpressionUnknownVariableError(id))
+        if (
+            result.unwrap() == "int"
+            or result.unwrap() == "byte"
+            or result.unwrap() == "short"
+        ):
+            return result
+        else:
+            return Failure(ExpressionNotaNumber(id))

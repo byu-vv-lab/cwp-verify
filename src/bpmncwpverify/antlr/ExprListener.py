@@ -17,12 +17,21 @@ class ExprListener(ParseTreeListener):
         pass
 
 
-    # Enter a parse tree produced by ExprParser#strictly_math_expr.
-    def enterStrictly_math_expr(self, ctx:ExprParser.Strictly_math_exprContext):
+    # Enter a parse tree produced by ExprParser#numeric_computational_expr.
+    def enterNumeric_computational_expr(self, ctx:ExprParser.Numeric_computational_exprContext):
         pass
 
-    # Exit a parse tree produced by ExprParser#strictly_math_expr.
-    def exitStrictly_math_expr(self, ctx:ExprParser.Strictly_math_exprContext):
+    # Exit a parse tree produced by ExprParser#numeric_computational_expr.
+    def exitNumeric_computational_expr(self, ctx:ExprParser.Numeric_computational_exprContext):
+        pass
+
+
+    # Enter a parse tree produced by ExprParser#numeric_relational_expr.
+    def enterNumeric_relational_expr(self, ctx:ExprParser.Numeric_relational_exprContext):
+        pass
+
+    # Exit a parse tree produced by ExprParser#numeric_relational_expr.
+    def exitNumeric_relational_expr(self, ctx:ExprParser.Numeric_relational_exprContext):
         pass
 
 
