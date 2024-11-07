@@ -1,0 +1,1 @@
+enum A {b} const a: A = b var i : A = b {b}
