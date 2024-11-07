@@ -1,5 +1,4 @@
 from typing import List, Dict, Type, Union
-from abc import ABC, abstractmethod
 from xml.etree.ElementTree import Element
 from returns.result import Failure, Result, Success
 from defusedxml.ElementTree import parse
@@ -7,7 +6,6 @@ from bpmncwpverify.constants import NAMESPACES
 
 from bpmncwpverify.error import (
     Error,
-    NotImplementedError as NoImplemntation,
     BpmnNodeNotFound,
 )
 
@@ -15,7 +13,7 @@ from bpmncwpverify.error import (
 ###################
 # Base class for all BPMN elements
 ###################
-class BpmnElement(ABC):
+class BpmnElement:
     def __init__(self, element: Element) -> None:
         self.element = element
         id = element.attrib.get("id")
@@ -55,9 +53,8 @@ class Node(BpmnElement):
             for flow in self.out_flows:
                 flow.accept(visitor)
 
-    @abstractmethod
     def accept(self, visitor: "BpmnVisitor") -> None:
-        raise NoImplemntation(self.accept.__name__)
+        pass
 
 
 ###################
@@ -131,7 +128,7 @@ class SubProcess(Activity):
 ###################
 # Gateway classes
 ###################
-class GatewayNode(Node, ABC):
+class GatewayNode(Node):
     def __init__(self, element: Element):
         super().__init__(element)
 
@@ -445,91 +442,69 @@ class Bpmn:
 ###################
 # Bpmn Visitor interface
 ###################
-class BpmnVisitor(ABC):
-    @abstractmethod
+class BpmnVisitor:
     def visit_start_event(self, event: StartEvent) -> bool:
-        pass
+        return True
 
-    @abstractmethod
     def end_visit_start_event(self, event: StartEvent) -> None:
         pass
 
-    @abstractmethod
     def visit_end_event(self, event: EndEvent) -> bool:
-        pass
+        return True
 
-    @abstractmethod
     def end_visit_end_event(self, event: EndEvent) -> None:
         pass
 
-    @abstractmethod
     def visit_intermediate_event(self, event: IntermediateEvent) -> bool:
-        pass
+        return True
 
-    @abstractmethod
     def end_visit_intermediate_event(self, event: IntermediateEvent) -> None:
         pass
 
-    @abstractmethod
     def visit_task(self, task: Task) -> bool:
-        pass
+        return True
 
-    @abstractmethod
     def end_visit_task(self, task: Task) -> None:
         pass
 
-    @abstractmethod
     def visit_sub_process(self, subprocess: SubProcess) -> bool:
-        pass
+        return True
 
-    @abstractmethod
     def end_visit_sub_process(self, subprocess: SubProcess) -> None:
         pass
 
-    @abstractmethod
     def visit_exclusive_gateway(self, gateway: ExclusiveGatewayNode) -> bool:
-        pass
+        return True
 
-    @abstractmethod
     def end_visit_exclusive_gateway(self, gateway: ExclusiveGatewayNode) -> None:
         pass
 
-    @abstractmethod
     def visit_parallel_gateway(self, gateway: ParallelGatewayNode) -> bool:
-        pass
+        return True
 
-    @abstractmethod
     def end_visit_parallel_gateway(self, gateway: ParallelGatewayNode) -> None:
         pass
 
-    @abstractmethod
     def visit_sequence_flow(self, flow: SequenceFlow) -> None:
         pass
 
-    @abstractmethod
     def end_visit_sequence_flow(self, flow: SequenceFlow) -> None:
         pass
 
-    @abstractmethod
     def visit_message_flow(self, flow: MessageFlow) -> None:
         pass
 
-    @abstractmethod
     def end_visit_message_flow(self, flow: MessageFlow) -> None:
         pass
 
-    @abstractmethod
     def visit_process(self, process: Process) -> None:
         pass
 
-    @abstractmethod
     def end_visit_process(self, process: Process) -> None:
         pass
 
-    @abstractmethod
     def visit_bpmn(self, bpmn: Bpmn) -> None:
         pass
 
-    @abstractmethod
     def end_visit_bpmn(self, bpmn: Bpmn) -> None:
         pass
