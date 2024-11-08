@@ -1,8 +1,8 @@
 # type: ignore
-import inspect
-from unittest.mock import MagicMock
-from returns.pipeline import is_successful
 from bpmncwpverify.visitors import PromelaGenVisitor
+import inspect
+from returns.pipeline import is_successful
+from unittest.mock import MagicMock
 from bpmncwpverify.bpmn import (
     Bpmn,
     ParallelGatewayNode,
@@ -304,6 +304,7 @@ def test_bpmn_negotiation_example():
 def test_flow_traversal():
     workflow_bpmn_path = os.path.join(current_directory, "example", "workflow.bpmn")
     bpmn: Bpmn = Bpmn.from_xml(workflow_bpmn_path)
+
     visitor = PromelaGenVisitor()
     process_id = "Process_1xbpt9j"
 
@@ -328,7 +329,9 @@ def test_flow_traversal():
         flow.accept = MagicMock(wraps=flow.accept)
 
     bpmn.accept(visitor)
-    EXPECTED_CALL_COUNT = 1
+    EXPECTED_CALL_COUNT = (
+        1  # We expect each accept method of each element to be called once
+    )
     for node_id, node in bpmn.processes[process_id].all_items().items():
         assert node.accept.call_count == EXPECTED_CALL_COUNT
 

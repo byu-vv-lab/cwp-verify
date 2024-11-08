@@ -3,7 +3,6 @@ from xml.etree.ElementTree import Element
 from returns.result import Failure, Result, Success
 from defusedxml.ElementTree import parse
 from bpmncwpverify.constants import NAMESPACES
-
 from bpmncwpverify.error import (
     Error,
     BpmnNodeNotFound,
@@ -411,14 +410,15 @@ class Bpmn:
 
             graph_viz_visitor.dot.render("graphs/bpmn_graph.gv", format="png")
 
-    def generate_promela(self, file: str) -> None:
+    def generate_promela(self, output_file: str) -> None:
         from bpmncwpverify.visitors import PromelaGenVisitor
 
-        visitor = PromelaGenVisitor()
-        self.accept(visitor)
+        promela_visitor = PromelaGenVisitor()
 
-        with open(file, "w+") as f:
-            f.write(str(visitor))
+        self.accept(promela_visitor)
+
+        with open(output_file, "w") as f:
+            f.write(str(promela_visitor))
 
     @staticmethod
     def from_xml(xml_file: str) -> Result["Bpmn", Error]:
