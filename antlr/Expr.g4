@@ -1,24 +1,30 @@
 grammar Expr;
-prog: expr;
+prog: expr EOF;
 
 expr
-  : (numeric_computational_expr | numeric_relational_expr | binary_expr | implies_expr) + EOF
-  ;
-
-numeric_computational_expr
-  : (ID | MINUS ID) (MINUS | NUMERIC_COMPUTATION) (ID | MINUS ID)
-  ;
-
-numeric_relational_expr
-  : (ID | MINUS ID) (NUMERIC_RELATIONAL) (ID | MINUS ID)
+  : expr IMPLIESOP expr
+  | binary_expr
   ;
 
 binary_expr
-  : (ID | NOT ID | numeric_relational_expr | NOT numeric_relational_expr) BINARYOP (ID | NOT ID | numeric_relational_expr | NOT numeric_relational_expr)
+  : binary_expr BINARYOP binary_expr
+  | relational_expr
+  | '(' binary_expr ')'
   ;
 
-implies_expr
-  : (ID | NOT ID | binary_expr) IMPLIESOP (ID | NOT ID | binary_expr)
+relational_expr
+  : NOT relational_comparison
+  | relational_comparison
+  ;
+
+relational_comparison
+  : numeric_computational_expr NUMERIC_RELATIONAL numeric_computational_expr
+  ;
+
+numeric_computational_expr
+  : numeric_computational_expr (NUMERIC_COMPUTATION | MINUS) numeric_computational_expr
+  | (ID | MINUS ID)
+  | '(' numeric_computational_expr ')'
   ;
 
 // ---------------------------------------------------------------------------
@@ -34,7 +40,7 @@ NOT : '!';
 
 MINUS : '-';
 
-NUMERIC_COMPUTATION : '*' | '/' | '//' | '%' | '+' ;
+NUMERIC_COMPUTATION : '*' | '/' | '//' | '%' | '+';
 
 NUMERIC_RELATIONAL: '>' | '<' | '>' '=' | '<' '=';
 
