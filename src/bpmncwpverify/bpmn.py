@@ -410,15 +410,14 @@ class Bpmn:
 
             graph_viz_visitor.dot.render("graphs/bpmn_graph.gv", format="png")
 
-    def generate_promela(self, output_file: str) -> None:
+    def generate_promela(self) -> str:
         from bpmncwpverify.visitors import PromelaGenVisitor
 
         promela_visitor = PromelaGenVisitor()
 
         self.accept(promela_visitor)
 
-        with open(output_file, "w") as f:
-            f.write(str(promela_visitor))
+        return str(promela_visitor)
 
     @staticmethod
     def from_xml(xml_file: str) -> Result["Bpmn", Error]:

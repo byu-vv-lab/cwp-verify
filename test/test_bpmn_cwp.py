@@ -1,5 +1,7 @@
 # type: ignore
 from bpmncwpverify.visitors import PromelaGenVisitor
+from bpmncwpverify.cwp import Cwp
+from bpmncwpverify.state import SymbolTable
 import inspect
 from returns.pipeline import is_successful
 from unittest.mock import MagicMock
@@ -45,7 +47,7 @@ def assert_flow(process, flow_id, source_id, target_id, is_leaf):
 
 
 def test_xml_parser():
-    workflow_bpmn_path = os.path.join(current_directory, "example", "workflow.bpmn")
+    workflow_bpmn_path = os.path.join(current_directory, "resources", "workflow.bpmn")
     bpmn: Bpmn = Bpmn.from_xml(workflow_bpmn_path)
 
     assert is_successful(bpmn)
@@ -61,7 +63,7 @@ def test_xml_parser():
     assert isinstance(gateway_12r266n, ParallelGatewayNode)
     assert gateway_12r266n is not None
     assert gateway_12r266n.id == "Gateway_12r266n"
-    assert gateway_12r266n.name.lower() == "both"
+    assert gateway_12r266n.name == "both"
     assert len(gateway_12r266n.in_flows) == 2
     assert len(gateway_12r266n.out_flows) == 2
     assert "Flow_08e7qxg" in {flow.id for flow in gateway_12r266n.in_flows}
@@ -118,7 +120,6 @@ def test_xml_parser():
     activity_1unsjkg = process["Activity_1unsjkg"]
     assert activity_1unsjkg is not None
     assert activity_1unsjkg.id == "Activity_1unsjkg"
-    # assert activity_1unsjkg.name == "T2"
     assert len(activity_1unsjkg.in_flows) == 1
     assert len(activity_1unsjkg.out_flows) == 1
     assert "Flow_1kx5xjv" in {flow.id for flow in activity_1unsjkg.in_flows}
@@ -127,7 +128,6 @@ def test_xml_parser():
     activity_1t579ox = process["Activity_1t579ox"]
     assert activity_1t579ox is not None
     assert activity_1t579ox.id == "Activity_1t579ox"
-    # assert activity_1t579ox.name == "T3"
     assert len(activity_1t579ox.in_flows) == 1
     assert len(activity_1t579ox.out_flows) == 1
     assert "Flow_13xpfx7" in {flow.id for flow in activity_1t579ox.in_flows}
@@ -189,7 +189,7 @@ def test_xml_parser():
 
 def test_bpmn_negotiation_example():
     workflow_bpmn_path = os.path.join(
-        current_directory, "example", "negotiation_workflow.bpmn"
+        current_directory, "resources", "negotiation_workflow.bpmn"
     )
     bpmn: Bpmn = Bpmn.from_xml(workflow_bpmn_path)
 
@@ -302,7 +302,7 @@ def test_bpmn_negotiation_example():
 
 
 def test_flow_traversal():
-    workflow_bpmn_path = os.path.join(current_directory, "example", "workflow.bpmn")
+    workflow_bpmn_path = os.path.join(current_directory, "resources", "workflow.bpmn")
     bpmn: Bpmn = Bpmn.from_xml(workflow_bpmn_path)
 
     visitor = PromelaGenVisitor()
@@ -341,7 +341,7 @@ def test_flow_traversal():
 
 def test_promela_generation():
     workflow_bpmn_path = os.path.join(
-        current_directory, "example", "negotiation_workflow.bpmn"
+        current_directory, "resources", "negotiation_workflow.bpmn"
     )
     bpmn: Bpmn = Bpmn.from_xml(workflow_bpmn_path)
 
@@ -349,4 +349,76 @@ def test_promela_generation():
 
     bpmn = bpmn.unwrap()
 
-    bpmn.generate_promela("hello.pml")
+    output_str: str = bpmn.generate_promela()
+
+    with open("promela.pml", "w") as f:
+        f.write(output_str)
+
+
+def test_cwp_model_gen():
+    cwp_path = os.path.join(current_directory, "resources", "cwp.xml")
+    cwp = Cwp.from_xml(cwp_path)
+
+    assert is_successful(cwp)
+
+    cwp = cwp.unwrap()
+
+    mapping = {
+        "paymentOwner == buyerName && backpackOwner == sellerName": "Init_Purchase_Pending",
+        "terms == noRetry || paymentOffered == noRetryPayment": "Purchase_Failed",
+        "terms == agreed && paymentOffered == paymentAmount": "Purchase_Agreed",
+        "paymentOwner == sellerName && backpackOwner == buyerName": "Ownerships_Switched",
+        "terms != pending || paymentOffered != pendingPayment": "Negotiations",
+    }
+
+    for itm in cwp.edges.values():
+        assert itm.expression in mapping
+        assert itm.dest.name == mapping[itm.expression]
+
+
+def test_cwp_ltl_gen():
+    cwp_path = os.path.join(current_directory, "resources", "cwp.xml")
+    cwp = Cwp.from_xml(cwp_path)
+
+    assert is_successful(cwp)
+
+    cwp = cwp.unwrap()
+
+    state_path = os.path.join(current_directory, "resources", "negotiation_state.txt")
+
+    with open(state_path, "r") as r:
+        file_content = r.read()
+
+    symbol_table = SymbolTable.build(file_content)
+
+    if not is_successful(symbol_table):
+        raise Exception("building symbol table failed")
+
+    output_str = cwp.generate_ltl(symbol_table.unwrap())
+
+    with open("cwp.pml", "w") as f:
+        f.write(output_str)
+
+
+def test_promela_and_ltl():
+    cwp_path = os.path.join(current_directory, "resources", "cwp.xml")
+    cwp = Cwp.from_xml(cwp_path)
+
+    assert is_successful(cwp)
+
+    cwp = cwp.unwrap()
+
+    state_path = os.path.join(current_directory, "resources", "negotiation_state.txt")
+
+    with open(state_path, "r") as r:
+        file_content = r.read()
+
+    symbol_table = SymbolTable.build(file_content)
+
+    if not is_successful(symbol_table):
+        raise Exception("building symbol table failed")
+
+    output_str = cwp.generate_ltl(symbol_table.unwrap())
+
+    with open("promela_ltl.pml", "w") as f:
+        f.write(output_str)
