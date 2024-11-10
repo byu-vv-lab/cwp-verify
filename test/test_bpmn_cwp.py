@@ -1,15 +1,148 @@
 # type: ignore
 from bpmncwpverify.visitors import PromelaGenVisitor
-from bpmncwpverify.cwp import Cwp
+from bpmncwpverify.cwp import Cwp, CwpEdge, CwpState
 from bpmncwpverify.state import SymbolTable
 import inspect
 from returns.pipeline import is_successful
 from unittest.mock import MagicMock
 from bpmncwpverify.bpmn import (
     Bpmn,
+    EndEvent,
+    ExclusiveGatewayNode,
     ParallelGatewayNode,
+    StartEvent,
+    Task,
 )
 import os
+
+
+def generate_mock_cwp():
+    cwp = Cwp()
+
+    edges_attr = [
+        {
+            "id": "-KwNMsgkI5d_Im8GLqs--2",
+            "name": "EdgeA",
+            "source": "BR_N0rfb46-SebA63Yol-1",
+            "is_leaf": False,
+            "dest": "-KwNMsgkI5d_Im8GLqs--1",
+            "expression": "terms != pending || paymentOffered != pendingPayment",
+            "parent_id": "-KwNMsgkI5d_Im8GLqs--5",
+        },
+        {
+            "id": "BR_N0rfb46-SebA63Yol-10",
+            "name": "EdgeB",
+            "source": "BR_N0rfb46-SebA63Yol-8",
+            "is_leaf": False,
+            "dest": "BR_N0rfb46-SebA63Yol-7",
+            "expression": "paymentOwner == sellerName && backpackOwner == buyerName",
+            "parent_id": "BR_N0rfb46-SebA63Yol-21",
+        },
+        {
+            "id": "-KwNMsgkI5d_Im8GLqs--3",
+            "name": "EdgeC",
+            "source": "-KwNMsgkI5d_Im8GLqs--1",
+            "is_leaf": False,
+            "dest": "BR_N0rfb46-SebA63Yol-8",
+            "expression": "terms == agreed && paymentOffered == paymentAmount",
+            "parent_id": "-KwNMsgkI5d_Im8GLqs--7",
+        },
+        {
+            "id": "-KwNMsgkI5d_Im8GLqs--4",
+            "name": "EdgeD",
+            "source": "-KwNMsgkI5d_Im8GLqs--1",
+            "is_leaf": False,
+            "dest": "BR_N0rfb46-SebA63Yol-6",
+            "expression": "terms == noRetry || paymentOffered == noRetryPayment",
+            "parent_id": "-KwNMsgkI5d_Im8GLqs--6",
+        },
+        {
+            "id": "-KwNMsgkI5d_Im8GLqs--8",
+            "name": "EdgeE",
+            "source": None,
+            "is_leaf": False,
+            "dest": "BR_N0rfb46-SebA63Yol-1",
+            "expression": "paymentOwner == buyerName && backpackOwner == sellerName",
+            "parent_id": "-KwNMsgkI5d_Im8GLqs--9",
+        },
+    ]
+
+    states_attr = [
+        {
+            "id": "BR_N0rfb46-SebA63Yol-1",
+            "out_edges": ["-KwNMsgkI5d_Im8GLqs--2"],
+            "in_edges": ["-KwNMsgkI5d_Im8GLqs--8"],
+            "name": "Init_Purchase_Pending",
+        },
+        {
+            "id": "BR_N0rfb46-SebA63Yol-6",
+            "out_edges": [],
+            "in_edges": ["-KwNMsgkI5d_Im8GLqs--4"],
+            "name": "Purchase_Failed",
+        },
+        {
+            "id": "BR_N0rfb46-SebA63Yol-7",
+            "out_edges": [],
+            "in_edges": ["BR_N0rfb46-SebA63Yol-10"],
+            "name": "Ownerships_Switched",
+        },
+        {
+            "id": "BR_N0rfb46-SebA63Yol-8",
+            "out_edges": ["BR_N0rfb46-SebA63Yol-10"],
+            "in_edges": ["-KwNMsgkI5d_Im8GLqs--3"],
+            "name": "Purchase_Agreed",
+        },
+        {
+            "id": "-KwNMsgkI5d_Im8GLqs--1",
+            "out_edges": ["-KwNMsgkI5d_Im8GLqs--3", "-KwNMsgkI5d_Im8GLqs--4"],
+            "in_edges": ["-KwNMsgkI5d_Im8GLqs--2"],
+            "name": "Negotiations",
+        },
+    ]
+
+    start_edge = "-KwNMsgkI5d_Im8GLqs--8"
+
+    states = {}
+    edges = {}
+    for edge in edges_attr:
+        new_edge = CwpEdge(MagicMock(), edge["name"])
+        for key, val in edge.items():
+            setattr(new_edge, key, val)
+        edges[edge["id"]] = new_edge
+
+    for state in states_attr:
+        mock_element = MagicMock()
+        mock_element.get.side_effect = lambda var: {
+            "id": state["id"],
+            "value": state["name"],
+        }[var]
+        new_state = CwpState(mock_element)
+        for key, val in state.items():
+            if key == "out_edges" or key == "in_edges":
+                for idx in range(len(val)):
+                    val[idx] = edges[val[idx]]
+            setattr(new_state, key, val)
+        states[state["id"]] = new_state
+
+    for edge in edges_attr:
+        edges[edge["id"]].source = (
+            states[edge["source"]] if edge["source"] is not None else None
+        )
+        edges[edge["id"]].dest = (
+            states[edge["dest"]] if edge["dest"] is not None else None
+        )
+
+    cwp.edges = edges
+    cwp.states = states
+    cwp.start_edge = edges[start_edge]
+    cwp.end_states = [itm for itm in states.values() if len(itm.out_edges) == 0]
+
+    return cwp
+
+
+def generate_mock_bpmn():
+    pass
+
 
 # List of flows with their source and target node IDs
 current_directory = os.path.dirname(os.path.abspath(__file__))
@@ -72,6 +205,7 @@ def test_xml_parser():
     assert "Flow_13xpfx7" in {flow.id for flow in gateway_12r266n.out_flows}
 
     gateway_0s1i42o = process["Gateway_0s1i42o"]
+    assert isinstance(gateway_0s1i42o, ParallelGatewayNode)
     assert gateway_0s1i42o is not None
     assert gateway_0s1i42o.id == "Gateway_0s1i42o"
     assert gateway_0s1i42o.name.lower() == "end both"
@@ -82,6 +216,7 @@ def test_xml_parser():
     assert "Flow_0feadgd" in {flow.id for flow in gateway_0s1i42o.out_flows}
 
     gateway_1pm4ghz = process["Gateway_1pm4ghz"]
+    assert isinstance(gateway_1pm4ghz, ExclusiveGatewayNode)
     assert gateway_1pm4ghz is not None
     assert gateway_1pm4ghz.id == "Gateway_1pm4ghz"
     assert gateway_1pm4ghz.name.lower() == "payment and terms agreed"
@@ -97,6 +232,7 @@ def test_xml_parser():
     assert "Flow_08e7qxg" in {flow.id for flow in gateway_1pm4ghz.out_flows}
 
     gateway_000lymc = process["Gateway_000lymc"]
+    assert isinstance(gateway_000lymc, ParallelGatewayNode)
     assert gateway_000lymc is not None
     assert gateway_000lymc.id == "Gateway_000lymc"
     assert gateway_000lymc.name.lower() == "both1"
@@ -107,6 +243,7 @@ def test_xml_parser():
     assert "Flow_1y66pph" in {flow.id for flow in gateway_000lymc.out_flows}
 
     gateway_0cy7rs7 = process["Gateway_0cy7rs7"]
+    assert isinstance(gateway_0cy7rs7, ParallelGatewayNode)
     assert gateway_0cy7rs7 is not None
     assert gateway_0cy7rs7.id == "Gateway_0cy7rs7"
     assert gateway_0cy7rs7.name == "end both1"
@@ -118,6 +255,7 @@ def test_xml_parser():
 
     # Activities
     activity_1unsjkg = process["Activity_1unsjkg"]
+    assert isinstance(activity_1unsjkg, Task)
     assert activity_1unsjkg is not None
     assert activity_1unsjkg.id == "Activity_1unsjkg"
     assert len(activity_1unsjkg.in_flows) == 1
@@ -126,6 +264,7 @@ def test_xml_parser():
     assert "Flow_1oezfcg" in {flow.id for flow in activity_1unsjkg.out_flows}
 
     activity_1t579ox = process["Activity_1t579ox"]
+    assert isinstance(activity_1t579ox, Task)
     assert activity_1t579ox is not None
     assert activity_1t579ox.id == "Activity_1t579ox"
     assert len(activity_1t579ox.in_flows) == 1
@@ -134,6 +273,7 @@ def test_xml_parser():
     assert "Flow_14s5onf" in {flow.id for flow in activity_1t579ox.out_flows}
 
     activity_1qm7qck = process["Activity_1qm7qck"]
+    assert isinstance(activity_1qm7qck, Task)
     assert activity_1qm7qck is not None
     assert activity_1qm7qck.id == "Activity_1qm7qck"
     assert len(activity_1qm7qck.in_flows) == 1
@@ -142,6 +282,7 @@ def test_xml_parser():
     assert "Flow_1wl740o" in {flow.id for flow in activity_1qm7qck.out_flows}
 
     activity_1qqx4aq = process["Activity_1qqx4aq"]
+    assert isinstance(activity_1qqx4aq, Task)
     assert activity_1qqx4aq is not None
     assert activity_1qqx4aq.id == "Activity_1qqx4aq"
     assert len(activity_1qqx4aq.in_flows) == 1
@@ -150,6 +291,7 @@ def test_xml_parser():
     assert "Flow_0znbe82" in {flow.id for flow in activity_1qqx4aq.out_flows}
 
     activity_1rfm4sh = process["Activity_1rfm4sh"]
+    assert isinstance(activity_1rfm4sh, Task)
     assert activity_1rfm4sh is not None
     assert activity_1rfm4sh.id == "Activity_1rfm4sh"
     assert len(activity_1rfm4sh.in_flows) == 1
@@ -159,6 +301,7 @@ def test_xml_parser():
 
     # End event
     end_event_0wqympo = process["Event_0wqympo"]
+    assert isinstance(end_event_0wqympo, EndEvent)
     assert end_event_0wqympo is not None
     assert end_event_0wqympo.id == "Event_0wqympo"
     assert end_event_0wqympo.name == "Purchase Failed"
@@ -166,6 +309,7 @@ def test_xml_parser():
     assert "Flow_0diuub0" in {flow.id for flow in end_event_0wqympo.in_flows}
 
     end_event_1y6wxsp = process["Event_1y6wxsp"]
+    assert isinstance(end_event_1y6wxsp, EndEvent)
     assert end_event_1y6wxsp is not None
     assert end_event_1y6wxsp.id == "Event_1y6wxsp"
     assert end_event_1y6wxsp.name == "Purchase Completed"
@@ -174,6 +318,7 @@ def test_xml_parser():
 
     # Start event
     start_event_1y8wbre = process["StartEvent_1y8wbre"]
+    assert isinstance(start_event_1y8wbre, StartEvent)
     assert "StartEvent_1y8wbre" in process._start_states
     assert start_event_1y8wbre is not None
     assert start_event_1y8wbre.id == "StartEvent_1y8wbre"
@@ -422,3 +567,7 @@ def test_promela_and_ltl():
 
     with open("promela_ltl.pml", "w") as f:
         f.write(output_str)
+
+
+def test_cwp_thing():
+    generate_mock_cwp()
