@@ -4,7 +4,6 @@ from bpmncwpverify.cwp import Cwp, CwpEdge, CwpState
 from bpmncwpverify.state import SymbolTable
 import inspect
 from returns.pipeline import is_successful
-from unittest.mock import MagicMock, patch, call
 from bpmncwpverify.bpmn import (
     Bpmn,
     ExclusiveGatewayNode,
@@ -244,7 +243,7 @@ element_mapping = {
 }
 
 
-def generate_mock_cwp():
+def generate_mock_cwp(mocker):
     cwp = Cwp()
 
     edges_attr = [
@@ -333,13 +332,13 @@ def generate_mock_cwp():
     states = {}
     edges = {}
     for edge in edges_attr:
-        new_edge = CwpEdge(MagicMock(), edge["name"])
+        new_edge = CwpEdge(mocker.MagicMock(), edge["name"])
         for key, val in edge.items():
             setattr(new_edge, key, val)
         edges[edge["id"]] = new_edge
 
     for state in states_attr:
-        mock_element = MagicMock()
+        mock_element = mocker.MagicMock()
         mock_element.get.side_effect = lambda var: {
             "id": state["id"],
             "value": state["name"],
@@ -368,18 +367,18 @@ def generate_mock_cwp():
     return cwp
 
 
-def generate_mock_bpmn():
+def generate_mock_bpmn(mocker):
     bpmn = Bpmn()
 
     process_id = "Process_1xbpt9j"
-    mock_element = MagicMock()
+    mock_element = mocker.MagicMock()
     mock_element.get.side_effect = lambda var: {
         "id": process_id,
     }[var]
     bpmn.processes = {"Process_1xbpt9j": Process(mock_element)}
 
     for id, attributes in element_mapping.items():
-        mock_element = MagicMock()
+        mock_element = mocker.MagicMock()
         mock_element.get.side_effect = lambda var: {
             "id": id,
         }[var]
@@ -392,7 +391,7 @@ def generate_mock_bpmn():
         bpmn.processes[process_id]._elements[id] = new_element
 
     for flow_id, flow in flows_to_test.items():
-        mock_element = MagicMock()
+        mock_element = mocker.MagicMock()
         mock_element.get.side_effect = lambda var: {
             "id": id,
         }[var]
@@ -562,7 +561,7 @@ def test_bpmn_negotiation_example():
             assert_flow(process, flow_id, source_id, target_id, is_leaf)
 
 
-def test_flow_traversal():
+def test_flow_traversal(mocker):
     workflow_bpmn_path = os.path.join(current_directory, "resources", "workflow.bpmn")
     bpmn: Bpmn = Bpmn.from_xml(workflow_bpmn_path)
 
@@ -575,19 +574,19 @@ def test_flow_traversal():
         return_annotation = signature.return_annotation
 
         if return_annotation is bool:
-            setattr(visitor, name, MagicMock(return_value=True))
+            setattr(visitor, name, mocker.MagicMock())
         else:
-            setattr(visitor, name, MagicMock(return_value=None))
+            setattr(visitor, name, mocker.MagicMock())
 
     assert is_successful(bpmn)
 
     bpmn = bpmn.unwrap()
 
     for node_id, node in bpmn.processes[process_id].all_items().items():
-        node.accept = MagicMock(wraps=node.accept)
+        node.accept = mocker.MagicMock(wraps=node.accept)
 
     for flow in bpmn.processes[process_id].get_flows().values():
-        flow.accept = MagicMock(wraps=flow.accept)
+        flow.accept = mocker.MagicMock(wraps=flow.accept)
 
     bpmn.accept(visitor)
     EXPECTED_CALL_COUNT = (
@@ -685,142 +684,147 @@ def test_promela_and_ltl():
         f.write(output_str)
 
 
-def test_cwp_write_init_states():
-    with patch.object(CwpLtlVisitor, "write_line") as mock_write:
-        symbol_table = MagicMock()
-        instance = CwpLtlVisitor(symbol_table)
+def test_write_init_states(mocker):
+    mock_write = mocker.patch.object(CwpLtlVisitor, "write_line")
 
-        instance.cwp = type("", (), {})()
-        instance.cwp.states = {
-            "state1": type("", (), {"name": "init_state1"}),
-            "state2": type("", (), {"name": "normal_state2"}),
-        }
+    symbol_table = mocker.MagicMock()
+    instance = CwpLtlVisitor(symbol_table)
 
-        instance.write_init_states()
+    instance.cwp = type("", (), {})()
+    instance.cwp.states = {
+        "state1": type("", (), {"name": "init_state1"}),
+        "state2": type("", (), {"name": "normal_state2"}),
+    }
 
-        expected_calls = [
-            call("\n\n//**********STATE VARIABLE DECLARATION************//"),
-            call("bit init_state1 = 1"),
-            call("bit normal_state2 = 0"),
-        ]
-        mock_write.assert_has_calls(expected_calls)
+    instance.write_init_states()
+
+    expected_calls = [
+        mocker.call("\n\n//**********STATE VARIABLE DECLARATION************//"),
+        mocker.call("bit init_state1 = 1"),
+        mocker.call("bit normal_state2 = 0"),
+    ]
+
+    mock_write.assert_has_calls(expected_calls)
 
 
-def test_cwp_write_exists_properties():
-    state = MagicMock()
+def test_cwp_write_exists_properties(mocker):
+    mock_write = mocker.patch.object(CwpLtlVisitor, "write_line")
+
+    state = mocker.MagicMock()
     state.name = "TestState"
 
-    with patch.object(CwpLtlVisitor, "write_line") as mock_write:
-        symbol_table = MagicMock()
-        visitor = CwpLtlVisitor(symbol_table)
-        visitor.property_list = []
+    symbol_table = mocker.MagicMock()
+    visitor = CwpLtlVisitor(symbol_table)
+    visitor.property_list = []
 
-        visitor.write_exists_property(state)
+    visitor.write_exists_property(state)
 
-        assert "{}Exists".format(state.name) in visitor.property_list
+    assert "{}Exists".format(state.name) in visitor.property_list
 
-        expected_call = call(
-            "ltl TestStateExists {(fair implies (always (! TestState)))}"
-        )
+    expected_call = mocker.call(
+        "ltl TestStateExists {(fair implies (always (! TestState)))}"
+    )
 
-        mock_write.assert_has_calls([expected_call])
+    mock_write.assert_has_calls([expected_call])
 
 
-def test_cwp_mutex_property():
-    state = MagicMock()
+def test_cwp_mutex_property(mocker):
+    mock_write = mocker.patch.object(CwpLtlVisitor, "write_line")
+    state = mocker.MagicMock()
     state.name = "TestState"
 
     dummy_cwp = type("DummyCwp", (), {})()
     dummy_cwp.states = {
         "TestState": state,
-        "OtherState1": MagicMock(name="OtherState1"),
-        "OtherState2": MagicMock(name="OtherState2"),
-        "OtherState3": MagicMock(name="OtherState3"),
+        "OtherState1": mocker.MagicMock(name="OtherState1"),
+        "OtherState2": mocker.MagicMock(name="OtherState2"),
+        "OtherState3": mocker.MagicMock(name="OtherState3"),
     }
     dummy_cwp.states["OtherState1"].name = "OtherState1"
     dummy_cwp.states["OtherState2"].name = "OtherState2"
     dummy_cwp.states["OtherState3"].name = "OtherState3"
 
-    with patch.object(CwpLtlVisitor, "write_line") as mock_write:
-        symbol_table = MagicMock()
-        visitor = CwpLtlVisitor(symbol_table)
-        visitor.property_list = []
-        visitor.cwp = dummy_cwp
-        visitor.tab = 0
+    symbol_table = mocker.MagicMock()
+    visitor = CwpLtlVisitor(symbol_table)
+    visitor.property_list = []
+    visitor.cwp = dummy_cwp
+    visitor.tab = 0
 
-        visitor.write_mutex_property(state)
+    visitor.write_mutex_property(state)
 
-        assert "{}Mutex".format(state.name) in visitor.property_list
+    assert "{}Mutex".format(state.name) in visitor.property_list
 
-        expected_calls = [
-            call("ltl TestStateMutex {"),
-            call("("),
-            call("always ("),
-            call("TestState implies ("),
-            call("TestState"),
-            call(
-                "&& (! OtherState1)\n\t\t\t\t&& (! OtherState2)\n\t\t\t\t&& (! OtherState3)"
-            ),
-            call(")"),
-            call(")"),
-            call(")"),
-            call("}"),
-        ]
-        mock_write.assert_has_calls(expected_calls)
+    expected_calls = [
+        mocker.call("ltl TestStateMutex {"),
+        mocker.call("("),
+        mocker.call("always ("),
+        mocker.call("TestState implies ("),
+        mocker.call("TestState"),
+        mocker.call(
+            "&& (! OtherState1)\n\t\t\t\t&& (! OtherState2)\n\t\t\t\t&& (! OtherState3)"
+        ),
+        mocker.call(")"),
+        mocker.call(")"),
+        mocker.call(")"),
+        mocker.call("}"),
+    ]
+    mock_write.assert_has_calls(expected_calls)
 
-        assert visitor.tab == 0
+    assert visitor.tab == 0
 
 
-def test_cwp_write_edges_property():
-    state = MagicMock()
+def test_cwp_write_edges_property(mocker):
+    mock_write = mocker.patch.object(CwpLtlVisitor, "write_line")
+
+    state = mocker.MagicMock()
     state.name = "TestState"
 
-    dest_state1 = MagicMock()
+    dest_state1 = mocker.MagicMock()
     dest_state1.name = "DestState1"
-    dest_state2 = MagicMock()
+    dest_state2 = mocker.MagicMock()
     dest_state2.name = "DestState2"
-    dest_state3 = MagicMock()
+    dest_state3 = mocker.MagicMock()
     dest_state3.name = "DestState3"
 
     state.out_edges = [
-        MagicMock(dest=dest_state1),
-        MagicMock(dest=dest_state2),
-        MagicMock(dest=dest_state3),
+        mocker.MagicMock(dest=dest_state1),
+        mocker.MagicMock(dest=dest_state2),
+        mocker.MagicMock(dest=dest_state3),
     ]
 
-    with patch.object(CwpLtlVisitor, "write_line") as mock_write:
-        symbol_table = MagicMock()
-        visitor = CwpLtlVisitor(symbol_table)
-        visitor.property_list = []
-        visitor.tab = 0
+    symbol_table = mocker.MagicMock()
+    visitor = CwpLtlVisitor(symbol_table)
+    visitor.property_list = []
+    visitor.tab = 0
 
-        visitor.write_edges_property(state)
+    visitor.write_edges_property(state)
 
-        assert "{}Edges".format(state.name) in visitor.property_list
+    assert "{}Edges".format(state.name) in visitor.property_list
 
-        expected_calls = [
-            call("ltl TestStateEdges {"),
-            call("("),
-            call("fair implies ("),
-            call("always ("),
-            call("TestState implies ("),
-            call("TestState until ("),
-            call("DestState1\n\t\t\t\t\t\t|| DestState2\n\t\t\t\t\t\t|| DestState3"),
-            call(")"),
-            call(")"),
-            call(")"),
-            call(")"),
-            call(")"),
-            call("}"),
-        ]
+    expected_calls = [
+        mocker.call("ltl TestStateEdges {"),
+        mocker.call("("),
+        mocker.call("fair implies ("),
+        mocker.call("always ("),
+        mocker.call("TestState implies ("),
+        mocker.call("TestState until ("),
+        mocker.call("DestState1\n\t\t\t\t\t\t|| DestState2\n\t\t\t\t\t\t|| DestState3"),
+        mocker.call(")"),
+        mocker.call(")"),
+        mocker.call(")"),
+        mocker.call(")"),
+        mocker.call(")"),
+        mocker.call("}"),
+    ]
 
-        mock_write.assert_has_calls(expected_calls)
+    mock_write.assert_has_calls(expected_calls)
 
-        assert visitor.tab == 0
+    assert visitor.tab == 0
 
 
-def test_cwp_write_state_variables():
-    symbol_table = MagicMock()
+def test_cwp_write_state_variables(mocker):
+    mock_write = mocker.patch.object(CwpLtlVisitor, "write_line")
+    symbol_table = mocker.MagicMock()
     symbol_table._consts = {"CONST_A": ("CONST_A", 10), "CONST_B": ("CONST_B", 20)}
     symbol_table._enums = {"EnumType": {"Value1", "Value2", "Value3"}}
     symbol_table._vars = {
@@ -828,148 +832,156 @@ def test_cwp_write_state_variables():
         "var2": ("int", "initial_value", {"extra_value"}),
     }
 
-    with patch.object(CwpLtlVisitor, "write_line") as mock_write:
-        visitor = CwpLtlVisitor(symbol_table)
+    visitor = CwpLtlVisitor(symbol_table)
 
-        visitor.write_state_variables()
+    visitor.write_state_variables()
 
-        expected_calls = [
-            call("\n\n//**********VARIABLE DECLARATION************//\n"),
-            call("#define CONST_A 10"),
-            call("\n"),
-            call("#define CONST_B 20"),
-            call("\n"),
-            call("\n"),
-            call("mytpe = {Value1 Value2 Value3}"),
-            call("\n"),
-            call("\n"),
-            call("int var1 = initial_value"),
-            call("\n"),
-            call("mytype var2 = initial_value"),
-            call("\n"),
-            call("\n"),
-        ]
-        mock_write.assert_has_calls(expected_calls, any_order=False)
+    expected_calls = [
+        mocker.call("\n\n//**********VARIABLE DECLARATION************//\n"),
+        mocker.call("#define CONST_A 10"),
+        mocker.call("\n"),
+        mocker.call("#define CONST_B 20"),
+        mocker.call("\n"),
+        mocker.call("\n"),
+        mocker.call("mytpe = {Value1 Value2 Value3}"),
+        mocker.call("\n"),
+        mocker.call("\n"),
+        mocker.call("int var1 = initial_value"),
+        mocker.call("\n"),
+        mocker.call("mytype var2 = initial_value"),
+        mocker.call("\n"),
+        mocker.call("\n"),
+    ]
+    mock_write.assert_has_calls(expected_calls, any_order=False)
 
 
-def test_cwp_write_variable_range_invariants():
-    symbol_table = MagicMock()
+def test_cwp_write_variable_range_invariants(mocker):
+    mock_write = mocker.patch.object(CwpLtlVisitor, "write_line")
+    symbol_table = mocker.MagicMock()
     symbol_table._enums = {
         "TestEnum1": ("Value1", "Value2", "Value3"),
         "TestEnum2": ("Value1", "Value2", "Value3"),
     }
 
-    with patch.object(CwpLtlVisitor, "write_line") as mock_write:
-        visitor = CwpLtlVisitor(symbol_table)
-        visitor.state_info = []
+    visitor = CwpLtlVisitor(symbol_table)
+    visitor.state_info = []
 
-        visitor.write_variable_range_invariants()
+    visitor.write_variable_range_invariants()
 
-        assert visitor.state_info == [
-            "\n\n//**********Variable Range Invariants************//"
-        ]
+    assert visitor.state_info == [
+        "\n\n//**********Variable Range Invariants************//"
+    ]
 
-        expected_calls = [
-            call(
-                "#define TestEnum1Invariant ((TestEnum1 == Value1) || (TestEnum1 == Value2) || (TestEnum1 == Value3))"
-            ),
-            call(
-                "#define TestEnum2Invariant ((TestEnum2 == Value1) || (TestEnum2 == Value2) || (TestEnum2 == Value3))"
-            ),
-        ]
+    expected_calls = [
+        mocker.call(
+            "#define TestEnum1Invariant ((TestEnum1 == Value1) || (TestEnum1 == Value2) || (TestEnum1 == Value3))"
+        ),
+        mocker.call(
+            "#define TestEnum2Invariant ((TestEnum2 == Value1) || (TestEnum2 == Value2) || (TestEnum2 == Value3))"
+        ),
+    ]
 
-        mock_write.assert_has_calls(expected_calls)
+    mock_write.assert_has_calls(expected_calls)
 
 
-def test_cwp_write_edge_definitions():
-    mock_cwp = MagicMock()
-    mock_cwp.edges = {"edge1": MagicMock(), "edge2": MagicMock(), "edge3": MagicMock()}
+def test_cwp_write_edge_definitions(mocker):
+    mock_write = mocker.patch.object(CwpLtlVisitor, "write_line")
+    mock_cwp = mocker.MagicMock()
+    mock_cwp.edges = {
+        "edge1": mocker.MagicMock(),
+        "edge2": mocker.MagicMock(),
+        "edge3": mocker.MagicMock(),
+    }
 
     mock_cwp.edges["edge1"].name = "edge1"
     mock_cwp.edges["edge2"].name = "edge2"
     mock_cwp.edges["edge3"].name = "edge3"
 
-    with patch.object(CwpLtlVisitor, "write_line") as mock_write:
-        instance = CwpLtlVisitor(MagicMock())
-        instance.cwp = mock_cwp
+    instance = CwpLtlVisitor(mocker.MagicMock())
+    instance.cwp = mock_cwp
 
-        instance.write_edge_definitions()
+    instance.write_edge_definitions()
 
-        expected_calls = [
-            call("\n\n//**********EDGE DECLARATION************//"),
-            call("bit edge1 = 0"),
-            call("bit edge2 = 0"),
-            call("bit edge3 = 0"),
-        ]
+    expected_calls = [
+        mocker.call("\n\n//**********EDGE DECLARATION************//"),
+        mocker.call("bit edge1 = 0"),
+        mocker.call("bit edge2 = 0"),
+        mocker.call("bit edge3 = 0"),
+    ]
 
-        mock_write.assert_has_calls(expected_calls)
-
-
-def test_cwp_write_variable_range_assertions():
-    symbol_table = MagicMock()
-    symbol_table._vars = {"var1": MagicMock(), "var2": MagicMock(), "var3": MagicMock()}
-
-    with patch.object(CwpLtlVisitor, "write_line") as mock_write:
-        visitor = CwpLtlVisitor(symbol_table)
-
-        visitor.write_variable_range_assertions()
-
-        expected_calls = [
-            call("assert(var1Invariant)"),
-            call("assert(var2Invariant)"),
-            call("assert(var3Invariant)"),
-        ]
-
-        mock_write.assert_has_calls(expected_calls, any_order=False)
+    mock_write.assert_has_calls(expected_calls)
 
 
-def test_cwp_write_refresh_edges():
-    cwp = MagicMock()
-    cwp.edges = {"edge1": MagicMock(), "edge2": MagicMock()}
+def test_cwp_write_variable_range_assertions(mocker):
+    mock_write = mocker.patch.object(CwpLtlVisitor, "write_line")
+    symbol_table = mocker.MagicMock()
+    symbol_table._vars = {
+        "var1": mocker.MagicMock(),
+        "var2": mocker.MagicMock(),
+        "var3": mocker.MagicMock(),
+    }
+
+    visitor = CwpLtlVisitor(symbol_table)
+
+    visitor.write_variable_range_assertions()
+
+    expected_calls = [
+        mocker.call("assert(var1Invariant)"),
+        mocker.call("assert(var2Invariant)"),
+        mocker.call("assert(var3Invariant)"),
+    ]
+
+    mock_write.assert_has_calls(expected_calls, any_order=False)
+
+
+def test_cwp_write_refresh_edges(mocker):
+    mock_write = mocker.patch.object(CwpLtlVisitor, "write_line")
+    cwp = mocker.MagicMock()
+    cwp.edges = {"edge1": mocker.MagicMock(), "edge2": mocker.MagicMock()}
     cwp.edges["edge1"].name = "Edge1"
     cwp.edges["edge1"].expression = "expression1"
     cwp.edges["edge2"].name = "Edge2"
     cwp.edges["edge2"].expression = "expression2"
 
-    with patch.object(CwpLtlVisitor, "write_line") as mock_write:
-        visitor = CwpLtlVisitor(MagicMock())
-        visitor.cwp = cwp
-        visitor.tab = 0
+    visitor = CwpLtlVisitor(mocker.MagicMock())
+    visitor.cwp = cwp
+    visitor.tab = 0
 
-        visitor.write_refresh_edges()
+    visitor.write_refresh_edges()
 
-        expected_calls = [
-            call("if"),
-            call(":: (expression1) -> "),
-            call("Edge1 = 1"),
-            call(":: else -> "),
-            call("Edge1 = 0"),
-            call("fi"),
-            call("if"),
-            call(":: (expression2) -> "),
-            call("Edge2 = 1"),
-            call(":: else -> "),
-            call("Edge2 = 0"),
-            call("fi"),
-        ]
+    expected_calls = [
+        mocker.call("if"),
+        mocker.call(":: (expression1) -> "),
+        mocker.call("Edge1 = 1"),
+        mocker.call(":: else -> "),
+        mocker.call("Edge1 = 0"),
+        mocker.call("fi"),
+        mocker.call("if"),
+        mocker.call(":: (expression2) -> "),
+        mocker.call("Edge2 = 1"),
+        mocker.call(":: else -> "),
+        mocker.call("Edge2 = 0"),
+        mocker.call("fi"),
+    ]
 
-        mock_write.assert_has_calls(expected_calls, any_order=False)
+    mock_write.assert_has_calls(expected_calls, any_order=False)
 
-        assert visitor.tab == 0
+    assert visitor.tab == 0
 
 
-def test_cwp_write_refresh_states():
-    in_edge1 = MagicMock()
+def test_cwp_write_refresh_states(mocker):
+    mock_write = mocker.patch.object(CwpLtlVisitor, "write_line")
+    in_edge1 = mocker.MagicMock()
     in_edge1.name = "InEdge1"
-    in_edge2 = MagicMock()
+    in_edge2 = mocker.MagicMock()
     in_edge2.name = "InEdge2"
-    out_edge1 = MagicMock()
+    out_edge1 = mocker.MagicMock()
     out_edge1.name = "OutEdge1"
-    out_edge2 = MagicMock()
+    out_edge2 = mocker.MagicMock()
     out_edge2.name = "OutEdge2"
 
-    cwp = MagicMock
-    cwp.states = {"state1": MagicMock(), "state2": MagicMock()}
+    cwp = mocker.MagicMock
+    cwp.states = {"state1": mocker.MagicMock(), "state2": mocker.MagicMock()}
     cwp.states["state1"].name = "State1"
     cwp.states["state1"].in_edges = [in_edge1, in_edge2]
     cwp.states["state1"].out_edges = [out_edge1, out_edge2]
@@ -978,140 +990,143 @@ def test_cwp_write_refresh_states():
     cwp.states["state2"].in_edges = []
     cwp.states["state2"].out_edges = [out_edge1]
 
-    with patch.object(CwpLtlVisitor, "write_line") as mock_write:
-        visitor = CwpLtlVisitor(MagicMock())
-        visitor.cwp = cwp
-        visitor.tab = 0
+    visitor = CwpLtlVisitor(mocker.MagicMock())
+    visitor.cwp = cwp
+    visitor.tab = 0
 
-        visitor.write_refresh_states()
+    visitor.write_refresh_states()
 
-        expected_calls = [
-            call("State1 = "),
-            call("("),
-            call("(InEdge1 && InEdge2)"),
-            call("&&"),
-            call("(! (OutEdge1 || OutEdge2))"),
-            call(")"),
-            call("State2 = "),
-            call("("),
-            call("(! (OutEdge1))"),
-            call(")"),
-        ]
+    expected_calls = [
+        mocker.call("State1 = "),
+        mocker.call("("),
+        mocker.call("(InEdge1 && InEdge2)"),
+        mocker.call("&&"),
+        mocker.call("(! (OutEdge1 || OutEdge2))"),
+        mocker.call(")"),
+        mocker.call("State2 = "),
+        mocker.call("("),
+        mocker.call("(! (OutEdge1))"),
+        mocker.call(")"),
+    ]
 
-        mock_write.assert_has_calls(expected_calls, any_order=False)
+    mock_write.assert_has_calls(expected_calls, any_order=False)
 
-        assert visitor.tab == 0
+    assert visitor.tab == 0
 
 
-def test_cwp_write_ina_state_property():
-    cwp = MagicMock()
-    cwp.states = {"state1": MagicMock(), "state2": MagicMock(), "state3": MagicMock()}
+def test_cwp_write_ina_state_property(mocker):
+    mock_write = mocker.patch.object(CwpLtlVisitor, "write_line")
+    cwp = mocker.MagicMock()
+    cwp.states = {
+        "state1": mocker.MagicMock(),
+        "state2": mocker.MagicMock(),
+        "state3": mocker.MagicMock(),
+    }
     cwp.states["state1"].name = "State1"
     cwp.states["state2"].name = "State2"
     cwp.states["state3"].name = "State3"
 
-    with patch.object(CwpLtlVisitor, "write_line") as mock_write:
-        visitor = CwpLtlVisitor(MagicMock())
-        visitor.cwp = cwp
-        visitor.property_list = []
+    visitor = CwpLtlVisitor(mocker.MagicMock())
+    visitor.cwp = cwp
+    visitor.property_list = []
 
-        visitor.write_ina_state_property()
+    visitor.write_ina_state_property()
 
-        assert "alwaysInAState" in visitor.property_list
+    assert "alwaysInAState" in visitor.property_list
 
-        expected_calls = [
-            call("#define inAState State1 \\\n || State2 \\\n || State3"),
-            call("ltl alwaysInAState {(always (inAState))}"),
-        ]
+    expected_calls = [
+        mocker.call("#define inAState State1 \\\n || State2 \\\n || State3"),
+        mocker.call("ltl alwaysInAState {(always (inAState))}"),
+    ]
 
-        mock_write.assert_has_calls(expected_calls, any_order=False)
+    mock_write.assert_has_calls(expected_calls, any_order=False)
 
 
-def test_cwp_write_fair_property_debug_true():
-    cwp = MagicMock()
-    cwp.end_states = [MagicMock(), MagicMock()]
+def test_cwp_write_fair_property_debug_true(mocker):
+    mock_write = mocker.patch.object(CwpLtlVisitor, "write_line")
+    cwp = mocker.MagicMock()
+    cwp.end_states = [mocker.MagicMock(), mocker.MagicMock()]
     cwp.end_states[0].name = "EndState1"
     cwp.end_states[1].name = "EndState2"
 
-    with patch.object(CwpLtlVisitor, "write_line") as mock_write:
-        visitor = CwpLtlVisitor(MagicMock())
-        visitor.cwp = cwp
-        visitor.property_list = []
-        visitor.debug = True
+    visitor = CwpLtlVisitor(mocker.MagicMock())
+    visitor.cwp = cwp
+    visitor.property_list = []
+    visitor.debug = True
 
-        visitor.write_fair_property()
+    visitor.write_fair_property()
 
-        assert "fairPathExists" in visitor.property_list
+    assert "fairPathExists" in visitor.property_list
 
-        expected_calls = [
-            call("#define fair (true)"),
-            call("ltl fairPathExists {(always (! fair))}"),
-        ]
+    expected_calls = [
+        mocker.call("#define fair (true)"),
+        mocker.call("ltl fairPathExists {(always (! fair))}"),
+    ]
 
-        mock_write.assert_has_calls(expected_calls, any_order=False)
+    mock_write.assert_has_calls(expected_calls, any_order=False)
 
 
-def test_cwp_write_fair_property_debug_false():
-    cwp = MagicMock()
-    cwp.end_states = [MagicMock(), MagicMock()]
+def test_cwp_write_fair_property_debug_false(mocker):
+    mock_write = mocker.patch.object(CwpLtlVisitor, "write_line")
+    cwp = mocker.MagicMock()
+    cwp.end_states = [mocker.MagicMock(), mocker.MagicMock()]
     cwp.end_states[0].name = "EndState1"
     cwp.end_states[1].name = "EndState2"
 
-    with patch.object(CwpLtlVisitor, "write_line") as mock_write:
-        visitor = CwpLtlVisitor(MagicMock())
-        visitor.cwp = cwp
-        visitor.property_list = []
-        visitor.debug = False
+    visitor = CwpLtlVisitor(mocker.MagicMock())
+    visitor.cwp = cwp
+    visitor.property_list = []
+    visitor.debug = False
 
-        visitor.write_fair_property()
+    visitor.write_fair_property()
 
-        assert "fairPathExists" in visitor.property_list
+    assert "fairPathExists" in visitor.property_list
 
-        expected_calls = [
-            call("#define fair (eventually (EndState1 || EndState2))"),
-            call("ltl fairPathExists {(always (! fair))}"),
-        ]
+    expected_calls = [
+        mocker.call("#define fair (eventually (EndState1 || EndState2))"),
+        mocker.call("ltl fairPathExists {(always (! fair))}"),
+    ]
 
-        mock_write.assert_has_calls(expected_calls, any_order=False)
+    mock_write.assert_has_calls(expected_calls, any_order=False)
 
 
-def test_cwp_write_log_edge_print_on():
-    edge = MagicMock()
+def test_cwp_write_log_edge_print_on(mocker):
+    mock_write = mocker.patch.object(CwpLtlVisitor, "write_line")
+    edge = mocker.MagicMock()
     edge.id = "EdgeID"
     edge.parent_id = "ParentID"
     edge.name = "EdgeName"
 
-    with patch.object(CwpLtlVisitor, "write_line") as mock_write:
-        visitor = CwpLtlVisitor(MagicMock())
-        visitor.print_on = True
+    visitor = CwpLtlVisitor(mocker.MagicMock())
+    visitor.print_on = True
 
-        visitor.write_log_edge(edge)
+    visitor.write_log_edge(edge)
 
-        expected_call = call('printf("**EDGE EdgeID(ParentID) = %d\\n", EdgeName)')
+    expected_call = mocker.call('printf("**EDGE EdgeID(ParentID) = %d\\n", EdgeName)')
 
-        mock_write.assert_has_calls([expected_call])
+    mock_write.assert_has_calls([expected_call])
 
 
-def test_cwp_write_log_state_print_on():
-    state = MagicMock()
+def test_cwp_write_log_state_print_on(mocker):
+    mock_write = mocker.patch.object(CwpLtlVisitor, "write_line")
+    state = mocker.MagicMock()
     state.name = "TestState"
     state.id = "StateID"
 
-    with patch.object(CwpLtlVisitor, "write_line") as mock_write:
-        visitor = CwpLtlVisitor(MagicMock())
-        visitor.print_on = True
+    visitor = CwpLtlVisitor(mocker.MagicMock())
+    visitor.print_on = True
 
-        visitor.write_log_state(state)
+    visitor.write_log_state(state)
 
-        expected_calls = [
-            call("if"),
-            call(":: (TestState) -> "),
-            call('printf("**STATE TestState(StateID)\\n")'),
-            call(":: else -> skip"),
-            call("fi"),
-        ]
+    expected_calls = [
+        mocker.call("if"),
+        mocker.call(":: (TestState) -> "),
+        mocker.call('printf("**STATE TestState(StateID)\\n")'),
+        mocker.call(":: else -> skip"),
+        mocker.call("fi"),
+    ]
 
-        mock_write.assert_has_calls(expected_calls, any_order=False)
+    mock_write.assert_has_calls(expected_calls, any_order=False)
 
 
 @pytest.mark.parametrize(
@@ -1125,54 +1140,45 @@ def test_cwp_write_log_state_print_on():
         (False, "\n\n//***********LOG STATE FILLER*******//\n\n", "skip"),
     ],
 )
-def test_write_log_state_inline(print_on, expected_header, expected_footer):
-    # Create mock `cwp` object with states and edges, and mock `symbol_table` with variables
-    cwp = MagicMock()
+def test_write_log_state_inline(mocker, print_on, expected_header, expected_footer):
+    mock_write_line = mocker.patch.object(CwpLtlVisitor, "write_line")
+    mock_write_log_state = mocker.patch.object(CwpLtlVisitor, "write_log_state")
+    mock_write_log_edge = mocker.patch.object(CwpLtlVisitor, "write_log_edge")
+    mock_write_log_var = mocker.patch.object(CwpLtlVisitor, "write_log_var")
+
+    cwp = mocker.MagicMock()
     cwp.states = {
-        "state1": MagicMock(name="state1"),
-        "state2": MagicMock(name="state2"),
+        "state1": mocker.MagicMock(),
+        "state2": mocker.MagicMock(),
     }
-    cwp.edges = {"edge1": MagicMock(name="edge1"), "edge2": MagicMock(name="edge2")}
-    symbol_table = MagicMock()
+    cwp.edges = {"edge1": mocker.MagicMock(), "edge2": mocker.MagicMock()}
+    symbol_table = mocker.MagicMock()
     symbol_table._vars = {"var1": "var1_value", "var2": "var2_value"}
 
-    # Patch `write_line`, `write_log_state`, `write_log_edge`, and `write_log_var`
-    with (
-        patch.object(CwpLtlVisitor, "write_line") as mock_write_line,
-        patch.object(CwpLtlVisitor, "write_log_state") as mock_write_log_state,
-        patch.object(CwpLtlVisitor, "write_log_edge") as mock_write_log_edge,
-        patch.object(CwpLtlVisitor, "write_log_var") as mock_write_log_var,
-    ):
-        # Instantiate the visitor and set its attributes
-        visitor = CwpLtlVisitor(symbol_table)
-        visitor.cwp = cwp
-        visitor.print_on = print_on
-        visitor.tab = 0
+    visitor = CwpLtlVisitor(symbol_table)
+    visitor.cwp = cwp
+    visitor.print_on = print_on
+    visitor.tab = 0
 
-        # Call the function to test
-        visitor.write_log_state_inline()
+    visitor.write_log_state_inline()
 
-        # Verify `write_line` calls for headers and inline structure
-        expected_calls = [
-            call(expected_header),
-            call("inline logState(){"),
-            call(expected_footer),
-            call(expected_footer),
-            call("}"),
-        ]
-        mock_write_line.assert_has_calls(expected_calls, any_order=True)
+    expected_calls = [
+        mocker.call(expected_header),
+        mocker.call("inline logState(){"),
+        mocker.call(expected_footer),
+        mocker.call(expected_footer),
+        mocker.call("}"),
+    ]
+    mock_write_line.assert_has_calls(expected_calls, any_order=True)
 
-        # Verify `write_log_state` called for each state with correct parameters
-        mock_write_log_state.assert_any_call(cwp.states["state1"])
-        mock_write_log_state.assert_any_call(cwp.states["state2"])
+    mock_write_log_state.assert_any_call(cwp.states["state1"])
+    mock_write_log_state.assert_any_call(cwp.states["state2"])
 
-        # Verify `write_log_edge` called for each edge with correct parameters
-        mock_write_log_edge.assert_any_call(cwp.edges["edge1"])
-        mock_write_log_edge.assert_any_call(cwp.edges["edge2"])
+    mock_write_log_edge.assert_any_call(cwp.edges["edge1"])
+    mock_write_log_edge.assert_any_call(cwp.edges["edge2"])
 
-        # Verify `write_log_var` called for each variable with correct parameters
-        mock_write_log_var.assert_any_call("var1")
-        mock_write_log_var.assert_any_call("var2")
+    mock_write_log_var.assert_any_call("var1")
+    mock_write_log_var.assert_any_call("var2")
 
-        # Verify `tab` returns to the original level
-        assert visitor.tab == 0
+    # Verify `tab` returns to the original level
+    assert visitor.tab == 0
