@@ -902,3 +902,21 @@ def test_cwp_write_edge_definitions():
         ]
 
         mock_write.assert_has_calls(expected_calls)
+
+
+def test_cwp_write_variable_range_assertions():
+    symbol_table = MagicMock()
+    symbol_table._vars = {"var1": MagicMock(), "var2": MagicMock(), "var3": MagicMock()}
+
+    with patch.object(CwpLtlVisitor, "write_line") as mock_write:
+        visitor = CwpLtlVisitor(symbol_table)
+
+        visitor.write_variable_range_assertions()
+
+        expected_calls = [
+            call("assert(var1Invariant)"),
+            call("assert(var2Invariant)"),
+            call("assert(var3Invariant)"),
+        ]
+
+        mock_write.assert_has_calls(expected_calls, any_order=False)
