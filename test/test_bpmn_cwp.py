@@ -723,3 +723,48 @@ def test_cwp_write_exists_properties():
         )
 
         mock_write.assert_has_calls([expected_call])
+
+
+def test_cwp_mutex_property():
+    state = MagicMock()
+    state.name = "TestState"
+
+    dummy_cwp = type("DummyCwp", (), {})()
+    dummy_cwp.states = {
+        "TestState": state,
+        "OtherState1": MagicMock(name="OtherState1"),
+        "OtherState2": MagicMock(name="OtherState2"),
+        "OtherState3": MagicMock(name="OtherState3"),
+    }
+    dummy_cwp.states["OtherState1"].name = "OtherState1"
+    dummy_cwp.states["OtherState2"].name = "OtherState2"
+    dummy_cwp.states["OtherState3"].name = "OtherState3"
+
+    with patch.object(CwpLtlVisitor, "write_line") as mock_write:
+        symbol_table = MagicMock()
+        visitor = CwpLtlVisitor(symbol_table)
+        visitor.property_list = []
+        visitor.cwp = dummy_cwp
+        visitor.tab = 0
+
+        visitor.write_mutex_property(state)
+
+        assert "{}Mutex".format(state.name) in visitor.property_list
+
+        expected_calls = [
+            call("ltl TestStateMutex {"),
+            call("("),
+            call("always ("),
+            call("TestState implies ("),
+            call("TestState"),
+            call(
+                "&& (! OtherState1)\n\t\t\t\t&& (! OtherState2)\n\t\t\t\t&& (! OtherState3)"
+            ),
+            call(")"),
+            call(")"),
+            call(")"),
+            call("}"),
+        ]
+        mock_write.assert_has_calls(expected_calls)
+
+        assert visitor.tab == 0
