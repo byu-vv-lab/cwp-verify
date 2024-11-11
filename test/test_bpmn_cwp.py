@@ -768,3 +768,51 @@ def test_cwp_mutex_property():
         mock_write.assert_has_calls(expected_calls)
 
         assert visitor.tab == 0
+
+
+def test_write_edges_property():
+    state = MagicMock()
+    state.name = "TestState"
+
+    dest_state1 = MagicMock()
+    dest_state1.name = "DestState1"
+    dest_state2 = MagicMock()
+    dest_state2.name = "DestState2"
+    dest_state3 = MagicMock()
+    dest_state3.name = "DestState3"
+
+    state.out_edges = [
+        MagicMock(dest=dest_state1),
+        MagicMock(dest=dest_state2),
+        MagicMock(dest=dest_state3),
+    ]
+
+    with patch.object(CwpLtlVisitor, "write_line") as mock_write:
+        symbol_table = MagicMock()
+        visitor = CwpLtlVisitor(symbol_table)
+        visitor.property_list = []
+        visitor.tab = 0
+
+        visitor.write_edges_property(state)
+
+        assert "{}Edges".format(state.name) in visitor.property_list
+
+        expected_calls = [
+            call("ltl TestStateEdges {"),
+            call("("),
+            call("fair implies ("),
+            call("always ("),
+            call("TestState implies ("),
+            call("TestState until ("),
+            call("DestState1\n\t\t\t\t\t\t|| DestState2\n\t\t\t\t\t\t|| DestState3"),
+            call(")"),
+            call(")"),
+            call(")"),
+            call(")"),
+            call(")"),
+            call("}"),
+        ]
+
+        mock_write.assert_has_calls(expected_calls)
+
+        assert visitor.tab == 0
