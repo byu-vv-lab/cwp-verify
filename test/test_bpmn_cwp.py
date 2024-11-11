@@ -920,3 +920,38 @@ def test_cwp_write_variable_range_assertions():
         ]
 
         mock_write.assert_has_calls(expected_calls, any_order=False)
+
+
+def test_cwp_write_refresh_edges():
+    cwp = MagicMock()
+    cwp.edges = {"edge1": MagicMock(), "edge2": MagicMock()}
+    cwp.edges["edge1"].name = "Edge1"
+    cwp.edges["edge1"].expression = "expression1"
+    cwp.edges["edge2"].name = "Edge2"
+    cwp.edges["edge2"].expression = "expression2"
+
+    with patch.object(CwpLtlVisitor, "write_line") as mock_write:
+        visitor = CwpLtlVisitor(MagicMock())
+        visitor.cwp = cwp
+        visitor.tab = 0
+
+        visitor.write_refresh_edges()
+
+        expected_calls = [
+            call("if"),
+            call(":: (expression1) -> "),
+            call("Edge1 = 1"),
+            call(":: else -> "),
+            call("Edge1 = 0"),
+            call("fi"),
+            call("if"),
+            call(":: (expression2) -> "),
+            call("Edge2 = 1"),
+            call(":: else -> "),
+            call("Edge2 = 0"),
+            call("fi"),
+        ]
+
+        mock_write.assert_has_calls(expected_calls, any_order=False)
+
+        assert visitor.tab == 0
