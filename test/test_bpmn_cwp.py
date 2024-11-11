@@ -849,3 +849,32 @@ def test_write_state_variables():
             call("\n"),
         ]
         mock_write.assert_has_calls(expected_calls, any_order=False)
+
+
+def test_write_variable_range_invariants():
+    symbol_table = MagicMock()
+    symbol_table._enums = {
+        "TestEnum1": ("Value1", "Value2", "Value3"),
+        "TestEnum2": ("Value1", "Value2", "Value3"),
+    }
+
+    with patch.object(CwpLtlVisitor, "write_line") as mock_write:
+        visitor = CwpLtlVisitor(symbol_table)
+        visitor.state_info = []
+
+        visitor.write_variable_range_invariants()
+
+        assert visitor.state_info == [
+            "\n\n//**********Variable Range Invariants************//"
+        ]
+
+        expected_calls = [
+            call(
+                "#define TestEnum1Invariant ((TestEnum1 == Value1) || (TestEnum1 == Value2) || (TestEnum1 == Value3))"
+            ),
+            call(
+                "#define TestEnum2Invariant ((TestEnum2 == Value1) || (TestEnum2 == Value2) || (TestEnum2 == Value3))"
+            ),
+        ]
+
+        mock_write.assert_has_calls(expected_calls)
