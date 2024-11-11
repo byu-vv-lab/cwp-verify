@@ -163,3 +163,7 @@ cython_debug/
 
 .antlr
 .vscode
+
+# SPIN Artifacts
+pan
+*.trail
