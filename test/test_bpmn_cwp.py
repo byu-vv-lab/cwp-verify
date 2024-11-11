@@ -816,3 +816,36 @@ def test_write_edges_property():
         mock_write.assert_has_calls(expected_calls)
 
         assert visitor.tab == 0
+
+
+def test_write_state_variables():
+    symbol_table = MagicMock()
+    symbol_table._consts = {"CONST_A": ("CONST_A", 10), "CONST_B": ("CONST_B", 20)}
+    symbol_table._enums = {"EnumType": {"Value1", "Value2", "Value3"}}
+    symbol_table._vars = {
+        "var1": ("int", "initial_value"),
+        "var2": ("int", "initial_value", {"extra_value"}),
+    }
+
+    with patch.object(CwpLtlVisitor, "write_line") as mock_write:
+        visitor = CwpLtlVisitor(symbol_table)
+
+        visitor.write_state_variables()
+
+        expected_calls = [
+            call("\n\n//**********VARIABLE DECLARATION************//\n"),
+            call("#define CONST_A 10"),
+            call("\n"),
+            call("#define CONST_B 20"),
+            call("\n"),
+            call("\n"),
+            call("mytpe = {Value1 Value2 Value3}"),
+            call("\n"),
+            call("\n"),
+            call("int var1 = initial_value"),
+            call("\n"),
+            call("mytype var2 = initial_value"),
+            call("\n"),
+            call("\n"),
+        ]
+        mock_write.assert_has_calls(expected_calls, any_order=False)
