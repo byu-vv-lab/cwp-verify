@@ -770,7 +770,7 @@ def test_cwp_mutex_property():
         assert visitor.tab == 0
 
 
-def test_write_edges_property():
+def test_cwp_write_edges_property():
     state = MagicMock()
     state.name = "TestState"
 
@@ -818,7 +818,7 @@ def test_write_edges_property():
         assert visitor.tab == 0
 
 
-def test_write_state_variables():
+def test_cwp_write_state_variables():
     symbol_table = MagicMock()
     symbol_table._consts = {"CONST_A": ("CONST_A", 10), "CONST_B": ("CONST_B", 20)}
     symbol_table._enums = {"EnumType": {"Value1", "Value2", "Value3"}}
@@ -851,7 +851,7 @@ def test_write_state_variables():
         mock_write.assert_has_calls(expected_calls, any_order=False)
 
 
-def test_write_variable_range_invariants():
+def test_cwp_write_variable_range_invariants():
     symbol_table = MagicMock()
     symbol_table._enums = {
         "TestEnum1": ("Value1", "Value2", "Value3"),
@@ -875,6 +875,30 @@ def test_write_variable_range_invariants():
             call(
                 "#define TestEnum2Invariant ((TestEnum2 == Value1) || (TestEnum2 == Value2) || (TestEnum2 == Value3))"
             ),
+        ]
+
+        mock_write.assert_has_calls(expected_calls)
+
+
+def test_cwp_write_edge_definitions():
+    mock_cwp = MagicMock()
+    mock_cwp.edges = {"edge1": MagicMock(), "edge2": MagicMock(), "edge3": MagicMock()}
+
+    mock_cwp.edges["edge1"].name = "edge1"
+    mock_cwp.edges["edge2"].name = "edge2"
+    mock_cwp.edges["edge3"].name = "edge3"
+
+    with patch.object(CwpLtlVisitor, "write_line") as mock_write:
+        instance = CwpLtlVisitor(MagicMock())
+        instance.cwp = mock_cwp
+
+        instance.write_edge_definitions()
+
+        expected_calls = [
+            call("\n\n//**********EDGE DECLARATION************//"),
+            call("bit edge1 = 0"),
+            call("bit edge2 = 0"),
+            call("bit edge3 = 0"),
         ]
 
         mock_write.assert_has_calls(expected_calls)
