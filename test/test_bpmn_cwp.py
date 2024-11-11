@@ -686,34 +686,40 @@ def test_promela_and_ltl():
 
 def test_cwp_write_init_states():
     with patch.object(CwpLtlVisitor, "write_line") as mock_write:
-        cwp = generate_mock_cwp()
-
         symbol_table = MagicMock()
+        instance = CwpLtlVisitor(symbol_table)
 
-        visitor = CwpLtlVisitor(symbol_table)
-        visitor.cwp = cwp
+        instance.cwp = type("", (), {})()
+        instance.cwp.states = {
+            "state1": type("", (), {"name": "init_state1"}),
+            "state2": type("", (), {"name": "normal_state2"}),
+        }
 
-        # __import__('pdb').set_trace()
-        visitor.write_init_states()
+        instance.write_init_states()
+
         expected_calls = [
-            call(
-                "\n\n//**********STATE VARIABLE DECLARATION************//",
-            ),
-            call(
-                "bit Init_Purchase_Pending = 1",
-            ),
-            call(
-                "bit Purchase_Failed = 0",
-            ),
-            call(
-                "bit Ownerships_Switched = 0",
-            ),
-            call(
-                "bit Purchase_Agreed = 0",
-            ),
-            call(
-                "bit Negotiations = 0",
-            ),
+            call("\n\n//**********STATE VARIABLE DECLARATION************//"),
+            call("bit init_state1 = 1"),
+            call("bit normal_state2 = 0"),
         ]
-
         mock_write.assert_has_calls(expected_calls)
+
+
+def test_cwp_write_exists_properties():
+    state = MagicMock()
+    state.name = "TestState"
+
+    with patch.object(CwpLtlVisitor, "write_line") as mock_write:
+        symbol_table = MagicMock()
+        visitor = CwpLtlVisitor(symbol_table)
+        visitor.property_list = []
+
+        visitor.write_exists_property(state)
+
+        assert "{}Exists".format(state.name) in visitor.property_list
+
+        expected_call = call(
+            "ltl TestStateExists {(fair implies (always (! TestState)))}"
+        )
+
+        mock_write.assert_has_calls([expected_call])
