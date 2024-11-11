@@ -1024,3 +1024,51 @@ def test_cwp_write_ina_state_property():
         ]
 
         mock_write.assert_has_calls(expected_calls, any_order=False)
+
+
+def test_cwp_write_fair_property_debug_true():
+    cwp = MagicMock()
+    cwp.end_states = [MagicMock(), MagicMock()]
+    cwp.end_states[0].name = "EndState1"
+    cwp.end_states[1].name = "EndState2"
+
+    with patch.object(CwpLtlVisitor, "write_line") as mock_write:
+        visitor = CwpLtlVisitor(MagicMock())
+        visitor.cwp = cwp
+        visitor.property_list = []
+        visitor.debug = True
+
+        visitor.write_fair_property()
+
+        assert "fairPathExists" in visitor.property_list
+
+        expected_calls = [
+            call("#define fair (true)"),
+            call("ltl fairPathExists {(always (! fair))}"),
+        ]
+
+        mock_write.assert_has_calls(expected_calls, any_order=False)
+
+
+def test_cwp_write_fair_property_debug_false():
+    cwp = MagicMock()
+    cwp.end_states = [MagicMock(), MagicMock()]
+    cwp.end_states[0].name = "EndState1"
+    cwp.end_states[1].name = "EndState2"
+
+    with patch.object(CwpLtlVisitor, "write_line") as mock_write:
+        visitor = CwpLtlVisitor(MagicMock())
+        visitor.cwp = cwp
+        visitor.property_list = []
+        visitor.debug = False
+
+        visitor.write_fair_property()
+
+        assert "fairPathExists" in visitor.property_list
+
+        expected_calls = [
+            call("#define fair (eventually (EndState1 || EndState2))"),
+            call("ltl fairPathExists {(always (! fair))}"),
+        ]
+
+        mock_write.assert_has_calls(expected_calls, any_order=False)
