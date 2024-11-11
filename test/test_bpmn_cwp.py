@@ -15,6 +15,7 @@ from bpmncwpverify.bpmn import (
     Process,
     Task,
 )
+import pytest
 import os
 
 
@@ -1072,3 +1073,106 @@ def test_cwp_write_fair_property_debug_false():
         ]
 
         mock_write.assert_has_calls(expected_calls, any_order=False)
+
+
+def test_cwp_write_log_edge_print_on():
+    edge = MagicMock()
+    edge.id = "EdgeID"
+    edge.parent_id = "ParentID"
+    edge.name = "EdgeName"
+
+    with patch.object(CwpLtlVisitor, "write_line") as mock_write:
+        visitor = CwpLtlVisitor(MagicMock())
+        visitor.print_on = True
+
+        visitor.write_log_edge(edge)
+
+        expected_call = call('printf("**EDGE EdgeID(ParentID) = %d\\n", EdgeName)')
+
+        mock_write.assert_has_calls([expected_call])
+
+
+def test_cwp_write_log_state_print_on():
+    state = MagicMock()
+    state.name = "TestState"
+    state.id = "StateID"
+
+    with patch.object(CwpLtlVisitor, "write_line") as mock_write:
+        visitor = CwpLtlVisitor(MagicMock())
+        visitor.print_on = True
+
+        visitor.write_log_state(state)
+
+        expected_calls = [
+            call("if"),
+            call(":: (TestState) -> "),
+            call('printf("**STATE TestState(StateID)\\n")'),
+            call(":: else -> skip"),
+            call("fi"),
+        ]
+
+        mock_write.assert_has_calls(expected_calls, any_order=False)
+
+
+@pytest.mark.parametrize(
+    "print_on, expected_header, expected_footer",
+    [
+        (
+            True,
+            "\n\n//**********LOG STATE************//\n\n",
+            'printf("******************************\\n")',
+        ),
+        (False, "\n\n//***********LOG STATE FILLER*******//\n\n", "skip"),
+    ],
+)
+def test_write_log_state_inline(print_on, expected_header, expected_footer):
+    # Create mock `cwp` object with states and edges, and mock `symbol_table` with variables
+    cwp = MagicMock()
+    cwp.states = {
+        "state1": MagicMock(name="state1"),
+        "state2": MagicMock(name="state2"),
+    }
+    cwp.edges = {"edge1": MagicMock(name="edge1"), "edge2": MagicMock(name="edge2")}
+    symbol_table = MagicMock()
+    symbol_table._vars = {"var1": "var1_value", "var2": "var2_value"}
+
+    # Patch `write_line`, `write_log_state`, `write_log_edge`, and `write_log_var`
+    with (
+        patch.object(CwpLtlVisitor, "write_line") as mock_write_line,
+        patch.object(CwpLtlVisitor, "write_log_state") as mock_write_log_state,
+        patch.object(CwpLtlVisitor, "write_log_edge") as mock_write_log_edge,
+        patch.object(CwpLtlVisitor, "write_log_var") as mock_write_log_var,
+    ):
+        # Instantiate the visitor and set its attributes
+        visitor = CwpLtlVisitor(symbol_table)
+        visitor.cwp = cwp
+        visitor.print_on = print_on
+        visitor.tab = 0
+
+        # Call the function to test
+        visitor.write_log_state_inline()
+
+        # Verify `write_line` calls for headers and inline structure
+        expected_calls = [
+            call(expected_header),
+            call("inline logState(){"),
+            call(expected_footer),
+            call(expected_footer),
+            call("}"),
+        ]
+        mock_write_line.assert_has_calls(expected_calls, any_order=True)
+
+        # Verify `write_log_state` called for each state with correct parameters
+        mock_write_log_state.assert_any_call(cwp.states["state1"])
+        mock_write_log_state.assert_any_call(cwp.states["state2"])
+
+        # Verify `write_log_edge` called for each edge with correct parameters
+        mock_write_log_edge.assert_any_call(cwp.edges["edge1"])
+        mock_write_log_edge.assert_any_call(cwp.edges["edge2"])
+
+        # Verify `write_log_var` called for each variable with correct parameters
+        mock_write_log_var.assert_any_call("var1")
+        mock_write_log_var.assert_any_call("var2")
+
+        # Verify `tab` returns to the original level
+        assert visitor.tab == 0
