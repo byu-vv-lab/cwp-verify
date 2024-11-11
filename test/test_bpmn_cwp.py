@@ -1,10 +1,10 @@
 # type: ignore
-from bpmncwpverify.visitors import PromelaGenVisitor
+from bpmncwpverify.visitors import CwpLtlVisitor, PromelaGenVisitor
 from bpmncwpverify.cwp import Cwp, CwpEdge, CwpState
 from bpmncwpverify.state import SymbolTable
 import inspect
 from returns.pipeline import is_successful
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch, call
 from bpmncwpverify.bpmn import (
     Bpmn,
     ExclusiveGatewayNode,
@@ -684,6 +684,36 @@ def test_promela_and_ltl():
         f.write(output_str)
 
 
-def test_cwp_thing():
-    generate_mock_cwp()
-    generate_mock_bpmn()
+def test_cwp_write_init_states():
+    with patch.object(CwpLtlVisitor, "write_line") as mock_write:
+        cwp = generate_mock_cwp()
+
+        symbol_table = MagicMock()
+
+        visitor = CwpLtlVisitor(symbol_table)
+        visitor.cwp = cwp
+
+        # __import__('pdb').set_trace()
+        visitor.write_init_states()
+        expected_calls = [
+            call(
+                "\n\n//**********STATE VARIABLE DECLARATION************//",
+            ),
+            call(
+                "bit Init_Purchase_Pending = 1",
+            ),
+            call(
+                "bit Purchase_Failed = 0",
+            ),
+            call(
+                "bit Ownerships_Switched = 0",
+            ),
+            call(
+                "bit Purchase_Agreed = 0",
+            ),
+            call(
+                "bit Negotiations = 0",
+            ),
+        ]
+
+        mock_write.assert_has_calls(expected_calls)
