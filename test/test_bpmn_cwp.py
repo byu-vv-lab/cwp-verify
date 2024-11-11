@@ -1000,3 +1000,27 @@ def test_cwp_write_refresh_states():
         mock_write.assert_has_calls(expected_calls, any_order=False)
 
         assert visitor.tab == 0
+
+
+def test_cwp_write_ina_state_property():
+    cwp = MagicMock()
+    cwp.states = {"state1": MagicMock(), "state2": MagicMock(), "state3": MagicMock()}
+    cwp.states["state1"].name = "State1"
+    cwp.states["state2"].name = "State2"
+    cwp.states["state3"].name = "State3"
+
+    with patch.object(CwpLtlVisitor, "write_line") as mock_write:
+        visitor = CwpLtlVisitor(MagicMock())
+        visitor.cwp = cwp
+        visitor.property_list = []
+
+        visitor.write_ina_state_property()
+
+        assert "alwaysInAState" in visitor.property_list
+
+        expected_calls = [
+            call("#define inAState State1 \\\n || State2 \\\n || State3"),
+            call("ltl alwaysInAState {(always (inAState))}"),
+        ]
+
+        mock_write.assert_has_calls(expected_calls, any_order=False)
