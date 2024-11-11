@@ -955,3 +955,48 @@ def test_cwp_write_refresh_edges():
         mock_write.assert_has_calls(expected_calls, any_order=False)
 
         assert visitor.tab == 0
+
+
+def test_cwp_write_refresh_states():
+    in_edge1 = MagicMock()
+    in_edge1.name = "InEdge1"
+    in_edge2 = MagicMock()
+    in_edge2.name = "InEdge2"
+    out_edge1 = MagicMock()
+    out_edge1.name = "OutEdge1"
+    out_edge2 = MagicMock()
+    out_edge2.name = "OutEdge2"
+
+    cwp = MagicMock
+    cwp.states = {"state1": MagicMock(), "state2": MagicMock()}
+    cwp.states["state1"].name = "State1"
+    cwp.states["state1"].in_edges = [in_edge1, in_edge2]
+    cwp.states["state1"].out_edges = [out_edge1, out_edge2]
+
+    cwp.states["state2"].name = "State2"
+    cwp.states["state2"].in_edges = []
+    cwp.states["state2"].out_edges = [out_edge1]
+
+    with patch.object(CwpLtlVisitor, "write_line") as mock_write:
+        visitor = CwpLtlVisitor(MagicMock())
+        visitor.cwp = cwp
+        visitor.tab = 0
+
+        visitor.write_refresh_states()
+
+        expected_calls = [
+            call("State1 = "),
+            call("("),
+            call("(InEdge1 && InEdge2)"),
+            call("&&"),
+            call("(! (OutEdge1 || OutEdge2))"),
+            call(")"),
+            call("State2 = "),
+            call("("),
+            call("(! (OutEdge1))"),
+            call(")"),
+        ]
+
+        mock_write.assert_has_calls(expected_calls, any_order=False)
+
+        assert visitor.tab == 0
