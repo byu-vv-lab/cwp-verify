@@ -1302,3 +1302,74 @@ def test_add_expressions(mocker):
     cwp._add_expressions(all_items)
     edge.cleanup_expression.assert_called_with("someExpr")
     assert edge.parent_id == "expr1"
+
+
+def test_generate_all(mocker):
+    instance = CwpLtlVisitor(mocker.MagicMock())
+    mock_generate_helper_functions = mocker.patch.object(
+        instance, "generate_helper_functions"
+    )
+    mock_generate_LTL = mocker.patch.object(instance, "generate_LTL")
+
+    instance.generate_all()
+
+    mock_generate_helper_functions.assert_called_once()
+    mock_generate_LTL.assert_called_once()
+
+
+def test_generate_helper_functions(mocker):
+    instance = CwpLtlVisitor(mocker.MagicMock())
+    mock_write_state_variables = mocker.patch.object(instance, "write_state_variables")
+    mock_write_variable_range_invariants = mocker.patch.object(
+        instance, "write_variable_range_invariants"
+    )
+    mock_write_init_states = mocker.patch.object(instance, "write_init_states")
+    mock_write_edge_definitions = mocker.patch.object(
+        instance, "write_edge_definitions"
+    )
+    mock_write_update_state = mocker.patch.object(instance, "write_update_state")
+    mock_write_log_state_inline = mocker.patch.object(
+        instance, "write_log_state_inline"
+    )
+
+    instance.print_on = True
+    instance.generate_helper_functions()
+    mock_write_state_variables.assert_called_once()
+    mock_write_variable_range_invariants.assert_called_once()
+    mock_write_init_states.assert_called_once()
+    mock_write_edge_definitions.assert_called_once()
+    mock_write_update_state.assert_called_once()
+    mock_write_log_state_inline.assert_called_once()
+
+    mock_write_log_state_inline.reset_mock()
+    instance.print_on = False
+    instance.generate_helper_functions()
+    mock_write_log_state_inline.assert_not_called()
+
+
+def test_generate_LTL(mocker):
+    instance = CwpLtlVisitor(mocker.MagicMock())
+    instance.cwp = mocker.MagicMock()
+    mock_write_global_properties = mocker.patch.object(
+        instance, "write_global_properties"
+    )
+    mock_write_state_properties = mocker.patch.object(
+        instance, "write_state_properties"
+    )
+    mock_write_line = mocker.patch.object(instance, "write_line")
+
+    instance.cwp.states = {
+        "state1": mocker.MagicMock(),
+        "state2": mocker.MagicMock(),
+    }
+
+    instance.generate_LTL()
+
+    mock_write_global_properties.assert_called_once()
+
+    assert mock_write_state_properties.call_count == len(instance.cwp.states)
+    mock_write_state_properties.assert_any_call(instance.cwp.states["state1"])
+    mock_write_state_properties.assert_any_call(instance.cwp.states["state2"])
+
+    expected_calls = [mocker.call(""), mocker.call(""), mocker.call("")]
+    mock_write_line.assert_has_calls(expected_calls)
