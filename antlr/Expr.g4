@@ -22,7 +22,7 @@ notExpr
     ;
 
 relExpr
-    :   relExpr op=('<' | '<=' | '==' | '>' | '>=') addSubExpr  # Relational
+    :   relExpr op=('<' | '<=' | '==' | '!=' | '>' | '>=') addSubExpr  # Relational
     |   addSubExpr                                              # ToAddSub
     ;
 
