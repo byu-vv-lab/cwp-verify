@@ -127,9 +127,6 @@ class ExpressionListener(ExprListener):  # type: ignore
             raise TypeError("Did not recognize ID")
         self.type_stack.append(type.unwrap())
 
-    def exitParens(self, ctx: ExprParser.ParensContext) -> None:
-        pass
-
     @staticmethod
     def _build(
         symbol_table: SymbolTable, context: ExprParser.ExprContext
