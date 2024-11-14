@@ -45,7 +45,7 @@ def _get_parser(file_contents: str) -> Result[ExprParser, Error]:
 
 def _parse_expressions(parser: ExprParser) -> Result[ExprParser.ExprContext, Error]:
     try:
-        tree: ExprParser.ExprContext = parser.expr()
+        tree: ExprParser.StartContext = parser.start()
         return Success(tree)
     except ParseCancellationException as exception:
         msg = str(exception)
@@ -57,6 +57,7 @@ class ExpressionListener(ExprListener):  # type: ignore
     def __init__(self, symbol_table: SymbolTable) -> None:
         self.symbol_table = symbol_table
         self.type_stack: List[str] = []
+        self.final_type: str
 
     def check_and_push_type(self, left_type: str, right_type: str) -> None:
         if left_type == typechecking.BOOL or right_type == typechecking.BOOL:
@@ -66,6 +67,9 @@ class ExpressionListener(ExprListener):  # type: ignore
         ):
             raise TypeError(f"Type mismatch: {left_type} != {right_type}")
         self.type_stack.append(result.unwrap())
+
+    def exitStart(self, ctx: ExprParser.StartContext) -> None:
+        self.final_type = self.type_stack.pop()
 
     def exitOr(self, ctx: ExprParser.OrContext) -> None:
         right_type = self.type_stack.pop()
@@ -130,12 +134,11 @@ class ExpressionListener(ExprListener):  # type: ignore
     @staticmethod
     def _build(
         symbol_table: SymbolTable, context: ExprParser.ExprContext
-    ) -> Result[None, Error]:
+    ) -> Result[str, Error]:
         listener = ExpressionListener(symbol_table)
         try:
             ParseTreeWalker.DEFAULT.walk(listener, context)
-            # TODO: inside success should be the type
-            return Success(None)
+            return Success(listener.final_type)
         except Exception as exception:
             assert len(exception.args) == 1
             error: Error = exception.args[0]

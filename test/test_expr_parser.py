@@ -306,21 +306,33 @@ def test_invalid_inputs(input_text):
 
 
 @pytest.mark.parametrize(
-    "state, expression",
+    "state, expression, expression_type",
     [
-        ("var a: bit = 1 var b: bit = 0", "a != b"),
-        ("const x: int = 0 var y: short = 1 var z: bit = 0", "x + y - z"),
-        ("var a: int = 10 var b: byte = 5", "a > b"),
-        ("const x: bool = true var y: bool = false", "!x || y"),
-        ("var m: int = 20 var n: short = 10 var o: bool = true", "(m >= n) && !o"),
-        ("var p: int = 15 var q: short = 3 var r: byte = 2", "(p + q) * r == p"),
-        ("var a: byte = 1 var b: bit = 0", "(a != b) || (a > b)"),
-        ("const x: int = 4 var y: short = 2 var z: byte = 1", "x * (y + z) < x"),
-        ("var i: int = 0 var j: short = 1 var k: bit = 0", "(i + j) > k"),
-        ("var a: int = 5 var b: short = 3 var c: bool = true", "(a > b) && !c"),
+        ("var a: bit = 1 var b: bit = 0", "a != b", "bool"),
+        ("const x: int = 0 var y: short = 1 var z: bit = 0", "x + y - z", "int"),
+        ("var a: int = 10 var b: byte = 5", "a > b", "bool"),
+        ("const x: bool = true var y: bool = false", "!x || y", "bool"),
+        (
+            "var m: int = 20 var n: short = 10 var o: bool = true",
+            "(m >= n) && !o",
+            "bool",
+        ),
+        (
+            "var p: int = 15 var q: short = 3 var r: byte = 2",
+            "(p + q) * r == p",
+            "bool",
+        ),
+        ("var a: byte = 1 var b: bit = 0", "(a != b) || (a > b)", "bool"),
+        (
+            "const x: int = 4 var y: short = 2 var z: byte = 1",
+            "x * (y + z) < x",
+            "bool",
+        ),
+        ("var i: int = 0 var j: short = 1 var k: bit = 0", "(i + j) > k", "bool"),
+        ("var a: int = 5 var b: short = 3 var c: bool = true", "(a > b) && !c", "bool"),
     ],
 )
-def test_given_good_state_when_build_then_success(state, expression):
+def test_given_good_state_when_build_then_success(state, expression, expression_type):
     sym_table_result = SymbolTable.build(state)
 
     assert is_successful(sym_table_result)
@@ -329,6 +341,8 @@ def test_given_good_state_when_build_then_success(state, expression):
     expr_checker_result = ExpressionListener.build(expression, symbol_table)
 
     assert is_successful(expr_checker_result)
+
+    assert expr_checker_result.unwrap() == expression_type
 
 
 @pytest.mark.parametrize(
