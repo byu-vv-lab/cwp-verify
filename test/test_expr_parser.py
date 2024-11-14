@@ -309,7 +309,7 @@ def test_invalid_inputs(input_text):
     "state, expression, expression_type",
     [
         ("var a: bit = 1 var b: bit = 0", "a != b", "bool"),
-        ("const x: int = 0 var y: short = 1 var z: bit = 0", "x + y - z", "int"),
+        ("const x: int = 0 var y: short = 1 var z: short = 0", "x + y - z", "int"),
         ("var a: int = 10 var b: byte = 5", "a > b", "bool"),
         ("const x: bool = true var y: bool = false", "!x || y", "bool"),
         (
@@ -349,6 +349,7 @@ def test_given_good_state_when_build_then_success(state, expression, expression_
     "state, expression",
     [
         ("const a: bit = 0 var b: short = 1", "b + c"),
+        ("const x: int = 0 var y: short = 1 var z: bit = 0", "x + y - z"),
         ("const a: bit = 0 var b: short = 1 var c: int = 1", "a + (b * c)"),
         ("const a: short = 0 var b: short = 1 var c: short = 1", "a + (b > c)"),
         ("var a: bit = 0", "!a"),
