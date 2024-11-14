@@ -311,13 +311,13 @@ def test_invalid_inputs(input_text):
         ("var a: bit = 1 var b: bit = 0", "a != b"),
         ("const x: int = 0 var y: short = 1 var z: bit = 0", "x + y - z"),
         ("var a: int = 10 var b: byte = 5", "a > b"),
-        ("const x: bit = 1 var y: bit = 0", "!x || y"),
-        ("var m: int = 20 var n: short = 10 var o: bit = 1", "(m >= n) && !o"),
+        ("const x: bool = true var y: bool = false", "!x || y"),
+        ("var m: int = 20 var n: short = 10 var o: bool = true", "(m >= n) && !o"),
         ("var p: int = 15 var q: short = 3 var r: byte = 2", "(p + q) * r == p"),
         ("var a: byte = 1 var b: bit = 0", "(a != b) || (a > b)"),
         ("const x: int = 4 var y: short = 2 var z: byte = 1", "x * (y + z) < x"),
         ("var i: int = 0 var j: short = 1 var k: bit = 0", "(i + j) > k"),
-        ("var a: int = 5 var b: short = 3 var c: bit = 1", "(a > b) && !c"),
+        ("var a: int = 5 var b: short = 3 var c: bool = true", "(a > b) && !c"),
     ],
 )
 def test_given_good_state_when_build_then_success(state, expression):

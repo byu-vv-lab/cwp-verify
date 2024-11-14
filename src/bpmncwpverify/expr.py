@@ -50,25 +50,35 @@ class ExpressionListener(ExprListener):  # type: ignore
     def exitOr(self, ctx: ExprParser.OrContext) -> None:
         right_type = self.type_stack.pop()
         left_type = self.type_stack.pop()
-        self.check_and_push_type(left_type, right_type)
+        if not (right_type == typechecking.BOOL and left_type == typechecking.BOOL):
+            raise TypeError(
+                f"Type mismatch: {left_type} || {right_type}. Both should be BOOL"
+            )
+        self.type_stack.append(typechecking.BOOL)
 
     def exitAnd(self, ctx: ExprParser.AndContext) -> None:
         right_type = self.type_stack.pop()
         left_type = self.type_stack.pop()
-        self.check_and_push_type(left_type, right_type)
+        if not (right_type == typechecking.BOOL and left_type == typechecking.BOOL):
+            raise TypeError(
+                f"Type mismatch: {left_type} && {right_type}. Both should be BOOL"
+            )
+        self.type_stack.append(typechecking.BOOL)
 
     def exitNot(self, ctx: ExprParser.NotContext) -> None:
         expr_type = self.type_stack.pop()
-        if expr_type != typechecking.BOOL and expr_type != typechecking.BIT:
+        if expr_type != typechecking.BOOL:
             raise TypeError(
                 f"Type mismatch: tried to `not` a non-boolean expression: {expr_type}"
             )
-        self.type_stack.append(expr_type)
+        self.type_stack.append(typechecking.BOOL)
 
     def exitRelational(self, ctx: ExprParser.RelationalContext) -> None:
         right_type = self.type_stack.pop()
         left_type = self.type_stack.pop()
-        self.check_and_push_type(left_type, right_type)
+        if not is_successful(typechecking.get_type_assign(left_type, right_type)):
+            raise TypeError(f"Type mismatch: {left_type} != {right_type}")
+        self.type_stack.append(typechecking.BOOL)
 
     def exitAddSub(self, ctx: ExprParser.AddSubContext) -> None:
         right_type = self.type_stack.pop()
