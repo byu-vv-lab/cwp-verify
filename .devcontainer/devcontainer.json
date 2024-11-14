@@ -28,7 +28,7 @@
         "vscode": {
             // Set *default* container specific settings.json values on container create.
             "settings": {},
-            "extensions": ["mike-lischke.vscode-antlr4", "ms-python.mypy-type-checker", "charliermarsh.ruff"]
+            "extensions": ["mike-lischke.vscode-antlr4", "ms-python.mypy-type-checker", "charliermarsh.ruff", "peacekeeper228.spin-promela"]
         }
     }
 }
