@@ -58,6 +58,8 @@ class ExpressionListener(ExprListener):  # type: ignore
         self.type_stack: List[str] = []
 
     def check_and_push_type(self, left_type: str, right_type: str) -> None:
+        if left_type == typechecking.BOOL or right_type == typechecking.BOOL:
+            raise TypeError("Tried to perform arithmetic on type boolean")
         if not is_successful(
             result := typechecking.get_type_assign(left_type, right_type)
         ):
