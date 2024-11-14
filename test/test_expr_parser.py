@@ -349,11 +349,12 @@ def test_given_good_state_when_build_then_success(state, expression, expression_
     "state, expression",
     [
         ("const a: bit = 0 var b: short = 1", "b + c"),
+        ("const a: bit = 0 var b: bit = 1", "b + c"),
         ("const x: int = 0 var y: short = 1 var z: bit = 0", "x + y - z"),
         ("const a: bit = 0 var b: short = 1 var c: int = 1", "a + (b * c)"),
         ("const a: short = 0 var b: short = 1 var c: short = 1", "a + (b > c)"),
         ("var a: bit = 0", "!a"),
-        ("var a: bool = false var b: bit = 0", "a + b"),
+        ("var a: bool = false var b: bool = true", "a + b"),
     ],
 )
 def test_given_bad_state_when_build_then_failure(state, expression):
