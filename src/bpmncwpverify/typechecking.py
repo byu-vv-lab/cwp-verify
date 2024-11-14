@@ -1,5 +1,5 @@
 from returns.result import Failure, Result, Success
-from typing import Final
+from typing import Final, Callable
 
 from bpmncwpverify.error import (
     Error,
@@ -22,6 +22,20 @@ SHORTMIN: Final[int] = -32768
 SHORTMAX: Final[int] = 32767
 INTMIN: Final[int] = -2147483648
 INTMAX: Final[int] = 2147483647
+
+
+def get_computation_type_result(
+    ltype: str,
+    rtype: str,
+    error: Callable[[str, str], Error] = TypingAssignCompatabilityError,
+) -> Result[str, Error]:
+    if ltype == rtype:
+        return Success(ltype)
+    elif "int" in [ltype, rtype]:
+        return Success("int")
+    elif "short" in [ltype, rtype]:
+        return Success("short")
+    return Failure(error(ltype, rtype))
 
 
 def get_type_assign(ltype: str, rtype: str) -> Result[str, Error]:

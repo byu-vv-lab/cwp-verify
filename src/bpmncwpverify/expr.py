@@ -134,6 +134,7 @@ class ExpressionListener(ExprListener):  # type: ignore
         listener = ExpressionListener(symbol_table)
         try:
             ParseTreeWalker.DEFAULT.walk(listener, context)
+            # TODO: inside success should be the type
             return Success(None)
         except Exception as exception:
             assert len(exception.args) == 1
