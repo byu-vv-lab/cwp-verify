@@ -69,6 +69,26 @@ def or_input() -> Iterable[str]:
     yield "1 || 1"
 
 
+@pytest.fixutre(scope="module")
+def bad_input_unaryInBinary() -> Iterable[str]:
+    yield "1 ++ 10"
+
+
+@pytest.fixture(scope="module")
+def bad_input_badOperator() -> Iterable[str]:
+    yield "a = 10"
+
+
+@pytest.fixture(scope="module")
+def bad_input_binaryInUnary() -> Iterable[str]:
+    yield "* 1"
+
+
+# TODO: write a function that returns sucess/failure on a bad/good input
+# TODO: write nested expr tests
+# TODO: check for parse errors for bad inputs
+
+
 def test_parenthesis_input_test(parenthesis_input):
     input_stream = InputStream(parenthesis_input)
     lexer = ExprLexer(input_stream)
