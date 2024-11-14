@@ -59,13 +59,20 @@ class ExpressionListener(ExprListener):  # type: ignore
         self.type_stack: List[str] = []
         self.final_type: str
 
-    def check_and_push_type(self, left_type: str, right_type: str) -> None:
-        if left_type == typechecking.BOOL or right_type == typechecking.BOOL:
-            raise TypeError("Tried to perform arithmetic on type boolean")
-        if not is_successful(
-            result := typechecking.get_type_assign(left_type, right_type)
+    def check_arithmetic_types(self, left_type: str, right_type: str) -> None:
+        if not_(is_successful)(
+            result := typechecking.get_computation_type_result(left_type, right_type)
         ):
             raise TypeError(f"Type mismatch: {left_type} != {right_type}")
+        self.type_stack.append(result.unwrap())
+
+    def check_and_or_types(self, left_type: str, right_type: str) -> None:
+        if not_(is_successful)(
+            result := typechecking.get_and_or_type_result(left_type, right_type)
+        ):
+            raise TypeError(
+                f"Type mismatch: {left_type} ||/&& {right_type}. Both should be BOOL"
+            )
         self.type_stack.append(result.unwrap())
 
     def exitStart(self, ctx: ExprParser.StartContext) -> None:
@@ -74,20 +81,12 @@ class ExpressionListener(ExprListener):  # type: ignore
     def exitOr(self, ctx: ExprParser.OrContext) -> None:
         right_type = self.type_stack.pop()
         left_type = self.type_stack.pop()
-        if not (right_type == typechecking.BOOL and left_type == typechecking.BOOL):
-            raise TypeError(
-                f"Type mismatch: {left_type} || {right_type}. Both should be BOOL"
-            )
-        self.type_stack.append(typechecking.BOOL)
+        self.check_and_or_types(left_type, right_type)
 
     def exitAnd(self, ctx: ExprParser.AndContext) -> None:
         right_type = self.type_stack.pop()
         left_type = self.type_stack.pop()
-        if not (right_type == typechecking.BOOL and left_type == typechecking.BOOL):
-            raise TypeError(
-                f"Type mismatch: {left_type} && {right_type}. Both should be BOOL"
-            )
-        self.type_stack.append(typechecking.BOOL)
+        self.check_and_or_types(left_type, right_type)
 
     def exitNot(self, ctx: ExprParser.NotContext) -> None:
         expr_type = self.type_stack.pop()
@@ -100,19 +99,21 @@ class ExpressionListener(ExprListener):  # type: ignore
     def exitRelational(self, ctx: ExprParser.RelationalContext) -> None:
         right_type = self.type_stack.pop()
         left_type = self.type_stack.pop()
-        if not is_successful(typechecking.get_type_assign(left_type, right_type)):
+        if not_(is_successful)(
+            typechecking.get_relational_type_result(left_type, right_type)
+        ):
             raise TypeError(f"Type mismatch: {left_type} != {right_type}")
         self.type_stack.append(typechecking.BOOL)
 
     def exitAddSub(self, ctx: ExprParser.AddSubContext) -> None:
         right_type = self.type_stack.pop()
         left_type = self.type_stack.pop()
-        self.check_and_push_type(left_type, right_type)
+        self.check_arithmetic_types(left_type, right_type)
 
     def exitMulDiv(self, ctx: ExprParser.MulDivContext) -> None:
         right_type = self.type_stack.pop()
         left_type = self.type_stack.pop()
-        self.check_and_push_type(left_type, right_type)
+        self.check_arithmetic_types(left_type, right_type)
 
     def exitNegate(self, ctx: ExprParser.NegateContext) -> None:
         expr_type = self.type_stack.pop()

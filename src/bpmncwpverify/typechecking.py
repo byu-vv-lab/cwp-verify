@@ -29,12 +29,44 @@ def get_computation_type_result(
     rtype: str,
     error: Callable[[str, str], Error] = TypingAssignCompatabilityError,
 ) -> Result[str, Error]:
-    if ltype == rtype:
+    if ltype in {BIT, BOOL} or rtype in {BIT, BOOL}:
+        return Failure(error(ltype, rtype))
+    elif ltype == rtype:
         return Success(ltype)
     elif "int" in [ltype, rtype]:
         return Success("int")
     elif "short" in [ltype, rtype]:
         return Success("short")
+    return Failure(error(ltype, rtype))
+
+
+def get_relational_type_result(
+    ltype: str,
+    rtype: str,
+    error: Callable[[str, str], Error] = TypingAssignCompatabilityError,
+) -> Result[str, Error]:
+    similar_mapping = {
+        "bit": "number",
+        "byte": "number",
+        "short": "number",
+        "int": "number",
+        "bool": "boolean",
+    }
+
+    if similar_mapping[ltype] == similar_mapping[rtype]:
+        return Success(BOOL)
+
+    return Failure(error(ltype, rtype))
+
+
+def get_and_or_type_result(
+    ltype: str,
+    rtype: str,
+    error: Callable[[str, str], Error] = TypingAssignCompatabilityError,
+) -> Result[str, Error]:
+    if ltype == BOOL and rtype == BOOL:
+        return Success(BOOL)
+
     return Failure(error(ltype, rtype))
 
 
