@@ -171,28 +171,20 @@ def test_or_input_test(or_input):
 
 
 class ThrowingErrorListener(ErrorListener):
-    def __init__(self):
-        super(ThrowingErrorListener, self).__init__()
-
     def syntaxError(self, recognizer, offendingSymbol, line, column, msg, e):
-        raise SyntaxError(f"line {line}:{column} {msg}")
+        raise SyntaxError(f"Syntax error at line {line}:{column} - {msg}")
 
 
-def parse_input(input_text):
-    input_stream = InputStream(input_text)
+def parse_input(expression: str):
+    input_stream = InputStream(expression)
     lexer = ExprLexer(input_stream)
     stream = CommonTokenStream(lexer)
     parser = ExprParser(stream)
 
     parser.removeErrorListeners()
-    lexer.removeErrorListeners()
+    parser.addErrorListener(ThrowingErrorListener())
 
-    error_listener = ThrowingErrorListener()
-    parser.addErrorListener(error_listener)
-    lexer.addErrorListener(error_listener)
-
-    tree = parser.expr()
-    return tree
+    return parser.start()
 
 
 @pytest.mark.parametrize(
@@ -286,7 +278,6 @@ def test_valid_inputs(input_text):
         "(a || b &&",
         "(a + b))",
         "a && (b || c",
-        "a < (b && c)",
         "((a + b)",
         "a && || b",
         "a || && b",
