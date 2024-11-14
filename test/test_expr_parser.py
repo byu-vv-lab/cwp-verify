@@ -81,6 +81,8 @@ def bad_input_binaryInUnary() -> Iterable[str]:
 
 
 # TODO: write a function that returns sucess/failure on a bad/good input
+# TODO: write nested expr tests
+# TODO: check for parse errors for bad inputs
 
 
 def test_parenthesis_input_test(parenthesis_input):
