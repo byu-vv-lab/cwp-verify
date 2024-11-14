@@ -11,6 +11,7 @@ from returns.result import Failure, Result, Success
 from returns.pipeline import flow, is_successful
 from returns.pointfree import bind_result
 from returns.curry import partial
+from returns.functions import not_
 from bpmncwpverify.state import SymbolTable
 from bpmncwpverify.error import Error
 
@@ -119,10 +120,12 @@ class ExpressionListener(ExprListener):  # type: ignore
 
     def enterID(self, ctx: ExprParser.IDContext) -> None:
         identifier: str = ctx.ID().getText()
-        if identifier in self.symbol_table._id2type:
-            self.type_stack.append(self.symbol_table.get_type(identifier).unwrap())
-        else:
-            raise ValueError(f"Undefined identifier: {identifier}")
+        type = self.symbol_table.get_type(identifier).lash(
+            typechecking.get_type_literal
+        )
+        if not_(is_successful)(type):
+            raise TypeError("Did not recognize ID")
+        self.type_stack.append(type.unwrap())
 
     def exitParens(self, ctx: ExprParser.ParensContext) -> None:
         pass
