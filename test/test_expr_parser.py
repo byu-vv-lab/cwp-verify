@@ -69,7 +69,7 @@ def or_input() -> Iterable[str]:
     yield "1 || 1"
 
 
-@pytest.fixutre(scope="module")
+@pytest.fixture(scope="module")
 def bad_input_unaryInBinary() -> Iterable[str]:
     yield "1 ++ 10"
 
