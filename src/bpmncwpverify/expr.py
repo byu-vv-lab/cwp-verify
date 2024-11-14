@@ -95,6 +95,9 @@ class ExpressionListener(ExprListener):  # type: ignore
         else:
             raise ValueError(f"Undefined identifier: {identifier}")
 
+    def exitParens(self, ctx: ExprParser.ParensContext) -> None:
+        pass
+
     @staticmethod
     def _build(
         symbol_table: SymbolTable, context: ExprParser.ExprContext

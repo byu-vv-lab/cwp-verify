@@ -198,17 +198,63 @@ def parse_input(input_text):
 @pytest.mark.parametrize(
     "input_text",
     [
-        "(x + y) != (z + t)",
-        "!((a - b) == (c * d))",
-        "(x > y) && (y < z)",
-        "(p >= q) || (r <= s)",
-        "a > b && b < c",
-        "a && b < c",
-        "!((x + (y * z)) == ((a / b) - c))",
-        "(((x)) + ((y))) > ((z))",
-        "((a + b) > c) && ((d - e) <= f) || !(g == h)",
-        "(x1 + y3d) == (y2 - yy_2)",
-        "(a * b + c / d - e) != (f + g)",
+        "a",
+        "(a)",
+        "a + b",
+        "a * b",
+        "-a",
+        # Unary and Binary Operations
+        "-a + b",
+        "a + b * c",
+        "a * b + c",
+        "(a + b) * c",
+        "-a * -b",
+        # Logical and Relational Operations
+        "a < b",
+        "a <= b",
+        "a == b",
+        "a > b",
+        "a >= b",
+        "!a",
+        "!(a && b)",
+        "a && b",
+        "a || b",
+        "a && b || c",
+        "(a || b) && c",
+        "a < b && c > d",
+        "a + b == c - d",
+        "(a < b) && (c >= d)",
+        # Complex Nested Expressions
+        "a * (b + c) / d",
+        "a + b * (c - d) / e",
+        "-a + (b * c) / (-d + e)",
+        "a && (b || !c)",
+        "!(a < b) && (c > d)",
+        "a < b + c * d",
+        "(a + b) <= (c - d * e)",
+        "!(a == b) || (c != d)",
+        "a + b * c == d / e - f",
+        "!a || !b && !c",
+        "a < b || (c >= d && e < f)",
+        # Complex Combinations
+        "((a + b) * c < d) && e",
+        "(a / b) * (c + d) - e",
+        "a && b || c && d",
+        "(a < b || c > d) && (e >= f || g <= h)",
+        "(a < b || c > d) && e >= f || g <= h",
+        "((a < b || c > d) && e >= f || g <= h) > (a - b - (c - d - g * h))",
+        "a + (b * (c - d / e)) >= f",
+        "((a && b) || !c) && d",
+        # Edge Cases with Nested Parentheses and Unary Operators
+        "((((a))))",
+        "-(a + b * c)",
+        "!(!(a && b))",
+        "((((a + b)) * (c - d)))",
+        "a * -(b + c)",
+        "!((a + b) * (c - d) / e)",
+        "((a && b) || (c && d))",
+        "!(!(!a))",
+        "((a || b) && (!c || d))",
     ],
 )
 def test_valid_inputs(input_text):
@@ -222,14 +268,45 @@ def test_valid_inputs(input_text):
 @pytest.mark.parametrize(
     "input_text",
     [
-        "(x y)",
-        "((a + b) > c",
-        "(a + b) > c$",
-        "(a ++ b) == c",
-        "(a + b c) == c",
-        "",
-        "(a +- 1.2.3) == b",
-        "( +- 1.2.3) == b",
+        "a +",
+        "&& b",
+        "a ||",
+        "(a + b",
+        "a + (b * c",
+        "a b + c",
+        "a * * b",
+        "!",
+        "a < < b",
+        "(a && b))",
+        "a + (b * (c - d)",
+        "((a + b) * c < d && e",
+        "a * (b + c))",
+        "a || (b && c",
+        "a && b ||",
+        "(a || b &&",
+        "(a + b))",
+        "a && (b || c",
+        "a < (b && c)",
+        "((a + b)",
+        "a && || b",
+        "a || && b",
+        "a + * b",
+        "a < > b",
+        "a * + b",
+        "a / && b",
+        "a || b +",
+        "! && a",
+        "+",
+        "*",
+        "&&",
+        "||",
+        "(",
+        ")",
+        "!((a && b) ||)",
+        "((a || b) && c ||)",
+        "((a && b) || (c < d &&))",
+        "((a || (b * c))) || + d",
+        "(a || b)) * c",
     ],
 )
 def test_invalid_inputs(input_text):
@@ -240,9 +317,16 @@ def test_invalid_inputs(input_text):
 @pytest.mark.parametrize(
     "state, expression",
     [
-        ("const a: bit = 0 var i : bit = 0 {0 1}", "a != i"),
-        ("const x: int = 0 var y : int = 0 {0 1} var z : int = 0", "(x > y) + (y < z)"),
-        # ("var a: short = 0 var b: short = 3 var c: int = 4 var d: int = 5 var e: int = 6 var f: int = 7 var g: int = 8 var h: int = 9, "((a + b) > c) && ((d - e) <= f) || !(g == h)"),
+        ("var a: bit = 1 var b: bit = 0", "a != b"),
+        ("const x: int = 0 var y: short = 1 var z: bit = 0", "x + y - z"),
+        ("var a: int = 10 var b: byte = 5", "a > b"),
+        ("const x: bit = 1 var y: bit = 0", "!x || y"),
+        ("var m: int = 20 var n: short = 10 var o: bit = 1", "(m >= n) && !o"),
+        ("var p: int = 15 var q: short = 3 var r: byte = 2", "(p + q) * r == p"),
+        ("var a: byte = 1 var b: bit = 0", "(a != b) || (a > b)"),
+        ("const x: int = 4 var y: short = 2 var z: byte = 1", "x * (y + z) < x"),
+        ("var i: int = 0 var j: short = 1 var k: bit = 0", "(i + j) > k"),
+        ("var a: int = 5 var b: short = 3 var c: bit = 1", "(a > b) && !c"),
     ],
 )
 def test_given_good_state_when_build_then_success(state, expression):
@@ -254,3 +338,21 @@ def test_given_good_state_when_build_then_success(state, expression):
     expr_checker_result = ExpressionListener.build(expression, symbol_table)
 
     assert is_successful(expr_checker_result)
+
+
+@pytest.mark.parametrize(
+    "state, expression",
+    [
+        ("const a: bit = 0 var b: short = 1", "b + c"),
+        ("const a: bit = 0 var b: short = 1 var c: int = 1", "a + (b * c)"),
+    ],
+)
+def test_given_bad_state_when_build_then_failure(state, expression):
+    sym_table_result = SymbolTable.build(state)
+
+    assert is_successful(sym_table_result)
+    symbol_table: SymbolTable = sym_table_result.unwrap()
+
+    expr_checker_result = ExpressionListener.build(expression, symbol_table)
+
+    assert not is_successful(expr_checker_result)
