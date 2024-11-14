@@ -1,4 +1,4 @@
-from typing import List
+from typing import Any, List
 from bpmncwpverify import typechecking
 from bpmncwpverify.antlr.ExprListener import ExprListener
 from bpmncwpverify.antlr.ExprLexer import ExprLexer
@@ -15,13 +15,30 @@ from bpmncwpverify.state import SymbolTable
 from bpmncwpverify.error import Error
 
 
+class ThrowingErrorListener(ErrorListener):  # type: ignore[misc]
+    def __init__(self) -> None:
+        super().__init__()
+
+    def syntaxError(
+        self,
+        recognizer: Any,
+        offendingSymbol: Any,
+        line: int,
+        column: int,
+        msg: str,
+        e: Exception,
+    ) -> None:
+        msg = "line {}:{} {}".format(line, column, msg)
+        raise ParseCancellationException(msg)
+
+
 def _get_parser(file_contents: str) -> Result[ExprParser, Error]:
     input_stream = InputStream(file_contents)
     lexer = ExprLexer(input_stream)
     stream = CommonTokenStream(lexer)
     parser = ExprParser(stream)
     parser.removeErrorListener(ConsoleErrorListener.INSTANCE)
-    parser.addErrorListener(ErrorListener())
+    parser.addErrorListener(ThrowingErrorListener())
     return Success(parser)
 
 
