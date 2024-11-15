@@ -1,41 +1,411 @@
 # type: ignore
-from bpmncwpverify.visitors import PromelaGenVisitor
-from bpmncwpverify.cwp import Cwp
+from bpmncwpverify.cwp import Cwp, CwpEdge, CwpState
 from bpmncwpverify.state import SymbolTable
 import inspect
+from bpmncwpverify.visitors import PromelaGenVisitor
 from returns.pipeline import is_successful
-from unittest.mock import MagicMock
 from bpmncwpverify.bpmn import (
     Bpmn,
+    ExclusiveGatewayNode,
     ParallelGatewayNode,
+    EndEvent,
+    SequenceFlow,
+    StartEvent,
+    Process,
+    Task,
 )
 import os
 
+
+flows_to_test = {
+    "Flow_08e7qxg": {
+        "source": "Gateway_1pm4ghz",
+        "dest": "Gateway_12r266n",
+        "is_leaf": True,
+    },
+    "Flow_1wl740o": {
+        "source": "Activity_1qm7qck",
+        "dest": "Gateway_12r266n",
+        "is_leaf": False,
+    },
+    "Flow_1kx5xjv": {
+        "source": "Gateway_12r266n",
+        "dest": "Activity_1unsjkg",
+        "is_leaf": False,
+    },
+    "Flow_13xpfx7": {
+        "source": "Gateway_12r266n",
+        "dest": "Activity_1t579ox",
+        "is_leaf": False,
+    },
+    "Flow_1oezfcg": {
+        "source": "Activity_1unsjkg",
+        "dest": "Gateway_0s1i42o",
+        "is_leaf": False,
+    },
+    "Flow_14s5onf": {
+        "source": "Activity_1t579ox",
+        "dest": "Gateway_0s1i42o",
+        "is_leaf": True,
+    },
+    "Flow_0feadgd": {
+        "source": "Gateway_0s1i42o",
+        "dest": "Gateway_1pm4ghz",
+        "is_leaf": False,
+    },
+    "Flow_127sd29": {
+        "source": "Activity_1bckz5y",
+        "dest": "Gateway_1pm4ghz",
+        "is_leaf": True,
+    },
+    "Flow_00oxr95": {
+        "source": "Activity_1mktua2",
+        "dest": "Gateway_1pm4ghz",
+        "is_leaf": True,
+    },
+    "Flow_0yqye0v": {
+        "source": "Gateway_1pm4ghz",
+        "dest": "Activity_0a5xzqf",
+        "is_leaf": False,
+    },
+    "Flow_0diuub0": {
+        "source": "Gateway_1pm4ghz",
+        "dest": "Event_0wqympo",
+        "is_leaf": False,
+    },
+    "Flow_0q6dz8p": {
+        "source": "Gateway_1pm4ghz",
+        "dest": "Activity_1bckz5y",
+        "is_leaf": False,
+    },
+    "Flow_0koz64j": {
+        "source": "Gateway_1pm4ghz",
+        "dest": "Activity_1mktua2",
+        "is_leaf": False,
+    },
+    "Flow_0ct87dl": {
+        "source": "Activity_0a5xzqf",
+        "dest": "Gateway_000lymc",
+        "is_leaf": False,
+    },
+    "Flow_0jmvvxc": {
+        "source": "Gateway_000lymc",
+        "dest": "Activity_1qqx4aq",
+        "is_leaf": False,
+    },
+    "Flow_1y66pph": {
+        "source": "Gateway_000lymc",
+        "dest": "Activity_1rfm4sh",
+        "is_leaf": False,
+    },
+    "Flow_0znbe82": {
+        "source": "Activity_1qqx4aq",
+        "dest": "Gateway_0cy7rs7",
+        "is_leaf": False,
+    },
+    "Flow_1sx1rdt": {
+        "source": "Activity_1rfm4sh",
+        "dest": "Gateway_0cy7rs7",
+        "is_leaf": True,
+    },
+    "Flow_1cm84v3": {
+        "source": "Gateway_0cy7rs7",
+        "dest": "Event_1y6wxsp",
+        "is_leaf": False,
+    },
+    "Flow_0oiwgjd": {
+        "source": "StartEvent_1y8wbre",
+        "dest": "Activity_1qm7qck",
+        "is_leaf": False,
+    },
+}
+
+element_mapping = {
+    "Gateway_12r266n": {
+        "class_name": ParallelGatewayNode,
+        "id": "Gateway_12r266n",
+        "name": "both",
+        "in_flows": ["Flow_08e7qxg", "Flow_1wl740o"],
+        "out_flows": ["Flow_1kx5xjv", "Flow_13xpfx7"],
+    },
+    "Gateway_0s1i42o": {
+        "class_name": ParallelGatewayNode,
+        "id": "Gateway_0s1i42o",
+        "name": "end both",
+        "in_flows": ["Flow_14s5onf", "Flow_1oezfcg"],
+        "out_flows": ["Flow_0feadgd"],
+    },
+    "Gateway_1pm4ghz": {
+        "class_name": ExclusiveGatewayNode,
+        "id": "Gateway_1pm4ghz",
+        "name": "payment and terms agreed",
+        "in_flows": ["Flow_0feadgd", "Flow_127sd29", "Flow_00oxr95"],
+        "out_flows": [
+            "Flow_0yqye0v",
+            "Flow_0diuub0",
+            "Flow_0q6dz8p",
+            "Flow_0koz64j",
+            "Flow_08e7qxg",
+        ],
+    },
+    "Gateway_000lymc": {
+        "class_name": ParallelGatewayNode,
+        "id": "Gateway_000lymc",
+        "name": "both1",
+        "in_flows": ["Flow_0ct87dl"],
+        "out_flows": ["Flow_0jmvvxc", "Flow_1y66pph"],
+    },
+    "Gateway_0cy7rs7": {
+        "class_name": ParallelGatewayNode,
+        "id": "Gateway_0cy7rs7",
+        "name": "end both1",
+        "in_flows": ["Flow_1sx1rdt", "Flow_0znbe82"],
+        "out_flows": ["Flow_1cm84v3"],
+    },
+    "Activity_1unsjkg": {
+        "class_name": Task,
+        "name": "2-Buyer and Seller negotiate terms",
+        "id": "Activity_1unsjkg",
+        "in_flows": ["Flow_1kx5xjv"],
+        "out_flows": ["Flow_1oezfcg"],
+    },
+    "Activity_1t579ox": {
+        "class_name": Task,
+        "name": "3-Buyer and Seller negotiate price",
+        "id": "Activity_1t579ox",
+        "in_flows": ["Flow_13xpfx7"],
+        "out_flows": ["Flow_14s5onf"],
+    },
+    "Activity_1qm7qck": {
+        "class_name": Task,
+        "name": "1-Buyer sees desired backpack and meets Seller",
+        "id": "Activity_1qm7qck",
+        "in_flows": ["Flow_0oiwgjd"],
+        "out_flows": ["Flow_1wl740o"],
+    },
+    "Activity_1qqx4aq": {
+        "class_name": Task,
+        "name": "7a-Buyer hands cash payment to Seller",
+        "id": "Activity_1qqx4aq",
+        "in_flows": ["Flow_0jmvvxc"],
+        "out_flows": ["Flow_0znbe82"],
+    },
+    "Activity_1rfm4sh": {
+        "class_name": Task,
+        "name": "7b-Seller hands Backpack to Buyer",
+        "id": "Activity_1rfm4sh",
+        "in_flows": ["Flow_1y66pph"],
+        "out_flows": ["Flow_1sx1rdt"],
+    },
+    "Activity_1bckz5y": {
+        "class_name": Task,
+        "id": "Activity_1bckz5y",
+        "name": "4-Buyer and Seller repeat price negotiation",
+        "in_flows": ["Flow_0q6dz8p"],
+        "out_flows": ["Flow_127sd29"],
+    },
+    "Activity_1mktua2": {
+        "class_name": Task,
+        "id": "Activity_1bckz5y",
+        "name": "5-Buyer and Seller repeat terms negotiation",
+        "in_flows": ["Flow_0koz64j"],
+        "out_flows": ["Flow_00oxr95"],
+    },
+    "Activity_0a5xzqf": {
+        "class_name": Task,
+        "id": "Activity_0a5xzqf",
+        "name": "6-Buyer and Seller shake hands",
+        "in_flows": ["Flow_0yqye0v"],
+        "out_flows": ["Flow_0ct87dl"],
+    },
+    "Event_0wqympo": {
+        "class_name": EndEvent,
+        "id": "Event_0wqympo",
+        "name": "Purchase Failed",
+        "in_flows": ["Flow_0diuub0"],
+        "out_flows": [],
+    },
+    "Event_1y6wxsp": {
+        "class_name": EndEvent,
+        "id": "Event_1y6wxsp",
+        "name": "Purchase Completed",
+        "in_flows": ["Flow_1cm84v3"],
+        "out_flows": [],
+    },
+    "StartEvent_1y8wbre": {
+        "class_name": StartEvent,
+        "id": "StartEvent_1y8wbre",
+        "name": "Start7",
+        "in_flows": [],
+        "out_flows": ["Flow_0oiwgjd"],
+    },
+}
+
+
+def generate_mock_cwp(mocker):
+    cwp = Cwp()
+
+    edges_attr = [
+        {
+            "id": "-KwNMsgkI5d_Im8GLqs--2",
+            "name": "EdgeA",
+            "source": "BR_N0rfb46-SebA63Yol-1",
+            "is_leaf": False,
+            "dest": "-KwNMsgkI5d_Im8GLqs--1",
+            "expression": "terms != pending || paymentOffered != pendingPayment",
+            "parent_id": "-KwNMsgkI5d_Im8GLqs--5",
+        },
+        {
+            "id": "BR_N0rfb46-SebA63Yol-10",
+            "name": "EdgeB",
+            "source": "BR_N0rfb46-SebA63Yol-8",
+            "is_leaf": False,
+            "dest": "BR_N0rfb46-SebA63Yol-7",
+            "expression": "paymentOwner == sellerName && backpackOwner == buyerName",
+            "parent_id": "BR_N0rfb46-SebA63Yol-21",
+        },
+        {
+            "id": "-KwNMsgkI5d_Im8GLqs--3",
+            "name": "EdgeC",
+            "source": "-KwNMsgkI5d_Im8GLqs--1",
+            "is_leaf": False,
+            "dest": "BR_N0rfb46-SebA63Yol-8",
+            "expression": "terms == agreed && paymentOffered == paymentAmount",
+            "parent_id": "-KwNMsgkI5d_Im8GLqs--7",
+        },
+        {
+            "id": "-KwNMsgkI5d_Im8GLqs--4",
+            "name": "EdgeD",
+            "source": "-KwNMsgkI5d_Im8GLqs--1",
+            "is_leaf": False,
+            "dest": "BR_N0rfb46-SebA63Yol-6",
+            "expression": "terms == noRetry || paymentOffered == noRetryPayment",
+            "parent_id": "-KwNMsgkI5d_Im8GLqs--6",
+        },
+        {
+            "id": "-KwNMsgkI5d_Im8GLqs--8",
+            "name": "EdgeE",
+            "source": None,
+            "is_leaf": False,
+            "dest": "BR_N0rfb46-SebA63Yol-1",
+            "expression": "paymentOwner == buyerName && backpackOwner == sellerName",
+            "parent_id": "-KwNMsgkI5d_Im8GLqs--9",
+        },
+    ]
+
+    states_attr = [
+        {
+            "id": "BR_N0rfb46-SebA63Yol-1",
+            "out_edges": ["-KwNMsgkI5d_Im8GLqs--2"],
+            "in_edges": ["-KwNMsgkI5d_Im8GLqs--8"],
+            "name": "Init_Purchase_Pending",
+        },
+        {
+            "id": "BR_N0rfb46-SebA63Yol-6",
+            "out_edges": [],
+            "in_edges": ["-KwNMsgkI5d_Im8GLqs--4"],
+            "name": "Purchase_Failed",
+        },
+        {
+            "id": "BR_N0rfb46-SebA63Yol-7",
+            "out_edges": [],
+            "in_edges": ["BR_N0rfb46-SebA63Yol-10"],
+            "name": "Ownerships_Switched",
+        },
+        {
+            "id": "BR_N0rfb46-SebA63Yol-8",
+            "out_edges": ["BR_N0rfb46-SebA63Yol-10"],
+            "in_edges": ["-KwNMsgkI5d_Im8GLqs--3"],
+            "name": "Purchase_Agreed",
+        },
+        {
+            "id": "-KwNMsgkI5d_Im8GLqs--1",
+            "out_edges": ["-KwNMsgkI5d_Im8GLqs--3", "-KwNMsgkI5d_Im8GLqs--4"],
+            "in_edges": ["-KwNMsgkI5d_Im8GLqs--2"],
+            "name": "Negotiations",
+        },
+    ]
+
+    start_edge = "-KwNMsgkI5d_Im8GLqs--8"
+
+    states = {}
+    edges = {}
+    for edge in edges_attr:
+        new_edge = CwpEdge(mocker.MagicMock(), edge["name"])
+        for key, val in edge.items():
+            setattr(new_edge, key, val)
+        edges[edge["id"]] = new_edge
+
+    for state in states_attr:
+        mock_element = mocker.MagicMock()
+        mock_element.get.side_effect = lambda var: {
+            "id": state["id"],
+            "value": state["name"],
+        }[var]
+        new_state = CwpState(mock_element)
+        for key, val in state.items():
+            if key == "out_edges" or key == "in_edges":
+                for idx in range(len(val)):
+                    val[idx] = edges[val[idx]]
+            setattr(new_state, key, val)
+        states[state["id"]] = new_state
+
+    for edge in edges_attr:
+        edges[edge["id"]].source = (
+            states[edge["source"]] if edge["source"] is not None else None
+        )
+        edges[edge["id"]].dest = (
+            states[edge["dest"]] if edge["dest"] is not None else None
+        )
+
+    cwp.edges = edges
+    cwp.states = states
+    cwp.start_edge = edges[start_edge]
+    cwp.end_states = [itm for itm in states.values() if len(itm.out_edges) == 0]
+
+    return cwp
+
+
+def generate_mock_bpmn(mocker):
+    bpmn = Bpmn()
+
+    process_id = "Process_1xbpt9j"
+    mock_element = mocker.MagicMock()
+    mock_element.get.side_effect = lambda var: {
+        "id": process_id,
+    }[var]
+    bpmn.processes = {"Process_1xbpt9j": Process(mock_element)}
+
+    for id, attributes in element_mapping.items():
+        mock_element = mocker.MagicMock()
+        mock_element.get.side_effect = lambda var: {
+            "id": id,
+        }[var]
+
+        new_element = attributes["class_name"](mock_element)
+        for attr, value in attributes.items():
+            if attr != "class_name":
+                setattr(new_element, attr, value)
+
+        bpmn.processes[process_id]._elements[id] = new_element
+
+    for flow_id, flow in flows_to_test.items():
+        mock_element = mocker.MagicMock()
+        mock_element.get.side_effect = lambda var: {
+            "id": id,
+        }[var]
+
+        new_element = SequenceFlow(mock_element)
+        new_element.source_node = bpmn.processes[process_id]._elements[flow["source"]]
+        new_element.target_node = bpmn.processes[process_id]._elements[flow["dest"]]
+        new_element.is_leaf = flow["is_leaf"]
+        bpmn.processes[process_id]._flows[flow_id] = new_element
+
+    return bpmn
+
+
 # List of flows with their source and target node IDs
 current_directory = os.path.dirname(os.path.abspath(__file__))
-
-flows_to_test = [
-    ("Flow_08e7qxg", "Gateway_1pm4ghz", "Gateway_12r266n", True),
-    ("Flow_1wl740o", "Activity_1qm7qck", "Gateway_12r266n", False),
-    ("Flow_1kx5xjv", "Gateway_12r266n", "Activity_1unsjkg", False),
-    ("Flow_13xpfx7", "Gateway_12r266n", "Activity_1t579ox", False),
-    ("Flow_1oezfcg", "Activity_1unsjkg", "Gateway_0s1i42o", False),
-    ("Flow_14s5onf", "Activity_1t579ox", "Gateway_0s1i42o", True),
-    ("Flow_0feadgd", "Gateway_0s1i42o", "Gateway_1pm4ghz", False),
-    ("Flow_127sd29", "Activity_1bckz5y", "Gateway_1pm4ghz", True),
-    ("Flow_00oxr95", "Activity_1mktua2", "Gateway_1pm4ghz", True),
-    ("Flow_0yqye0v", "Gateway_1pm4ghz", "Activity_0a5xzqf", False),
-    ("Flow_0diuub0", "Gateway_1pm4ghz", "Event_0wqympo", False),
-    ("Flow_0q6dz8p", "Gateway_1pm4ghz", "Activity_1bckz5y", False),
-    ("Flow_0koz64j", "Gateway_1pm4ghz", "Activity_1mktua2", False),
-    ("Flow_0ct87dl", "Activity_0a5xzqf", "Gateway_000lymc", False),
-    ("Flow_0jmvvxc", "Gateway_000lymc", "Activity_1qqx4aq", False),
-    ("Flow_1y66pph", "Gateway_000lymc", "Activity_1rfm4sh", False),
-    ("Flow_0znbe82", "Activity_1qqx4aq", "Gateway_0cy7rs7", False),
-    ("Flow_1sx1rdt", "Activity_1rfm4sh", "Gateway_0cy7rs7", True),
-    ("Flow_1cm84v3", "Gateway_0cy7rs7", "Event_1y6wxsp", False),
-    ("Flow_0oiwgjd", "StartEvent_1y8wbre", "Activity_1qm7qck", False),
-]
 
 
 def assert_flow(process, flow_id, source_id, target_id, is_leaf):
@@ -58,133 +428,22 @@ def test_xml_parser():
 
     process = bpmn.processes["Process_1xbpt9j"]
 
-    # Gateways
-    gateway_12r266n = process["Gateway_12r266n"]
-    assert isinstance(gateway_12r266n, ParallelGatewayNode)
-    assert gateway_12r266n is not None
-    assert gateway_12r266n.id == "Gateway_12r266n"
-    assert gateway_12r266n.name == "both"
-    assert len(gateway_12r266n.in_flows) == 2
-    assert len(gateway_12r266n.out_flows) == 2
-    assert "Flow_08e7qxg" in {flow.id for flow in gateway_12r266n.in_flows}
-    assert "Flow_1wl740o" in {flow.id for flow in gateway_12r266n.in_flows}
-    assert "Flow_1kx5xjv" in {flow.id for flow in gateway_12r266n.out_flows}
-    assert "Flow_13xpfx7" in {flow.id for flow in gateway_12r266n.out_flows}
-
-    gateway_0s1i42o = process["Gateway_0s1i42o"]
-    assert gateway_0s1i42o is not None
-    assert gateway_0s1i42o.id == "Gateway_0s1i42o"
-    assert gateway_0s1i42o.name.lower() == "end both"
-    assert len(gateway_0s1i42o.in_flows) == 2
-    assert len(gateway_0s1i42o.out_flows) == 1
-    assert "Flow_14s5onf" in {flow.id for flow in gateway_0s1i42o.in_flows}
-    assert "Flow_1oezfcg" in {flow.id for flow in gateway_0s1i42o.in_flows}
-    assert "Flow_0feadgd" in {flow.id for flow in gateway_0s1i42o.out_flows}
-
-    gateway_1pm4ghz = process["Gateway_1pm4ghz"]
-    assert gateway_1pm4ghz is not None
-    assert gateway_1pm4ghz.id == "Gateway_1pm4ghz"
-    assert gateway_1pm4ghz.name.lower() == "payment and terms agreed"
-    assert len(gateway_1pm4ghz.in_flows) == 3
-    assert len(gateway_1pm4ghz.out_flows) == 5
-    assert "Flow_0feadgd" in {flow.id for flow in gateway_1pm4ghz.in_flows}
-    assert "Flow_127sd29" in {flow.id for flow in gateway_1pm4ghz.in_flows}
-    assert "Flow_00oxr95" in {flow.id for flow in gateway_1pm4ghz.in_flows}
-    assert "Flow_0yqye0v" in {flow.id for flow in gateway_1pm4ghz.out_flows}
-    assert "Flow_0diuub0" in {flow.id for flow in gateway_1pm4ghz.out_flows}
-    assert "Flow_0q6dz8p" in {flow.id for flow in gateway_1pm4ghz.out_flows}
-    assert "Flow_0koz64j" in {flow.id for flow in gateway_1pm4ghz.out_flows}
-    assert "Flow_08e7qxg" in {flow.id for flow in gateway_1pm4ghz.out_flows}
-
-    gateway_000lymc = process["Gateway_000lymc"]
-    assert gateway_000lymc is not None
-    assert gateway_000lymc.id == "Gateway_000lymc"
-    assert gateway_000lymc.name.lower() == "both1"
-    assert len(gateway_000lymc.in_flows) == 1
-    assert len(gateway_000lymc.out_flows) == 2
-    assert "Flow_0ct87dl" in {flow.id for flow in gateway_000lymc.in_flows}
-    assert "Flow_0jmvvxc" in {flow.id for flow in gateway_000lymc.out_flows}
-    assert "Flow_1y66pph" in {flow.id for flow in gateway_000lymc.out_flows}
-
-    gateway_0cy7rs7 = process["Gateway_0cy7rs7"]
-    assert gateway_0cy7rs7 is not None
-    assert gateway_0cy7rs7.id == "Gateway_0cy7rs7"
-    assert gateway_0cy7rs7.name == "end both1"
-    assert len(gateway_0cy7rs7.in_flows) == 2
-    assert len(gateway_0cy7rs7.out_flows) == 1
-    assert "Flow_1sx1rdt" in {flow.id for flow in gateway_0cy7rs7.in_flows}
-    assert "Flow_0znbe82" in {flow.id for flow in gateway_0cy7rs7.in_flows}
-    assert "Flow_1cm84v3" in {flow.id for flow in gateway_0cy7rs7.out_flows}
-
-    # Activities
-    activity_1unsjkg = process["Activity_1unsjkg"]
-    assert activity_1unsjkg is not None
-    assert activity_1unsjkg.id == "Activity_1unsjkg"
-    assert len(activity_1unsjkg.in_flows) == 1
-    assert len(activity_1unsjkg.out_flows) == 1
-    assert "Flow_1kx5xjv" in {flow.id for flow in activity_1unsjkg.in_flows}
-    assert "Flow_1oezfcg" in {flow.id for flow in activity_1unsjkg.out_flows}
-
-    activity_1t579ox = process["Activity_1t579ox"]
-    assert activity_1t579ox is not None
-    assert activity_1t579ox.id == "Activity_1t579ox"
-    assert len(activity_1t579ox.in_flows) == 1
-    assert len(activity_1t579ox.out_flows) == 1
-    assert "Flow_13xpfx7" in {flow.id for flow in activity_1t579ox.in_flows}
-    assert "Flow_14s5onf" in {flow.id for flow in activity_1t579ox.out_flows}
-
-    activity_1qm7qck = process["Activity_1qm7qck"]
-    assert activity_1qm7qck is not None
-    assert activity_1qm7qck.id == "Activity_1qm7qck"
-    assert len(activity_1qm7qck.in_flows) == 1
-    assert len(activity_1qm7qck.out_flows) == 1
-    assert "Flow_0oiwgjd" in {flow.id for flow in activity_1qm7qck.in_flows}
-    assert "Flow_1wl740o" in {flow.id for flow in activity_1qm7qck.out_flows}
-
-    activity_1qqx4aq = process["Activity_1qqx4aq"]
-    assert activity_1qqx4aq is not None
-    assert activity_1qqx4aq.id == "Activity_1qqx4aq"
-    assert len(activity_1qqx4aq.in_flows) == 1
-    assert len(activity_1qqx4aq.out_flows) == 1
-    assert "Flow_0jmvvxc" in {flow.id for flow in activity_1qqx4aq.in_flows}
-    assert "Flow_0znbe82" in {flow.id for flow in activity_1qqx4aq.out_flows}
-
-    activity_1rfm4sh = process["Activity_1rfm4sh"]
-    assert activity_1rfm4sh is not None
-    assert activity_1rfm4sh.id == "Activity_1rfm4sh"
-    assert len(activity_1rfm4sh.in_flows) == 1
-    assert len(activity_1rfm4sh.out_flows) == 1
-    assert "Flow_1y66pph" in {flow.id for flow in activity_1rfm4sh.in_flows}
-    assert "Flow_1sx1rdt" in {flow.id for flow in activity_1rfm4sh.out_flows}
-
-    # End event
-    end_event_0wqympo = process["Event_0wqympo"]
-    assert end_event_0wqympo is not None
-    assert end_event_0wqympo.id == "Event_0wqympo"
-    assert end_event_0wqympo.name == "Purchase Failed"
-    assert len(end_event_0wqympo.in_flows) == 1
-    assert "Flow_0diuub0" in {flow.id for flow in end_event_0wqympo.in_flows}
-
-    end_event_1y6wxsp = process["Event_1y6wxsp"]
-    assert end_event_1y6wxsp is not None
-    assert end_event_1y6wxsp.id == "Event_1y6wxsp"
-    assert end_event_1y6wxsp.name == "Purchase Completed"
-    assert len(end_event_1y6wxsp.in_flows) == 1
-    assert "Flow_1cm84v3" in {flow.id for flow in end_event_1y6wxsp.in_flows}
-
-    # Start event
-    start_event_1y8wbre = process["StartEvent_1y8wbre"]
-    assert "StartEvent_1y8wbre" in process._start_states
-    assert start_event_1y8wbre is not None
-    assert start_event_1y8wbre.id == "StartEvent_1y8wbre"
-    assert start_event_1y8wbre.name == "Start7"
-    assert len(start_event_1y8wbre.out_flows) == 1
-    assert len(start_event_1y8wbre.in_flows) == 0
-    assert "Flow_0oiwgjd" in {flow.id for flow in start_event_1y8wbre.out_flows}
+    for element_id, bpmn_element in element_mapping.items():
+        cur_element = process[element_id]
+        assert cur_element.id == element_id
+        assert cur_element.name == bpmn_element.get("name")
+        assert {flow.id for flow in cur_element.in_flows} == {
+            flow for flow in bpmn_element["in_flows"]
+        }
+        assert {flow.id for flow in cur_element.out_flows} == {
+            flow for flow in bpmn_element["out_flows"]
+        }
 
     # Flows
-    for flow_id, source_id, target_id, is_leaf in flows_to_test:
-        assert_flow(process, flow_id, source_id, target_id, is_leaf)
+    for flow_id, values in flows_to_test.items():
+        assert_flow(
+            process, flow_id, values["source"], values["dest"], values["is_leaf"]
+        )
 
 
 def test_bpmn_negotiation_example():
@@ -301,7 +560,7 @@ def test_bpmn_negotiation_example():
             assert_flow(process, flow_id, source_id, target_id, is_leaf)
 
 
-def test_flow_traversal():
+def test_flow_traversal(mocker):
     workflow_bpmn_path = os.path.join(current_directory, "resources", "workflow.bpmn")
     bpmn: Bpmn = Bpmn.from_xml(workflow_bpmn_path)
 
@@ -314,19 +573,19 @@ def test_flow_traversal():
         return_annotation = signature.return_annotation
 
         if return_annotation is bool:
-            setattr(visitor, name, MagicMock(return_value=True))
+            setattr(visitor, name, mocker.MagicMock())
         else:
-            setattr(visitor, name, MagicMock(return_value=None))
+            setattr(visitor, name, mocker.MagicMock())
 
     assert is_successful(bpmn)
 
     bpmn = bpmn.unwrap()
 
     for node_id, node in bpmn.processes[process_id].all_items().items():
-        node.accept = MagicMock(wraps=node.accept)
+        node.accept = mocker.MagicMock(wraps=node.accept)
 
     for flow in bpmn.processes[process_id].get_flows().values():
-        flow.accept = MagicMock(wraps=flow.accept)
+        flow.accept = mocker.MagicMock(wraps=flow.accept)
 
     bpmn.accept(visitor)
     EXPECTED_CALL_COUNT = (

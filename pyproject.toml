@@ -24,6 +24,7 @@ generate-stubs = "bpmncwpverify.cli:generate_stubs"
 [project.optional-dependencies]
 dev = [
   "pytest>=8.2.0",
+  "pytest-mock",
   "ruff>=0.4.4",
   "returns[compatible-mypy]",
   "pre-commit",
