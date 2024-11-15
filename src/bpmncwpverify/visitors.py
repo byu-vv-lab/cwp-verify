@@ -193,7 +193,6 @@ class PromelaGenVisitor(BpmnVisitor):  # type: ignore
         put_conditions: List[str],
         put_locations: List[str],
         put_flow_ids: List[str],
-        element_id: str,
         type: str = "",
     ) -> str:
         ret = ":: atomic {{ {x} -> \n".format(x=guard)
@@ -249,7 +248,7 @@ class PromelaGenVisitor(BpmnVisitor):  # type: ignore
             if element.in_flows:
                 guard += "( "
                 if option_type == "Parallel-join":
-                    guard += "&&".join(
+                    guard += " && ".join(
                         [
                             "hasToken({})".format(self.get_location(element, loc))
                             for loc in element.in_flows
@@ -310,7 +309,6 @@ class PromelaGenVisitor(BpmnVisitor):  # type: ignore
                 put_conditions,
                 put_locations,
                 put_flow_ids,
-                element_id,
                 option_type,
             )
         )
