@@ -517,13 +517,16 @@ class CwpLtlVisitor(CwpVisitor):  # type: ignore
             self.write_line("\n")
         self.write_line("\n")
         for enum in self.symbol_table._enums.values():
-            self.write_line(f"mytpe = {{{' '.join([value for value in enum])}}}")
+            self.write_line(
+                f"mytpe = {{{' '.join(sorted([value for value in enum]))}}}"
+            )
             self.write_line("\n")
+        self.write_line("\n")
         for name, value in self.symbol_table._vars.items():
             if len(value) == 3:
-                self.write_line(f"mytype {value[0]} = {value[1]}")
+                self.write_line(f"mytype {name} = {value[1]}")
             else:
-                self.state_info.append(f"{value[0]} {name} = {value[0]}")
+                self.write_line(f"{value[0]} {name} = {value[1]}")
             self.write_line("\n")
 
         self.write_line("\n")
