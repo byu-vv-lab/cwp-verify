@@ -30,6 +30,18 @@ class ConcreteCwpBuilder(CwpBuilder):
         self.all_items: List[Element] = []
         self.states: List[Element] = []
         self._cwp
+        self._cur_edge_letter = "A"
+
+    def _gen_edge_name(self) -> str:
+        ret = "Edge" + self._cur_edge_letter
+        self._cur_edge_letter = chr(ord(self._cur_edge_letter) + 1)
+        return ret
+
+    def _calc_end_states(self) -> None:
+        self.end_states = []
+        for state in self._cwp.states.values():
+            if not state.out_edges:
+                self.end_states.append(state)
 
     def _set_leaf_edges(self) -> None:
         visited = set()
@@ -57,7 +69,7 @@ class ConcreteCwpBuilder(CwpBuilder):
             targetRef = mx_cell.get("target")
             if not targetRef:
                 raise Exception("Edge does not have a target")
-            edge = CwpEdge(mx_cell, self._cwp.gen_edge_name())
+            edge = CwpEdge(mx_cell, self._gen_edge_name())
             if sourceRef:
                 source = self._cwp.states[sourceRef]
                 source.out_edges.append(edge)

@@ -2,8 +2,9 @@ from typing import Dict, List, Optional
 from xml.etree.ElementTree import Element
 from defusedxml.ElementTree import parse
 import re
+from bpmncwpverify.builder.cwp_builder import ConcreteCwpBuilder
 from bpmncwpverify.core.state import SymbolTable
-from returns.result import Failure, Result, Success
+from returns.result import Failure, Result
 from bpmncwpverify.error import Error
 
 
@@ -11,53 +12,36 @@ class Cwp:
     def __init__(self) -> None:
         self.states: Dict[str, CwpState] = {}
         self.edges: Dict[str, CwpEdge] = {}
+        self.start_states: Dict[str, CwpState] = {}
         self.end_states: List[CwpState] = []
-        self._cur_edge_letter = "A"
-        # TODO: determine whether or not there can be a start node
-        self.start_edge: CwpEdge
-
-    def gen_edge_name(self) -> str:
-        ret = "Edge" + self._cur_edge_letter
-        self._cur_edge_letter = chr(ord(self._cur_edge_letter) + 1)
-        return ret
-
-    def calc_end_states(self) -> None:
-        self.end_states = []
-        for state in self.states.values():
-            if not state.out_edges:
-                self.end_states.append(state)
 
     @staticmethod
     def from_xml(xml_file: str) -> Result["Cwp", Error]:
         try:
             tree = parse(xml_file)
             root = tree.getroot()
-            cwp = Cwp()
+            builder = ConcreteCwpBuilder()
             diagram = root.find("diagram")
             mx_graph_model = diagram.find("mxGraphModel")
             mx_root = mx_graph_model.find("root")
             mx_cells = mx_root.findall("mxCell")
 
-            edges = []
-            vertices = []
-            all_items = []
-
+            builder.build_cwp()
             for itm in mx_cells:
                 if itm.get("vertex"):
-                    vertices.append(itm)
+                    builder.build_state(itm)
                 elif itm.get("edge"):
-                    edges.append(itm)
+                    builder.build_edge(itm)
 
-                all_items.append(itm)
-
-            return Success(cwp)
+            return builder.get_cwp()
 
         except Exception as e:
             return Failure(e)
 
     def accept(self, visitor: "CwpVisitor") -> None:
         visitor.visit_cwp(self)
-        self.start_edge.accept(visitor)
+        for state in self.start_states.values():
+            state.accept(visitor)
         visitor.end_visit_cwp(self)
 
     def generate_graph_viz(self) -> None:
