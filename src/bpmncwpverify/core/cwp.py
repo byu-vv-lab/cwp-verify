@@ -27,67 +27,6 @@ class Cwp:
             if not state.out_edges:
                 self.end_states.append(state)
 
-    def _set_leaf_edges(self) -> None:
-        visited = set()
-
-        def dfs(state: CwpState) -> None:
-            nonlocal visited
-
-            visited.add(state)
-            for edge in state.out_edges:
-                if edge.dest in visited:
-                    edge.is_leaf = True
-                else:
-                    dfs(edge.dest)
-
-        temp_start_node = CwpState(
-            Element("start_node", attrib={"name": "start_node", "id": "start_node"})
-        )
-        temp_start_node.out_edges.append(self.start_edge)
-        dfs(temp_start_node)
-
-    def _parse_states(self, mx_states: List[Element]) -> None:
-        for mx_cell in mx_states:
-            style = mx_cell.get("style")
-            if style and "edgeLabel" not in style:
-                state = CwpState(mx_cell)
-                self.states[state.id] = state
-
-    def _parse_edges(self, mx_edges: List[Element]) -> None:
-        for mx_cell in mx_edges:
-            sourceRef = mx_cell.get("source")
-            targetRef = mx_cell.get("target")
-            if not targetRef:
-                raise Exception("Edge does not have a target")
-            edge = CwpEdge(mx_cell, self.gen_edge_name())
-            if sourceRef:
-                source = self.states[sourceRef]
-                source.out_edges.append(edge)
-                edge.set_source(source)
-            else:
-                self.start_edge = edge
-
-            dest = self.states[targetRef]
-            dest.in_edges.append(edge)
-            edge.set_dest(dest)
-            self.edges[edge.id] = edge
-
-    def _add_expressions(self, all_items: List[Element]) -> None:
-        for mx_cell in all_items:
-            style = mx_cell.get("style")
-            if style and "edgeLabel" in style:
-                parent = mx_cell.get("parent")
-                expression = mx_cell.get("value")
-                if not (parent and expression):
-                    raise Exception("Expression or parent node not in edge")
-
-                edge = self.edges.get(parent)
-                if not edge or not (parent_id_ref := mx_cell.get("id")):
-                    raise Exception("Parent edge not found or no parent ID reference")
-
-                edge.cleanup_expression(expression)
-                edge.parent_id = parent_id_ref
-
     @staticmethod
     def from_xml(xml_file: str) -> Result["Cwp", Error]:
         try:
@@ -110,11 +49,6 @@ class Cwp:
                     edges.append(itm)
 
                 all_items.append(itm)
-
-            cwp._parse_states(vertices)
-            cwp._parse_edges(edges)
-            cwp._add_expressions(all_items)
-            cwp._set_leaf_edges()
 
             return Success(cwp)
 
