@@ -1,5 +1,5 @@
-from bpmncwpverify.bpmn import Activity, SequenceFlow, MessageFlow
-from bpmncwpverify.visitors import PromelaGenVisitor
+from bpmncwpverify.core.bpmn import Activity, SequenceFlow, MessageFlow
+from bpmncwpverify.visitors.bpmn_promela_visitor import PromelaGenVisitor
 import pytest
 
 

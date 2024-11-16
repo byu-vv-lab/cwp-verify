@@ -5,7 +5,7 @@ import pytest
 
 from bpmncwpverify.error import TypingNoTypeError, TypingAssignCompatabilityError
 
-from bpmncwpverify.typechecking import (
+from bpmncwpverify.core.typechecking import (
     BIT,
     BOOL,
     BYTE,
