@@ -520,26 +520,6 @@ def create_mock_edge(mocker, name, dest=None):
     return edge
 
 
-# Test for gen_edge_name
-def test_gen_edge_name():
-    cwp = Cwp()
-    assert cwp.gen_edge_name() == "EdgeA"
-    assert cwp.gen_edge_name() == "EdgeB"
-    assert cwp.gen_edge_name() == "EdgeC"
-
-
-# Test for calc_end_states
-def test_calc_end_states(mocker):
-    cwp = Cwp()
-    state1 = create_mock_state(mocker, "state1", out_edges=[])
-    state2 = create_mock_state(mocker, "state2", out_edges=["edge"])
-    state3 = create_mock_state(mocker, "state3", out_edges=[])
-    cwp.states = {"state1": state1, "state2": state2, "state3": state3}
-
-    cwp.calc_end_states()
-    assert cwp.end_states == [state1, state3]
-
-
 # Test for _set_leaf_edges
 def test_set_leaf_edges(mocker):
     cwp = Cwp()

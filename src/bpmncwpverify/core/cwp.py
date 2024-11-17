@@ -2,7 +2,6 @@ from typing import Dict, List, Optional
 from xml.etree.ElementTree import Element
 from defusedxml.ElementTree import parse
 import re
-from bpmncwpverify.builder.cwp_builder import ConcreteCwpBuilder
 from bpmncwpverify.core.state import SymbolTable
 from returns.result import Failure, Result
 from bpmncwpverify.error import Error
@@ -16,23 +15,26 @@ class Cwp:
         self.end_states: List[CwpState] = []
 
     @staticmethod
-    def from_xml(xml_file: str) -> Result["Cwp", Error]:
+    def from_xml(xml_file: str, symbol_table: SymbolTable) -> Result["Cwp", Error]:
+        from bpmncwpverify.builder.cwp_builder import ConcreteCwpBuilder
+
         try:
             tree = parse(xml_file)
             root = tree.getroot()
-            builder = ConcreteCwpBuilder()
+            builder = ConcreteCwpBuilder(symbol_table)
+
             diagram = root.find("diagram")
             mx_graph_model = diagram.find("mxGraphModel")
             mx_root = mx_graph_model.find("root")
             mx_cells = mx_root.findall("mxCell")
 
-            builder.build_cwp()
             for itm in mx_cells:
                 if itm.get("vertex"):
                     builder.build_state(itm)
                 elif itm.get("edge"):
                     builder.build_edge(itm)
 
+            builder.build_cwp()
             return builder.get_cwp()
 
         except Exception as e:
