@@ -123,7 +123,7 @@ class CwpEdge:
             self.dest.accept(visitor)
         visitor.end_visit_edge(self)
 
-    def cleanup_expression(self, expression: str) -> None:
+    def cleanup_expression(self, expression: str) -> str:
         expression = re.sub(r"&amp;", "&", expression)
         expression = re.sub(r"&lt;", "<", expression)
         expression = re.sub(r"&gt;", ">", expression)
@@ -135,7 +135,7 @@ class CwpEdge:
 
         expression = re.sub(r"\s+", " ", expression)
 
-        self.expression = expression.strip()
+        return expression.strip()
 
 
 class CwpVisitor:
