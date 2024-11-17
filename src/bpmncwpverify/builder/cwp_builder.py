@@ -43,10 +43,9 @@ class ConcreteCwpBuilder(CwpBuilder):
         return ret
 
     def _calc_end_states(self) -> None:
-        self.end_states = []
         for state in self._cwp.states.values():
             if not state.out_edges:
-                self.end_states.append(state)
+                self._cwp.end_states.append(state)
 
     def _set_leaf_edges(self) -> None:
         visited = set()
