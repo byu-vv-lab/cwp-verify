@@ -2,6 +2,7 @@ from typing import List
 from abc import ABC, abstractmethod
 from xml.etree.ElementTree import Element
 from bpmncwpverify.core.state import SymbolTable
+from bpmncwpverify.visitors.cwp_connectivity_visitor import CwpConnectivityVisitor
 from returns.result import Result, Success
 from bpmncwpverify.error import Error
 from bpmncwpverify.core.cwp import Cwp, CwpEdge, CwpState
@@ -123,7 +124,8 @@ class ConcreteCwpBuilder(CwpBuilder):
             if id not in self._cwp.start_states
         }
 
-        self._set_leaf_edges()
+        visitor = CwpConnectivityVisitor()
+        self._cwp.accept(visitor)
 
     def build_edge(self, element: Element) -> None:
         self.edges.append(element)
