@@ -2,7 +2,7 @@ from typing import Dict, List, Optional
 from xml.etree.ElementTree import Element
 from defusedxml.ElementTree import parse
 import re
-from bpmncwpverify.state import SymbolTable
+from bpmncwpverify.core.state import SymbolTable
 from returns.result import Failure, Result, Success
 from bpmncwpverify.error import Error
 
@@ -127,7 +127,7 @@ class Cwp:
         visitor.end_visit_cwp(self)
 
     def generate_graph_viz(self) -> None:
-        from bpmncwpverify.visitors import CwpGraphVizVisitor
+        from bpmncwpverify.visitors.cwp_graph_visitor import CwpGraphVizVisitor
 
         graph_viz_visitor = CwpGraphVizVisitor()
 
@@ -136,7 +136,7 @@ class Cwp:
         graph_viz_visitor.dot.render("graphs/cwp_graph.gv", format="png")
 
     def generate_ltl(self, symbol_table: SymbolTable) -> str:
-        from bpmncwpverify.visitors import CwpLtlVisitor
+        from bpmncwpverify.visitors.cwp_ltl_visitor import CwpLtlVisitor
 
         ltl_visitor = CwpLtlVisitor(symbol_table)
 

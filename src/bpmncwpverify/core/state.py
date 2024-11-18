@@ -24,7 +24,7 @@ from bpmncwpverify.error import (
     StateUnknownTypeError,
 )
 
-from bpmncwpverify import typechecking
+from bpmncwpverify.core import typechecking
 
 
 class ThrowingErrorListener(ErrorListener):  # type: ignore[misc]

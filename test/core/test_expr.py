@@ -1,4 +1,4 @@
-from bpmncwpverify.expr import ExpressionListener
+from bpmncwpverify.core.expr import ExpressionListener
 import pytest
 from bpmncwpverify.antlr.ExprLexer import ExprLexer
 from bpmncwpverify.antlr.ExprParser import ExprParser
@@ -6,7 +6,7 @@ from bpmncwpverify.antlr.ExprParser import ExprParser
 from antlr4.error.ErrorListener import ErrorListener
 from returns.pipeline import is_successful
 
-from bpmncwpverify.state import SymbolTable
+from bpmncwpverify.core.state import SymbolTable
 
 from antlr4 import CommonTokenStream, InputStream
 

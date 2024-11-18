@@ -1,6 +1,6 @@
 # type: ignore
-from bpmncwpverify.visitors import CwpLtlVisitor
-from bpmncwpverify.cwp import Cwp, CwpEdge
+from bpmncwpverify.visitors.cwp_ltl_visitor import CwpLtlVisitor
+from bpmncwpverify.core.cwp import Cwp, CwpEdge
 from xml.etree.ElementTree import Element
 import pytest
 

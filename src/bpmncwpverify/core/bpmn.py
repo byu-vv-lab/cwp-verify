@@ -401,7 +401,7 @@ class Bpmn:
         visitor.end_visit_bpmn(self)
 
     def generate_graph_viz(self) -> None:
-        from bpmncwpverify.visitors import GraphVizVisitor
+        from bpmncwpverify.visitors.bpmn_graph_visitor import GraphVizVisitor
 
         for process in range(len(self.processes)):
             graph_viz_visitor = GraphVizVisitor(process + 1)
@@ -411,7 +411,7 @@ class Bpmn:
             graph_viz_visitor.dot.render("graphs/bpmn_graph.gv", format="png")
 
     def generate_promela(self) -> str:
-        from bpmncwpverify.visitors import PromelaGenVisitor
+        from bpmncwpverify.visitors.bpmn_promela_visitor import PromelaGenVisitor
 
         promela_visitor = PromelaGenVisitor()
 

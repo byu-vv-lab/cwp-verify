@@ -1,10 +1,10 @@
 # type: ignore
-from bpmncwpverify.cwp import Cwp, CwpEdge, CwpState
-from bpmncwpverify.state import SymbolTable
+from bpmncwpverify.core.cwp import Cwp, CwpEdge, CwpState
+from bpmncwpverify.core.state import SymbolTable
 import inspect
-from bpmncwpverify.visitors import PromelaGenVisitor
+from bpmncwpverify.visitors.bpmn_promela_visitor import PromelaGenVisitor
 from returns.pipeline import is_successful
-from bpmncwpverify.bpmn import (
+from bpmncwpverify.core.bpmn import (
     Bpmn,
     ExclusiveGatewayNode,
     ParallelGatewayNode,
@@ -16,6 +16,7 @@ from bpmncwpverify.bpmn import (
 )
 import os
 
+RESOURCES_DIR = "../resources"
 
 flows_to_test = {
     "Flow_08e7qxg": {
@@ -417,7 +418,7 @@ def assert_flow(process, flow_id, source_id, target_id, is_leaf):
 
 
 def test_xml_parser():
-    workflow_bpmn_path = os.path.join(current_directory, "resources", "workflow.bpmn")
+    workflow_bpmn_path = os.path.join(current_directory, RESOURCES_DIR, "workflow.bpmn")
     bpmn: Bpmn = Bpmn.from_xml(workflow_bpmn_path)
 
     assert is_successful(bpmn)
@@ -448,7 +449,7 @@ def test_xml_parser():
 
 def test_bpmn_negotiation_example():
     workflow_bpmn_path = os.path.join(
-        current_directory, "resources", "negotiation_workflow.bpmn"
+        current_directory, RESOURCES_DIR, "negotiation_workflow.bpmn"
     )
     bpmn: Bpmn = Bpmn.from_xml(workflow_bpmn_path)
 
@@ -561,7 +562,7 @@ def test_bpmn_negotiation_example():
 
 
 def test_flow_traversal(mocker):
-    workflow_bpmn_path = os.path.join(current_directory, "resources", "workflow.bpmn")
+    workflow_bpmn_path = os.path.join(current_directory, RESOURCES_DIR, "workflow.bpmn")
     bpmn: Bpmn = Bpmn.from_xml(workflow_bpmn_path)
 
     visitor = PromelaGenVisitor()
@@ -600,7 +601,7 @@ def test_flow_traversal(mocker):
 
 def test_promela_generation():
     workflow_bpmn_path = os.path.join(
-        current_directory, "resources", "negotiation_workflow.bpmn"
+        current_directory, RESOURCES_DIR, "negotiation_workflow.bpmn"
     )
     bpmn: Bpmn = Bpmn.from_xml(workflow_bpmn_path)
 
@@ -615,7 +616,7 @@ def test_promela_generation():
 
 
 def test_cwp_model_gen():
-    cwp_path = os.path.join(current_directory, "resources", "cwp.xml")
+    cwp_path = os.path.join(current_directory, RESOURCES_DIR, "cwp.xml")
     cwp = Cwp.from_xml(cwp_path)
 
     assert is_successful(cwp)
@@ -636,14 +637,14 @@ def test_cwp_model_gen():
 
 
 def test_cwp_ltl_gen():
-    cwp_path = os.path.join(current_directory, "resources", "cwp.xml")
+    cwp_path = os.path.join(current_directory, RESOURCES_DIR, "cwp.xml")
     cwp = Cwp.from_xml(cwp_path)
 
     assert is_successful(cwp)
 
     cwp = cwp.unwrap()
 
-    state_path = os.path.join(current_directory, "resources", "negotiation_state.txt")
+    state_path = os.path.join(current_directory, RESOURCES_DIR, "negotiation_state.txt")
 
     with open(state_path, "r") as r:
         file_content = r.read()
@@ -660,14 +661,14 @@ def test_cwp_ltl_gen():
 
 
 def test_promela_and_ltl():
-    cwp_path = os.path.join(current_directory, "resources", "cwp.xml")
+    cwp_path = os.path.join(current_directory, RESOURCES_DIR, "cwp.xml")
     cwp = Cwp.from_xml(cwp_path)
 
     assert is_successful(cwp)
 
     cwp = cwp.unwrap()
 
-    state_path = os.path.join(current_directory, "resources", "negotiation_state.txt")
+    state_path = os.path.join(current_directory, RESOURCES_DIR, "negotiation_state.txt")
 
     with open(state_path, "r") as r:
         file_content = r.read()

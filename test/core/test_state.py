@@ -18,8 +18,8 @@ from bpmncwpverify.error import (
     TypingAssignCompatabilityError,
 )
 
-from bpmncwpverify.state import _get_parser, _parse_state, SymbolTable
-from bpmncwpverify import typechecking
+from bpmncwpverify.core.state import _get_parser, _parse_state, SymbolTable
+from bpmncwpverify.core import typechecking
 
 
 @pytest.fixture(scope="module")

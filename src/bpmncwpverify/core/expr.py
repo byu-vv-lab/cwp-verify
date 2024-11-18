@@ -1,5 +1,5 @@
 from typing import Any, List
-from bpmncwpverify import typechecking
+from bpmncwpverify.core import typechecking
 from bpmncwpverify.antlr.ExprListener import ExprListener
 from bpmncwpverify.antlr.ExprLexer import ExprLexer
 from bpmncwpverify.antlr.ExprParser import ExprParser
@@ -12,7 +12,7 @@ from returns.pipeline import flow, is_successful
 from returns.pointfree import bind_result
 from returns.curry import partial
 from returns.functions import not_
-from bpmncwpverify.state import SymbolTable
+from bpmncwpverify.core.state import SymbolTable
 from bpmncwpverify.error import Error
 
 
