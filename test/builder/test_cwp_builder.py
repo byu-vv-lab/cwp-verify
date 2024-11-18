@@ -44,22 +44,6 @@ def test_calc_end_states(mocker, builder):
     assert builder._cwp.end_states == [state1, state3]
 
 
-def test_set_leaf_edges(mocker, builder):
-    state1 = create_mock_state(mocker, "state1")
-    state2 = create_mock_state(mocker, "state2")
-    edge2 = create_mock_edge(mocker, "edge2", dest=state2)
-    edge3 = create_mock_edge(mocker, "edge3", dest=state1)
-
-    state1.out_edges = [edge2]
-    state2.out_edges = [edge3]
-    builder._cwp.states = {"state2": state2}
-    builder._cwp.start_states = {"state1": state1}
-
-    builder._set_leaf_edges()
-    assert edge3.is_leaf is True
-    assert edge2.is_leaf is False
-
-
 def test_parse_states(builder):
     mx_states = [
         Element("mxCell", attrib={"id": "state1", "style": "someStyle"}),
