@@ -48,22 +48,6 @@ class ConcreteCwpBuilder(CwpBuilder):
             if not state.out_edges:
                 self._cwp.end_states.append(state)
 
-    def _set_leaf_edges(self) -> None:
-        visited = set()
-
-        def dfs(state: CwpState) -> None:
-            nonlocal visited
-
-            visited.add(state)
-            for edge in state.out_edges:
-                if edge.dest in visited:
-                    edge.is_leaf = True
-                else:
-                    dfs(edge.dest)
-
-        for state in self._cwp.start_states.values():
-            dfs(state)
-
     def _parse_states(self, mx_states: List[Element]) -> None:
         for mx_cell in mx_states:
             style = mx_cell.get("style")
@@ -113,6 +97,8 @@ class ConcreteCwpBuilder(CwpBuilder):
         expression_checker = ExpressionListener(self.symbol_table)
         self._parse_states(self.states)
         self._parse_edges(self.edges)
+
+        # This step assigns expressions to each edge and checks to make sure expression is valid
         self._add_and_check_expressions(self.all_items, expression_checker)
 
         self._cwp.start_states = {
@@ -125,6 +111,8 @@ class ConcreteCwpBuilder(CwpBuilder):
         }
 
         visitor = CwpConnectivityVisitor()
+
+        # This step ensures connectivity of the graph and sets leaf edges
         self._cwp.accept(visitor)
 
     def build_edge(self, element: Element) -> None:
