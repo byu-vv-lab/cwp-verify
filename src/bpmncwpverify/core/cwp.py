@@ -3,7 +3,7 @@ from xml.etree.ElementTree import Element
 from defusedxml.ElementTree import parse
 import re
 from bpmncwpverify.core.state import SymbolTable
-from returns.result import Failure, Result, Success
+from returns.result import Failure, Result
 from bpmncwpverify.error import Error
 
 
@@ -11,119 +11,39 @@ class Cwp:
     def __init__(self) -> None:
         self.states: Dict[str, CwpState] = {}
         self.edges: Dict[str, CwpEdge] = {}
+        self.start_states: Dict[str, CwpState] = {}
         self.end_states: List[CwpState] = []
-        self._cur_edge_letter = "A"
-        # TODO: determine whether or not there can be a start node
-        self.start_edge: CwpEdge
-
-    def gen_edge_name(self) -> str:
-        ret = "Edge" + self._cur_edge_letter
-        self._cur_edge_letter = chr(ord(self._cur_edge_letter) + 1)
-        return ret
-
-    def calc_end_states(self) -> None:
-        self.end_states = []
-        for state in self.states.values():
-            if not state.out_edges:
-                self.end_states.append(state)
-
-    def _set_leaf_edges(self) -> None:
-        visited = set()
-
-        def dfs(state: CwpState) -> None:
-            nonlocal visited
-
-            visited.add(state)
-            for edge in state.out_edges:
-                if edge.dest in visited:
-                    edge.is_leaf = True
-                else:
-                    dfs(edge.dest)
-
-        temp_start_node = CwpState(
-            Element("start_node", attrib={"name": "start_node", "id": "start_node"})
-        )
-        temp_start_node.out_edges.append(self.start_edge)
-        dfs(temp_start_node)
-
-    def _parse_states(self, mx_states: List[Element]) -> None:
-        for mx_cell in mx_states:
-            style = mx_cell.get("style")
-            if style and "edgeLabel" not in style:
-                state = CwpState(mx_cell)
-                self.states[state.id] = state
-
-    def _parse_edges(self, mx_edges: List[Element]) -> None:
-        for mx_cell in mx_edges:
-            sourceRef = mx_cell.get("source")
-            targetRef = mx_cell.get("target")
-            if not targetRef:
-                raise Exception("Edge does not have a target")
-            edge = CwpEdge(mx_cell, self.gen_edge_name())
-            if sourceRef:
-                source = self.states[sourceRef]
-                source.out_edges.append(edge)
-                edge.set_source(source)
-            else:
-                self.start_edge = edge
-
-            dest = self.states[targetRef]
-            dest.in_edges.append(edge)
-            edge.set_dest(dest)
-            self.edges[edge.id] = edge
-
-    def _add_expressions(self, all_items: List[Element]) -> None:
-        for mx_cell in all_items:
-            style = mx_cell.get("style")
-            if style and "edgeLabel" in style:
-                parent = mx_cell.get("parent")
-                expression = mx_cell.get("value")
-                if not (parent and expression):
-                    raise Exception("Expression or parent node not in edge")
-
-                edge = self.edges.get(parent)
-                if not edge or not (parent_id_ref := mx_cell.get("id")):
-                    raise Exception("Parent edge not found or no parent ID reference")
-
-                edge.cleanup_expression(expression)
-                edge.parent_id = parent_id_ref
 
     @staticmethod
-    def from_xml(xml_file: str) -> Result["Cwp", Error]:
+    def from_xml(xml_file: str, symbol_table: SymbolTable) -> Result["Cwp", Error]:
+        from bpmncwpverify.builder.cwp_builder import ConcreteCwpBuilder
+
         try:
             tree = parse(xml_file)
             root = tree.getroot()
-            cwp = Cwp()
+            builder = ConcreteCwpBuilder(symbol_table)
+
             diagram = root.find("diagram")
             mx_graph_model = diagram.find("mxGraphModel")
             mx_root = mx_graph_model.find("root")
             mx_cells = mx_root.findall("mxCell")
 
-            edges = []
-            vertices = []
-            all_items = []
-
             for itm in mx_cells:
                 if itm.get("vertex"):
-                    vertices.append(itm)
+                    builder.add_state(itm)
                 elif itm.get("edge"):
-                    edges.append(itm)
+                    builder.add_edge(itm)
 
-                all_items.append(itm)
-
-            cwp._parse_states(vertices)
-            cwp._parse_edges(edges)
-            cwp._add_expressions(all_items)
-            cwp._set_leaf_edges()
-
-            return Success(cwp)
+            return builder.build()
 
         except Exception as e:
             return Failure(e)
 
     def accept(self, visitor: "CwpVisitor") -> None:
-        visitor.visit_cwp(self)
-        self.start_edge.accept(visitor)
+        result = visitor.visit_cwp(self)
+        if result:
+            for state in self.start_states.values():
+                state.accept(visitor)
         visitor.end_visit_cwp(self)
 
     def generate_graph_viz(self) -> None:
@@ -162,9 +82,10 @@ class CwpState:
         self.cleanup_name(name)
 
     def accept(self, visitor: "CwpVisitor") -> None:
-        visitor.visit_state(self)
-        for edge in self.out_edges:
-            edge.accept(visitor)
+        result = visitor.visit_state(self)
+        if result:
+            for edge in self.out_edges:
+                edge.accept(visitor)
         visitor.end_visit_state(self)
 
     def cleanup_name(self, name: str) -> None:
@@ -200,12 +121,11 @@ class CwpEdge:
         self.dest = state
 
     def accept(self, visitor: "CwpVisitor") -> None:
-        visitor.visit_edge(self)
-        if not self.is_leaf:
+        if visitor.visit_edge(self):
             self.dest.accept(visitor)
         visitor.end_visit_edge(self)
 
-    def cleanup_expression(self, expression: str) -> None:
+    def cleanup_expression(self, expression: str) -> str:
         expression = re.sub(r"&amp;", "&", expression)
         expression = re.sub(r"&lt;", "<", expression)
         expression = re.sub(r"&gt;", ">", expression)
@@ -217,24 +137,24 @@ class CwpEdge:
 
         expression = re.sub(r"\s+", " ", expression)
 
-        self.expression = expression.strip()
+        return expression.strip()
 
 
 class CwpVisitor:
-    def visit_state(self, state: CwpState) -> None:
-        pass
+    def visit_state(self, state: CwpState) -> bool:
+        return True
 
     def end_visit_state(self, state: CwpState) -> None:
         pass
 
-    def visit_edge(self, edge: CwpEdge) -> None:
-        pass
+    def visit_edge(self, edge: CwpEdge) -> bool:
+        return True
 
     def end_visit_edge(self, edge: CwpEdge) -> None:
         pass
 
-    def visit_cwp(self, model: Cwp) -> None:
-        pass
+    def visit_cwp(self, model: Cwp) -> bool:
+        return True
 
     def end_visit_cwp(self, model: Cwp) -> None:
         pass
