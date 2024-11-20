@@ -1,7 +1,6 @@
 # type: ignore
 from bpmncwpverify.visitors.cwp_ltl_visitor import CwpLtlVisitor
-from bpmncwpverify.core.cwp import Cwp, CwpEdge
-from xml.etree.ElementTree import Element
+from bpmncwpverify.core.cwp import Cwp
 import pytest
 
 
@@ -502,126 +501,6 @@ def test_write_log_state_inline(mocker, print_on, expected_header, expected_foot
     mock_write_log_var.assert_any_call("var2")
 
     assert visitor.tab == 0
-
-
-def create_mock_state(mocker, state_id, out_edges=None, in_edges=None):
-    state = mocker.MagicMock()
-    state.id = state_id
-    state.out_edges = out_edges or []
-    state.in_edges = in_edges or []
-    return state
-
-
-def create_mock_edge(mocker, name, dest=None):
-    edge = mocker.MagicMock()
-    edge.name = name
-    edge.dest = dest
-    edge.is_leaf = False
-    return edge
-
-
-# Test for gen_edge_name
-def test_gen_edge_name():
-    cwp = Cwp()
-    assert cwp.gen_edge_name() == "EdgeA"
-    assert cwp.gen_edge_name() == "EdgeB"
-    assert cwp.gen_edge_name() == "EdgeC"
-
-
-# Test for calc_end_states
-def test_calc_end_states(mocker):
-    cwp = Cwp()
-    state1 = create_mock_state(mocker, "state1", out_edges=[])
-    state2 = create_mock_state(mocker, "state2", out_edges=["edge"])
-    state3 = create_mock_state(mocker, "state3", out_edges=[])
-    cwp.states = {"state1": state1, "state2": state2, "state3": state3}
-
-    cwp.calc_end_states()
-    assert cwp.end_states == [state1, state3]
-
-
-# Test for _set_leaf_edges
-def test_set_leaf_edges(mocker):
-    cwp = Cwp()
-    state1 = create_mock_state(mocker, "state1")
-    state2 = create_mock_state(mocker, "state2")
-    edge1 = create_mock_edge(mocker, "edge1", dest=state1)
-    edge2 = create_mock_edge(mocker, "edge2", dest=state2)
-    edge3 = create_mock_edge(mocker, "edge3", dest=state1)
-
-    state1.out_edges = [edge2]
-    state2.out_edges = [edge3]
-    cwp.states = {"state1": state1, "state2": state2}
-    cwp.start_edge = edge1
-
-    cwp._set_leaf_edges()
-    assert edge3.is_leaf is True
-    assert edge1.is_leaf is False
-    assert edge2.is_leaf is False
-
-
-def test_parse_states():
-    cwp = Cwp()
-    mx_states = [
-        Element("mxCell", attrib={"id": "state1", "style": "someStyle"}),
-        Element("mxCell", attrib={"id": "state2", "style": "anotherStyle"}),
-        Element("mxCell", attrib={"id": "edge1", "style": "edgeLabel"}),
-    ]
-
-    cwp._parse_states(mx_states)
-    assert "state1" in cwp.states
-    assert "state2" in cwp.states
-    assert "edge1" not in cwp.states
-
-
-def test_parse_edges(mocker):
-    mock_set_source = mocker.patch.object(CwpEdge, "set_source")
-    mock_set_dest = mocker.patch.object(CwpEdge, "set_dest")
-
-    cwp = Cwp()
-    source_state = mocker.MagicMock()
-    dest_state = mocker.MagicMock()
-    source_state.out_edges = []
-    dest_state.in_edges = []
-    cwp.states = {
-        "sourceState": source_state,
-        "destState": dest_state,
-    }
-
-    mx_edge = mocker.MagicMock(spec=Element)
-    mx_edge.get.side_effect = lambda x: {
-        "source": "sourceState",
-        "target": "destState",
-        "id": "123",
-    }.get(x)
-    mx_edges = [mx_edge]
-
-    cwp._parse_edges(mx_edges)
-
-    mock_set_source.assert_called_once_with(source_state)
-    mock_set_dest.assert_called_once_with(dest_state)
-
-
-def test_add_expressions(mocker):
-    cwp = Cwp()
-    edge = create_mock_edge(mocker, "edge1")
-    cwp.edges = {"edge1": edge}
-
-    all_items = [
-        Element(
-            "mxCell",
-            attrib={
-                "id": "expr1",
-                "parent": "edge1",
-                "value": "someExpr",
-                "style": "edgeLabel",
-            },
-        )
-    ]
-
-    cwp._add_expressions(all_items)
-    edge.cleanup_expression.assert_called_with("someExpr")
-    assert edge.parent_id == "expr1"
 
 
 def test_generate_all(mocker):

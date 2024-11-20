@@ -327,9 +327,7 @@ class CwpLtlVisitor(CwpVisitor):  # type: ignore
         self.output_str.append(line)
         self.output_str.append("\n")
 
-    def visit_cwp(self, model: Cwp) -> None:
+    def visit_cwp(self, model: Cwp) -> bool:
         self.cwp = model
         self.generate_all()
-
-    def end_visit_cwp(self, model: Cwp) -> None:
-        pass
+        return True
