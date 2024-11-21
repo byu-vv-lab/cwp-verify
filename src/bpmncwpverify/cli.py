@@ -8,7 +8,7 @@ from returns.result import ResultE, Result, Success, Failure
 from typing import TextIO
 
 from bpmncwpverify.error import Error, get_error_message
-from bpmncwpverify.state import SymbolTable
+from bpmncwpverify.core.state import SymbolTable
 
 
 def _get_argument_parser() -> "argparse.ArgumentParser":
