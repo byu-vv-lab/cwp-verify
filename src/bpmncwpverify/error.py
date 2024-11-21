@@ -78,14 +78,6 @@ class StateSyntaxError(Error):
         super().__init__()
 
 
-class StateUnknownTypeError(Error):
-    __slots__ = "id"
-
-    def __init__(self, id: str) -> None:
-        super().__init__()
-        self.id = id
-
-
 class TypingAssignCompatabilityError(Error):
     __slots__ = ["ltype", "rtype"]
 
@@ -140,8 +132,6 @@ def _get_error_message(error: Error) -> str:
             )
         case StateSyntaxError(msg=msg):
             return "STATE SYNTAX ERROR: {}".format(msg)
-        case StateUnknownTypeError(id=id):
-            return "STATE ERROR: the type of '{}' is not known".format(id)
         case TypingAssignCompatabilityError(ltype=ltype, rtype=rtype):
             return "TYPING ERROR: something of type '{}' cannot by assigned to something of type '{}'".format(
                 rtype, ltype

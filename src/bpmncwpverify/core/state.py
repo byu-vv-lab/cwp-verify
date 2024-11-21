@@ -21,7 +21,6 @@ from bpmncwpverify.error import (
     StateInitNotInValues,
     StateMultipleDefinitionError,
     StateSyntaxError,
-    StateUnknownTypeError,
 )
 
 from bpmncwpverify.core import typechecking
@@ -204,21 +203,10 @@ class SymbolTable:
             return Failure(error)
 
     @staticmethod
-    def _get_type_init(symbol_table: "SymbolTable", init: str) -> Result[str, Error]:
-        def get_type_literal(error: Error) -> Result[str, Error]:
-            match error:
-                case StateUnknownTypeError(id=id):
-                    return typechecking.get_type_literal(id)
-                case _:
-                    return Failure(error)
-
-        return symbol_table.get_type(init).lash(get_type_literal)
-
-    @staticmethod
     def _type_check_assigns(
         symbol_table: "SymbolTable", ltype: str, values: Iterable[str]
     ) -> Result[tuple[()], Error]:
-        get_type_init = partial(SymbolTable._get_type_init, symbol_table)
+        get_type_init = partial(SymbolTable.get_type, symbol_table)
         get_type_assign = partial(typechecking.get_type_assign, ltype)
         for i in values:
             result: Result[str, Error] = flow(
@@ -261,7 +249,7 @@ class SymbolTable:
     def get_type(self, id: str) -> Result[str, Error]:
         if id in self._id2type:
             return Success(self._id2type[id])
-        return Failure(StateUnknownTypeError(id))
+        return typechecking.get_type_literal(id)
 
     def is_defined(self, id: str) -> bool:
         defined: bool = is_successful(self.get_type(id))
