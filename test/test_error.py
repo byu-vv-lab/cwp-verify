@@ -7,7 +7,6 @@ from bpmncwpverify.error import (
     StateInitNotInValues,
     StateMultipleDefinitionError,
     StateSyntaxError,
-    StateUnknownTypeError,
     TypingAssignCompatabilityError,
     TypingNoTypeError,
     get_error_message,
@@ -24,7 +23,6 @@ test_inputs: list[tuple[Error, str]] = [
         "STATE ERROR: multiple definition of 'a' at line 42:43, previously defined at line 0:1",
     ),
     (StateSyntaxError("bad syntax"), "STATE SYNTAX ERROR: bad syntax"),
-    (StateUnknownTypeError("a"), "STATE ERROR: the type of 'a' is not known"),
     (
         TypingAssignCompatabilityError("enum", "int"),
         "TYPING ERROR: something of type 'int' cannot by assigned to something of type 'enum'",
@@ -36,7 +34,6 @@ test_ids: list[str] = [
     "StateInitNotInValues",
     "StateMultipleDefinitionError",
     "StateSyntaxError",
-    "StateUnknownTypeError",
     "TypeingAssignCompatabilityError",
     "TypingNoTypeError",
 ]
