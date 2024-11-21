@@ -43,8 +43,15 @@ style = "https://raw.githubusercontent.com/wemake-services/wemake-python-stylegu
 exclude = [
   "^src/bpmncwpverify/antlr",
 ]
-check_untyped_defs = true
+disallow_any_explicit = false
+disallow_any_generics = false
+follow_imports = "silent"
+ignore_missing_imports = true
 strict = true
+warn_unreachable = true
+force_uppercase_builtins = true
+force_union_syntax = true
+disallow_subclassing_any = true
 
 [[tool.mypy.overrides]]
 module = [
