@@ -10,12 +10,9 @@ class BpmnBuilder:
         self._bpmn = Bpmn()
 
     def build(self) -> Result[Bpmn, Error]:
-        from bpmncwpverify.visitors.process_connectivity_visitor import (
-            ProcessConnectivityVisitor,
-        )
-
-        visitor = ProcessConnectivityVisitor()
-        self._bpmn.accept(visitor)
+        if len(self._bpmn.processes) > 1:
+            if len(self._bpmn.inter_process_msgs) == 0:
+                raise Exception("No inter process messages exist in this bpmn model.")
         return Success(self._bpmn)
 
     def add_process(self, element: Element, symbol_table: SymbolTable) -> None:

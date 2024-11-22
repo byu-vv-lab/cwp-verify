@@ -1,6 +1,5 @@
 from typing import Set
 from bpmncwpverify.core.bpmn import (
-    Bpmn,
     BpmnElement,
     BpmnVisitor,
     Flow,
@@ -97,8 +96,3 @@ class ProcessConnectivityVisitor(BpmnVisitor):  # type: ignore
         # Testing and cleanup
         self.last_visited_set = self.visited
         self.visited = set()
-
-    def end_visit_bpmn(self, bpmn: Bpmn) -> None:
-        if len(bpmn.processes) > 1:
-            if len(bpmn.inter_process_msgs) == 0:
-                raise Exception("No inter process messages exist in this bpmn model.")
