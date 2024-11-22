@@ -77,8 +77,10 @@ def test_parse_edges(mocker, builder):
 def test_add_and_check_expressions(mocker, builder):
     mock_expr_checker = mocker.MagicMock()
     mock_expr_checker.build.return_value = Success("bool")
+    mock_cleanup = mocker.patch(
+        "bpmncwpverify.utils.cleanup_expression", return_value="someExpr"
+    )
     edge = create_mock_edge(mocker, "edge1")
-    edge.cleanup_expression.return_value = "someExpr"
     builder._cwp.edges = {"edge1": edge}
 
     all_items = [
@@ -94,7 +96,7 @@ def test_add_and_check_expressions(mocker, builder):
     ]
 
     builder._add_and_check_expressions(all_items, mock_expr_checker)
-    edge.cleanup_expression.assert_called_with("someExpr")
+    mock_cleanup.assert_called_with("someExpr")
     mock_expr_checker.build.assert_called_once_with("someExpr", builder.symbol_table)
     assert edge.parent_id == "expr1"
 

@@ -125,20 +125,6 @@ class CwpEdge:
             self.dest.accept(visitor)
         visitor.end_visit_edge(self)
 
-    def cleanup_expression(self, expression: str) -> str:
-        expression = re.sub(r"&amp;", "&", expression)
-        expression = re.sub(r"&lt;", "<", expression)
-        expression = re.sub(r"&gt;", ">", expression)
-
-        expression = re.sub(r"</?div>", "", expression)
-        expression = re.sub(r"<br>", " ", expression)
-
-        expression = re.sub(r"\s*(==|!=|&&|\|\|)\s*", r" \1 ", expression)
-
-        expression = re.sub(r"\s+", " ", expression)
-
-        return expression.strip()
-
 
 class CwpVisitor:
     def visit_state(self, state: CwpState) -> bool:

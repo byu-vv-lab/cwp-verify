@@ -8,6 +8,7 @@ from bpmncwpverify.core.cwp import Cwp, CwpEdge, CwpState
 from bpmncwpverify.core.expr import ExpressionListener
 from returns.pipeline import is_successful
 from returns.functions import not_
+from bpmncwpverify import utils
 
 
 class ConcreteCwpBuilder:
@@ -62,7 +63,7 @@ class ConcreteCwpBuilder:
                 if not edge or not (parent_id_ref := mx_cell.get("id")):
                     raise Exception("Parent edge not found or no parent ID reference")
 
-                edge.expression = edge.cleanup_expression(expression)
+                edge.expression = utils.cleanup_expression(expression)
                 result = expr_checker.build(edge.expression, self.symbol_table)
                 if not_(is_successful)(result):
                     raise Exception(result)
