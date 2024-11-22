@@ -43,10 +43,20 @@ class BpmnConnectivityVisitor(BpmnVisitor):  # type: ignore
         return True
 
     def visit_exclusive_gateway(self, gateway: ExclusiveGatewayNode) -> bool:
+        for out_flow in gateway.out_flows:
+            if not out_flow.expression:
+                raise Exception(
+                    f"Flow: `{out_flow.id}` from gateway: `{gateway.id}` does not have an expression. All flows coming out of gateways must have expressions."
+                )
         self.visited.add(gateway)
         return True
 
     def visit_parallel_gateway(self, gateway: ParallelGatewayNode) -> bool:
+        for out_flow in gateway.out_flows:
+            if not out_flow.expression:
+                raise Exception(
+                    f"Flow: `{out_flow.id}` from gateway: `{gateway.id}` does not have an expression. All flows coming out of gateways must have expressions."
+                )
         self.visited.add(gateway)
         return True
 
