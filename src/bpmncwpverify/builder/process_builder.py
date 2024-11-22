@@ -40,6 +40,9 @@ class ProcessBuilder:
 
     _FLOW_MAPPING = {"sequenceFlow": SequenceFlow}
 
+    ########################
+    # Start of helper methods
+    ########################
     def _construct_flow_network(self) -> None:
         for element_instance in self._process.all_items().values():
             for outgoing in element_instance.element.findall(
@@ -96,6 +99,10 @@ class ProcessBuilder:
 
         source_ref.add_out_flow(flow)
         target_ref.add_in_flow(flow)
+
+    ########################
+    # End of helper methods
+    ########################
 
     def add_element(self, element: Element) -> None:
         def get_tag_name(element: Element) -> str:
