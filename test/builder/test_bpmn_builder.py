@@ -1,7 +1,7 @@
 import pytest
 from xml.etree.ElementTree import Element
 from bpmncwpverify.builder.bpmn_builder import BpmnBuilder
-from bpmncwpverify.core.bpmn import Node
+from bpmncwpverify.core.bpmn import Node, Task
 from returns.result import Success
 
 
@@ -10,24 +10,39 @@ def test_build_method(mocker):
     mock_bpmn_instance = mock_bpmn.return_value
     mock_bpmn_instance.accept = mocker.Mock()
 
-    mock_visitor = mocker.patch(
-        "bpmncwpverify.visitors.process_connectivity_visitor.ProcessConnectivityVisitor",
-        autospec=True,
-    )
-    mock_visitor_instance = mock_visitor.return_value
-
     builder = BpmnBuilder()
 
     builder._bpmn = mock_bpmn_instance
+    mock_bpmn_instance.processes = [1]
+    mock_bpmn_instance.add_inter_process_msg = [1]
 
     result = builder.build()
 
-    mock_visitor.assert_called_once()
-
-    mock_bpmn_instance.accept.assert_called_once_with(mock_visitor_instance)
-
     assert isinstance(result, Success)
     assert result.unwrap() == mock_bpmn_instance
+
+
+def test_bpmn_build_no_inter_process_messages(mocker):
+    bpmn_builder = BpmnBuilder()
+
+    bpmn = mocker.Mock()
+    bpmn_builder._bpmn = bpmn
+    process1 = mocker.Mock()
+    process2 = mocker.Mock()
+
+    task1 = Task(Element("task", attrib={"id": "task1"}))
+    task2 = Task(Element("task", attrib={"id": "task2"}))
+
+    process1.all_items.return_value = {"task1": task1}
+    process2.all_items.return_value = {"task2": task2}
+
+    bpmn.processes = {"process1": process1, "process2": process2}
+    bpmn.inter_process_msgs = {}
+
+    with pytest.raises(
+        Exception, match="No inter process messages exist in this bpmn model."
+    ):
+        bpmn_builder.build()
 
 
 def test_add_message_valid_input(mocker):
