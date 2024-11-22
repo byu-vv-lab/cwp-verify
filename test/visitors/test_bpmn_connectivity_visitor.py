@@ -1,7 +1,7 @@
 # type: ignore
 import pytest
 from bpmncwpverify.builder.bpmn_builder import ConcreteBpmnBuilder
-from bpmncwpverify.core.bpmn import Task
+from bpmncwpverify.core.bpmn import EndEvent, StartEvent, Task
 from bpmncwpverify.visitors.bpmn_connectivity_visitor import BpmnConnectivityVisitor
 import xml.etree.ElementTree as ET
 
@@ -125,3 +125,105 @@ def test_end_visit_bpmn_single_process(mocker):
     bpmn.inter_process_msgs = {}  # No inter-process messages required for a single process
 
     visitor.end_visit_bpmn(bpmn)  # Should not raise an exception
+
+
+@pytest.fixture
+def setup_process_and_visitor(mocker):
+    # Create a mock Process and visitor instance
+    process = mocker.MagicMock()
+    start_event = mocker.Mock(spec=StartEvent)
+    end_event = mocker.Mock(spec=EndEvent)
+    other_event = mocker.Mock()
+
+    visitor = BpmnConnectivityVisitor()
+
+    return process, visitor, start_event, end_event, other_event
+
+
+def test_fully_connected_graph(setup_process_and_visitor):
+    process, visitor, start_event, end_event, other_event = setup_process_and_visitor
+    # Simulate a fully connected graph
+    process.all_items.return_value = {
+        "start": start_event,
+        "middle": other_event,
+        "end": end_event,
+    }
+    visitor.visited = {start_event, other_event, end_event}
+
+    # No exception should be raised
+    visitor.end_visit_process(process)
+
+
+def test_disconnected_graph_raises_exception(setup_process_and_visitor):
+    process, visitor, start_event, end_event, other_event = setup_process_and_visitor
+    # Simulate a disconnected graph
+    process.all_items.return_value = {
+        "start": start_event,
+        "middle": other_event,
+        "end": end_event,
+    }
+    visitor.visited = {start_event, other_event}  # Missing end_event
+
+    with pytest.raises(Exception, match="Process graph is not fully connected"):
+        visitor.end_visit_process(process)
+
+
+def test_no_start_or_end_event_raises_exception(setup_process_and_visitor):
+    process, visitor, _, _, other_event = setup_process_and_visitor
+    # Simulate no StartEvent or EndEvent
+    process.all_items.return_value = {"middle": other_event}
+    visitor.visited = {other_event}
+    other_event.in_msgs = []
+
+    with pytest.raises(Exception, match="Error with end events or start events"):
+        visitor.end_visit_process(process)
+
+
+def test_no_start_event_with_incoming_msgs(setup_process_and_visitor):
+    process, visitor, _, end_event, other_event = setup_process_and_visitor
+    # Simulate no StartEvent but a valid starting point with incoming messages
+    process.all_items.return_value = {"middle": other_event, "end": end_event}
+    visitor.visited = {other_event, end_event}
+    other_event.in_msgs = [1]
+    end_event.in_msgs = []
+
+    # No exception should be raised
+    visitor.end_visit_process(process)
+
+
+def test_no_end_event_raises_exception(setup_process_and_visitor):
+    process, visitor, start_event, end_event, other_event = setup_process_and_visitor
+    # Simulate no EndEvent
+    process.all_items.return_value = {"start": start_event, "middle": other_event}
+    visitor.visited = {start_event, other_event}
+    start_event.in_msgs = []
+    other_event.in_msgs = [1]
+
+    with pytest.raises(Exception, match="Error with end events or start events"):
+        visitor.end_visit_process(process)
+
+
+def test_no_start_event_with_no_incoming_msgs(setup_process_and_visitor):
+    process, visitor, _, end_event, other_event = setup_process_and_visitor
+    # Simulate no StartEvent but a valid starting point with incoming messages
+    process.all_items.return_value = {"middle": other_event, "end": end_event}
+    visitor.visited = {other_event, end_event}
+    other_event.in_msgs = []
+    end_event.in_msgs = []
+
+    with pytest.raises(Exception, match="Error with end events or start events"):
+        visitor.end_visit_process(process)
+
+
+def test_valid_graph_resets_visited(setup_process_and_visitor):
+    process, visitor, start_event, end_event, _ = setup_process_and_visitor
+    # Simulate a valid graph
+    process.all_items.return_value = {"start": start_event, "end": end_event}
+    visitor.visited = {start_event, end_event}
+    start_event.in_msgs = []
+    end_event.in_msgs = [1]
+
+    visitor.end_visit_process(process)
+
+    # Ensure visited is reset
+    assert visitor.visited == set()
