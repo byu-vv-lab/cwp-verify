@@ -22,7 +22,7 @@ class BpmnElement:
 
         self.id = id
 
-        self.name = element.attrib.get("name", self.id)
+        self.name: str = element.attrib.get("name", self.id)
 
 
 ###################
@@ -31,6 +31,12 @@ class BpmnElement:
 class Node(BpmnElement):
     def __init__(self, element: Element) -> None:
         super().__init__(element)
+        self.message_event_definition: str = element.attrib.get(
+            "messageEventDefinition", ""
+        )
+        self.message_timer_definition: str = element.attrib.get(
+            "timerEventDefinition", ""
+        )
         self.out_flows: List[SequenceFlow] = []
         self.in_flows: List[SequenceFlow] = []
         self.in_msgs: List[MessageFlow] = []
