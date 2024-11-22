@@ -258,23 +258,6 @@ class Bpmn:
     def add_inter_process_msg(self, msg: MessageFlow) -> None:
         self.inter_process_msgs[msg.id] = msg
 
-    def _set_leaf_flows(self) -> None:
-        visited = set()
-
-        def dfs(node: Node) -> None:
-            nonlocal visited
-
-            visited.add(node)
-            for flow in node.out_flows:
-                if flow.target_node in visited:
-                    flow.is_leaf = True
-                else:
-                    dfs(flow.target_node)
-
-        for process in self.processes.values():
-            for node in process.get_start_states().values():
-                dfs(node)
-
     def __str__(self) -> str:
         build_arr: List[str] = []
         for process in self.processes.values():
