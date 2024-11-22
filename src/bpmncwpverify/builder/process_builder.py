@@ -1,6 +1,5 @@
 from xml.etree.ElementTree import Element
 from typing import Dict, Tuple, Type
-from bpmncwpverify import utils
 from bpmncwpverify.constants import NAMESPACES
 from bpmncwpverify.core.bpmn import (
     Process,
@@ -81,9 +80,8 @@ class ProcessBuilder:
     def _validate_and_set_flow_expression(
         self, flow: SequenceFlow, flow_id: str
     ) -> None:
-        raw_expression = flow.element.attrib.get("name", "")
-        if raw_expression:
-            expression = utils.cleanup_expression(raw_expression)
+        expression = flow.element.attrib.get("name", "")
+        if expression:
             result = ExpressionListener.build(expression, self._symbol_table)
             if not_(is_successful)(result) or result.unwrap() != "bool":
                 raise Exception(

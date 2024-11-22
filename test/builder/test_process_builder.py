@@ -132,7 +132,7 @@ def test_build_graph_with_expression_checker(mocker):
             attrib={
                 "sourceRef": "node_1",
                 "targetRef": "node_2",
-                "name": "bad_expression",
+                "name": "clean_expression",
             }
         )
     )
@@ -148,9 +148,6 @@ def test_build_graph_with_expression_checker(mocker):
     }[id]
 
     mock_symbol_table = mocker.MagicMock(spec=SymbolTable)
-    mock_cleanup_expression = mocker.patch(
-        "bpmncwpverify.utils.cleanup_expression", return_value="clean_expression"
-    )
     mock_build = mocker.patch(
         "bpmncwpverify.core.expr.ExpressionListener.build", return_value=Success("bool")
     )
@@ -160,6 +157,5 @@ def test_build_graph_with_expression_checker(mocker):
     builder._process = mock_process
     builder._construct_flow_network()
 
-    mock_cleanup_expression.assert_called_once_with("bad_expression")
     mock_build.assert_called_once_with("clean_expression", mock_symbol_table)
     assert flow_1.expression == "clean_expression"
