@@ -17,7 +17,7 @@ from bpmncwpverify.core.bpmn import (
 )
 
 
-class BpmnConnectivityVisitor(BpmnVisitor):  # type: ignore
+class ProcessConnectivityVisitor(BpmnVisitor):  # type: ignore
     def __init__(self) -> None:
         self.visited: Set[BpmnElement] = set()
         self.last_visited_set: Set[BpmnElement] = set()

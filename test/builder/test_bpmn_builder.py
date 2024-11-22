@@ -11,7 +11,7 @@ def test_build_method(mocker):
     mock_bpmn_instance.accept = mocker.Mock()
 
     mock_visitor = mocker.patch(
-        "bpmncwpverify.visitors.bpmn_connectivity_visitor.BpmnConnectivityVisitor",
+        "bpmncwpverify.visitors.process_connectivity_visitor.ProcessConnectivityVisitor",
         autospec=True,
     )
     mock_visitor_instance = mock_visitor.return_value

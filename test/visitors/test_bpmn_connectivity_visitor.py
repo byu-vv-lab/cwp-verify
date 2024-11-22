@@ -2,7 +2,9 @@
 import pytest
 from bpmncwpverify.builder.bpmn_builder import BpmnBuilder
 from bpmncwpverify.core.bpmn import EndEvent, StartEvent, Task
-from bpmncwpverify.visitors.bpmn_connectivity_visitor import BpmnConnectivityVisitor
+from bpmncwpverify.visitors.process_connectivity_visitor import (
+    ProcessConnectivityVisitor,
+)
 import xml.etree.ElementTree as ET
 
 
@@ -47,7 +49,7 @@ def test_cwp_connectivity(mocker):
     builder.add_process(process, mocker.Mock())
     bpmn = builder.build().unwrap()
 
-    visitor = BpmnConnectivityVisitor()
+    visitor = ProcessConnectivityVisitor()
     bpmn.accept(visitor)
 
     assert len(visitor.last_visited_set) == 6
@@ -60,7 +62,7 @@ def test_cwp_connectivity(mocker):
 
 
 def test_end_bpmn_visit(mocker):
-    visitor = BpmnConnectivityVisitor()
+    visitor = ProcessConnectivityVisitor()
 
     bpmn = mocker.Mock()
     process1 = mocker.Mock()
@@ -91,7 +93,7 @@ def test_end_bpmn_visit(mocker):
 
 
 def test_end_visit_bpmn_no_inter_process_messages(mocker):
-    visitor = BpmnConnectivityVisitor()
+    visitor = ProcessConnectivityVisitor()
 
     bpmn = mocker.Mock()
     process1 = mocker.Mock()
@@ -113,7 +115,7 @@ def test_end_visit_bpmn_no_inter_process_messages(mocker):
 
 
 def test_end_visit_bpmn_single_process(mocker):
-    visitor = BpmnConnectivityVisitor()
+    visitor = ProcessConnectivityVisitor()
 
     bpmn = mocker.Mock()
     process1 = mocker.Mock()
@@ -135,7 +137,7 @@ def setup_process_and_visitor(mocker):
     end_event = mocker.Mock(spec=EndEvent)
     other_event = mocker.Mock()
 
-    visitor = BpmnConnectivityVisitor()
+    visitor = ProcessConnectivityVisitor()
 
     return process, visitor, start_event, end_event, other_event
 

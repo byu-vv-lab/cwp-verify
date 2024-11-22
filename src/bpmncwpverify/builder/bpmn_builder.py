@@ -10,11 +10,11 @@ class BpmnBuilder:
         self._bpmn = Bpmn()
 
     def build(self) -> Result[Bpmn, Error]:
-        from bpmncwpverify.visitors.bpmn_connectivity_visitor import (
-            BpmnConnectivityVisitor,
+        from bpmncwpverify.visitors.process_connectivity_visitor import (
+            ProcessConnectivityVisitor,
         )
 
-        visitor = BpmnConnectivityVisitor()
+        visitor = ProcessConnectivityVisitor()
         self._bpmn.accept(visitor)
         return Success(self._bpmn)
 
