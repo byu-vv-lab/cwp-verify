@@ -82,7 +82,7 @@ def test_build_graph(mocker):
     builder = ProcessBuilder(mocker.Mock(), mocker.Mock(), mocker.Mock())
     builder._bpmn = mock_bpmn
     builder._process = mock_process
-    builder._build_graph()
+    builder._construct_flow_network()
 
     assert flow_1.source_node == node_1
     assert flow_1.target_node == node_2
@@ -158,7 +158,7 @@ def test_build_graph_with_expression_checker(mocker):
     builder = ProcessBuilder(mocker.Mock(), mocker.Mock(), mock_symbol_table)
     builder._bpmn = mock_bpmn
     builder._process = mock_process
-    builder._build_graph()
+    builder._construct_flow_network()
 
     mock_cleanup_expression.assert_called_once_with("bad_expression")
     mock_build.assert_called_once_with("clean_expression", mock_symbol_table)
