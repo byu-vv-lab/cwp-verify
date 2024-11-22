@@ -91,14 +91,11 @@ class ProcessBuilder:
     def _link_flow_to_nodes(
         self, flow: SequenceFlow, source_ref: Node, target_ref: Node
     ) -> None:
-        if isinstance(source_ref, Node) and isinstance(target_ref, Node):
-            flow.source_node = source_ref
-            flow.target_node = target_ref
+        flow.source_node = source_ref
+        flow.target_node = target_ref
 
-            source_ref.add_out_flow(flow)
-            target_ref.add_in_flow(flow)
-        else:
-            raise TypeError("sourceRef or targetRef is not of type Node")
+        source_ref.add_out_flow(flow)
+        target_ref.add_in_flow(flow)
 
     def add_element(self, element: Element) -> None:
         def get_tag_name(element: Element) -> str:
