@@ -73,25 +73,29 @@ class BpmnConnectivityVisitor(BpmnVisitor):  # type: ignore
         return self.process_flow(flow)
 
     def end_visit_process(self, process: Process) -> None:
+        # Ensure all items in the process graph are visited
         if set(process.all_items().values()) != self.visited:
             raise Exception("Process graph is not fully connected")
-        start_events = 0
-        end_events = 0
-        for itm in process.all_items().values():
-            if isinstance(itm, StartEvent):
-                start_events += 1
-            elif isinstance(itm, EndEvent):
-                end_events += 1
 
-        if start_events == 0 or end_events == 0:
+        start_events = sum(
+            isinstance(itm, StartEvent) for itm in process.all_items().values()
+        )
+        end_events = sum(
+            isinstance(itm, EndEvent) for itm in process.all_items().values()
+        )
+
+        # Determine if there is a valid starting point
+        starting_point = start_events > 0 or any(
+            itm.in_msgs for itm in process.all_items().values()
+        )
+
+        if not starting_point or end_events == 0:
             raise Exception(
                 f"Error with end events or start events: # end states = {end_events}, # start states = {start_events}"
             )
 
-        # This line of code is for testing purposes
+        # Testing and cleanup
         self.last_visited_set = self.visited
-
-        # Reset visited after processing each process to ensure connectivity of each process
         self.visited = set()
 
     def end_visit_bpmn(self, bpmn: Bpmn) -> None:
