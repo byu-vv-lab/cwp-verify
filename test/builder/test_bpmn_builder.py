@@ -1,6 +1,6 @@
 import pytest
 from xml.etree.ElementTree import Element
-from bpmncwpverify.builder.bpmn_builder import ConcreteBpmnBuilder
+from bpmncwpverify.builder.bpmn_builder import BpmnBuilder
 from bpmncwpverify.core.bpmn import Node
 from returns.result import Success
 
@@ -16,7 +16,7 @@ def test_build_method(mocker):
     )
     mock_visitor_instance = mock_visitor.return_value
 
-    builder = ConcreteBpmnBuilder()
+    builder = BpmnBuilder()
 
     builder._bpmn = mock_bpmn_instance
 
@@ -45,7 +45,7 @@ def test_add_message_valid_input(mocker):
         "target_id": mock_target_node,
     }[x]
 
-    builder = ConcreteBpmnBuilder()
+    builder = BpmnBuilder()
     builder._bpmn = mock_bpmn
 
     builder.add_message(mock_msg_flow)
@@ -64,7 +64,7 @@ def test_add_message_missing_refs(mocker):
         "targetRef": "target_id",
     }[x]
 
-    builder = ConcreteBpmnBuilder()
+    builder = BpmnBuilder()
     builder._bpmn = mock_bpmn
 
     with pytest.raises(
@@ -85,7 +85,7 @@ def test_add_message_invalid_nodes(mocker):
         "target_id": "invalid_node",
     }[x]
 
-    builder = ConcreteBpmnBuilder()
+    builder = BpmnBuilder()
     builder._bpmn = mock_bpmn
 
     with pytest.raises(TypeError, match="to_node or from_node is not of type Node"):

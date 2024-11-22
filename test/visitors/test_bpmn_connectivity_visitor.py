@@ -1,6 +1,6 @@
 # type: ignore
 import pytest
-from bpmncwpverify.builder.bpmn_builder import ConcreteBpmnBuilder
+from bpmncwpverify.builder.bpmn_builder import BpmnBuilder
 from bpmncwpverify.core.bpmn import EndEvent, StartEvent, Task
 from bpmncwpverify.visitors.bpmn_connectivity_visitor import BpmnConnectivityVisitor
 import xml.etree.ElementTree as ET
@@ -43,7 +43,7 @@ def test_cwp_connectivity(mocker):
     )
     ET.SubElement(task3, f"{ns}outgoing").text = cyclic_flow.attrib["id"]
 
-    builder = ConcreteBpmnBuilder()
+    builder = BpmnBuilder()
     builder.add_process(process, mocker.Mock())
     bpmn = builder.build().unwrap()
 

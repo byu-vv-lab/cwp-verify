@@ -16,12 +16,12 @@ class Cwp:
 
     @staticmethod
     def from_xml(xml_file: str, symbol_table: SymbolTable) -> Result["Cwp", Error]:
-        from bpmncwpverify.builder.cwp_builder import ConcreteCwpBuilder
+        from bpmncwpverify.builder.cwp_builder import CwpBuilder
 
         try:
             tree = parse(xml_file)
             root = tree.getroot()
-            builder = ConcreteCwpBuilder(symbol_table)
+            builder = CwpBuilder(symbol_table)
 
             diagram = root.find("diagram")
             mx_graph_model = diagram.find("mxGraphModel")

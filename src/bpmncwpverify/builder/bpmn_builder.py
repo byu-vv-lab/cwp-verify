@@ -5,7 +5,7 @@ from returns.result import Result, Success
 from bpmncwpverify.error import Error
 
 
-class ConcreteBpmnBuilder:
+class BpmnBuilder:
     def __init__(self) -> None:
         self._bpmn = Bpmn()
 
@@ -19,9 +19,9 @@ class ConcreteBpmnBuilder:
         return Success(self._bpmn)
 
     def add_process(self, element: Element, symbol_table: SymbolTable) -> None:
-        from bpmncwpverify.builder.process_builder import ConcreteProcessBuilder
+        from bpmncwpverify.builder.process_builder import ProcessBuilder
 
-        process_builder = ConcreteProcessBuilder(self._bpmn, element, symbol_table)
+        process_builder = ProcessBuilder(self._bpmn, element, symbol_table)
 
         for element in element:
             process_builder.add_element(element)

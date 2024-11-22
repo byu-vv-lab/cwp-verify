@@ -21,7 +21,7 @@ from returns.pipeline import is_successful
 from returns.functions import not_
 
 
-class ConcreteProcessBuilder:
+class ProcessBuilder:
     def __init__(self, bpmn: Bpmn, element: Element, symbol_table: SymbolTable) -> None:
         self._process = Process(element)
         self._bpmn = bpmn
@@ -94,13 +94,13 @@ class ConcreteProcessBuilder:
         tag_name = get_tag_name(element)
 
         element_class = (
-            ConcreteProcessBuilder._TAG_CLASS_MAPPING.get(tag_name)
+            ProcessBuilder._TAG_CLASS_MAPPING.get(tag_name)
             or (
-                ConcreteProcessBuilder._TAG_CLASS_MAPPING["task"]
+                ProcessBuilder._TAG_CLASS_MAPPING["task"]
                 if "task" in tag_name.lower()
                 else None
             )
-            or ConcreteProcessBuilder._FLOW_MAPPING.get(tag_name)
+            or ProcessBuilder._FLOW_MAPPING.get(tag_name)
         )
 
         if element_class:

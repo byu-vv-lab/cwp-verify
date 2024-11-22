@@ -11,7 +11,7 @@ from returns.functions import not_
 from bpmncwpverify import utils
 
 
-class ConcreteCwpBuilder:
+class CwpBuilder:
     def __init__(self, symbol_table: SymbolTable) -> None:
         self.edges: List[Element] = []
         self.all_items: List[Element] = []

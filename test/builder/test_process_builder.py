@@ -1,6 +1,6 @@
 # type: ignore
 from xml.etree.ElementTree import Element
-from bpmncwpverify.builder.process_builder import ConcreteProcessBuilder
+from bpmncwpverify.builder.process_builder import ProcessBuilder
 from bpmncwpverify.core.bpmn import Node, SequenceFlow
 from bpmncwpverify.core.state import SymbolTable
 from returns.result import Success
@@ -14,11 +14,11 @@ def test_add_element(mocker):
 
     mock_class = mocker.patch("bpmncwpverify.core.bpmn.Task", return_value=mock_task)
     mocker.patch.dict(
-        "bpmncwpverify.builder.process_builder.ConcreteProcessBuilder._TAG_CLASS_MAPPING",
+        "bpmncwpverify.builder.process_builder.ProcessBuilder._TAG_CLASS_MAPPING",
         {"task": mock_class},
     )
 
-    builder = ConcreteProcessBuilder(mock_bpmn, mocker.MagicMock(), mocker.MagicMock())
+    builder = ProcessBuilder(mock_bpmn, mocker.MagicMock(), mocker.MagicMock())
 
     mock_process = mocker.MagicMock()
     builder._process = mock_process
@@ -79,7 +79,7 @@ def test_build_graph(mocker):
         "node_2": node_2,
     }[id]
 
-    builder = ConcreteProcessBuilder(mocker.Mock(), mocker.Mock(), mocker.Mock())
+    builder = ProcessBuilder(mocker.Mock(), mocker.Mock(), mocker.Mock())
     builder._bpmn = mock_bpmn
     builder._process = mock_process
     builder._build_graph()
@@ -155,7 +155,7 @@ def test_build_graph_with_expression_checker(mocker):
         "bpmncwpverify.core.expr.ExpressionListener.build", return_value=Success("bool")
     )
 
-    builder = ConcreteProcessBuilder(mocker.Mock(), mocker.Mock(), mock_symbol_table)
+    builder = ProcessBuilder(mocker.Mock(), mocker.Mock(), mock_symbol_table)
     builder._bpmn = mock_bpmn
     builder._process = mock_process
     builder._build_graph()

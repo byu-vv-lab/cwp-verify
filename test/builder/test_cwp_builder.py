@@ -1,4 +1,4 @@
-from bpmncwpverify.builder.cwp_builder import ConcreteCwpBuilder
+from bpmncwpverify.builder.cwp_builder import CwpBuilder
 from bpmncwpverify.core.cwp import CwpEdge, CwpState
 from returns.result import Success
 import pytest
@@ -9,7 +9,7 @@ from xml.etree.ElementTree import Element
 @pytest.fixture
 def builder(mocker):
     symbol_table = mocker.MagicMock()
-    return ConcreteCwpBuilder(symbol_table)
+    return CwpBuilder(symbol_table)
 
 
 def create_mock_state(mocker, state_id, out_edges=None, in_edges=None):
@@ -114,7 +114,7 @@ def test_build(mocker):
     mock_cwp = mocker.MagicMock()
     mock_cwp.states = states
 
-    obj = ConcreteCwpBuilder(mocker.MagicMock())
+    obj = CwpBuilder(mocker.MagicMock())
     obj._cwp = mock_cwp
     obj._cwp.states = states
     obj._cwp.edges = edges

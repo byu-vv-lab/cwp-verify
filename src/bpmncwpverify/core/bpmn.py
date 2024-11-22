@@ -308,12 +308,12 @@ class Bpmn:
 
     @staticmethod
     def from_xml(xml_file: str, symbol_table: SymbolTable) -> Result["Bpmn", Error]:
-        from bpmncwpverify.builder.bpmn_builder import ConcreteBpmnBuilder
+        from bpmncwpverify.builder.bpmn_builder import BpmnBuilder
 
         try:
             tree = parse(xml_file)
             root = tree.getroot()
-            builder = ConcreteBpmnBuilder()
+            builder = BpmnBuilder()
             processes = root.findall("bpmn:process", NAMESPACES)
             for process_element in processes:
                 builder.add_process(process_element, symbol_table)
