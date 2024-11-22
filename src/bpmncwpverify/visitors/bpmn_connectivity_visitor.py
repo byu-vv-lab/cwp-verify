@@ -60,17 +60,17 @@ class BpmnConnectivityVisitor(BpmnVisitor):  # type: ignore
         self.visited.add(gateway)
         return True
 
-    def process_node(self, flow: Flow) -> bool:
+    def process_flow(self, flow: Flow) -> bool:
         if flow.target_node in self.visited:
             flow.is_leaf = True
             return False
         return True
 
     def visit_sequence_flow(self, flow: SequenceFlow) -> bool:
-        return self.process_node(flow)
+        return self.process_flow(flow)
 
     def visit_message_flow(self, flow: MessageFlow) -> bool:
-        return self.process_node(flow)
+        return self.process_flow(flow)
 
     def end_visit_process(self, process: Process) -> None:
         if set(process.all_items().values()) != self.visited:
