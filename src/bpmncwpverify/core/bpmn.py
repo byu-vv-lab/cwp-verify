@@ -31,12 +31,19 @@ class BpmnElement:
 class Node(BpmnElement):
     def __init__(self, element: Element) -> None:
         super().__init__(element)
-        self.message_event_definition: str = element.attrib.get(
-            "messageEventDefinition", ""
+
+        message_event_def = element.find("bpmn:messageEventDefinition", NAMESPACES)
+        self.message_event_definition: str = (
+            message_event_def.attrib.get("id", "")
+            if message_event_def is not None
+            else ""
         )
-        self.message_timer_definition: str = element.attrib.get(
-            "timerEventDefinition", ""
+
+        timer_event_def = element.find("bpmn:timerEventDefinition", NAMESPACES)
+        self.message_timer_definition: str = (
+            timer_event_def.attrib.get("id", "") if timer_event_def is not None else ""
         )
+
         self.out_flows: List[SequenceFlow] = []
         self.in_flows: List[SequenceFlow] = []
         self.in_msgs: List[MessageFlow] = []
