@@ -35,10 +35,15 @@ class ProcessConnectivityVisitor(BpmnVisitor):  # type: ignore
         return True
 
     def visit_end_event(self, event: EndEvent) -> bool:
+        if event.in_msgs:
+            raise Exception(
+                f"Exception occurred while visiting end event: {event.id}. End events cannot have incoming messages."
+            )
         self.visited.add(event)
         return True
 
     def visit_intermediate_event(self, event: IntermediateEvent) -> bool:
+        self._ensure_in_messages(event, "intermediate event")
         self.visited.add(event)
         return True
 
