@@ -1,6 +1,7 @@
 from xml.etree.ElementTree import Element
 from bpmncwpverify.core.bpmn import Bpmn, MessageFlow, Node
 from bpmncwpverify.core.state import SymbolTable
+from bpmncwpverify.visitors.bpmn_connectivity_visitor import BpmnConnectivityVisitor
 from returns.result import Result, Success
 from bpmncwpverify.error import Error
 
@@ -10,9 +11,9 @@ class BpmnBuilder:
         self._bpmn = Bpmn()
 
     def build(self) -> Result[Bpmn, Error]:
-        if len(self._bpmn.processes) > 1:
-            if len(self._bpmn.inter_process_msgs) == 0:
-                raise Exception("No inter process messages exist in this bpmn model.")
+        visitor = BpmnConnectivityVisitor()
+
+        self._bpmn.accept(visitor)
         return Success(self._bpmn)
 
     def add_process(self, element: Element, symbol_table: SymbolTable) -> None:

@@ -3,8 +3,6 @@ from bpmncwpverify.core.bpmn import (
     BpmnElement,
     BpmnVisitor,
     Flow,
-    MessageFlow,
-    Node,
     Process,
     SequenceFlow,
     StartEvent,
@@ -22,28 +20,15 @@ class ProcessConnectivityVisitor(BpmnVisitor):  # type: ignore
         self.visited: Set[BpmnElement] = set()
         self.last_visited_set: Set[BpmnElement] = set()
 
-    def _ensure_in_messages(self, node: Node, obj_type: str) -> None:
-        if node.in_msgs:
-            if not node.message_event_definition:
-                raise Exception(
-                    f"Exception occurred while visiting {obj_type}:{node.id}. A message flow can only go to a Message start or intermediate event; Receive, User, or Service task; Subprocess; or black box pool."
-                )
-
     def visit_start_event(self, event: StartEvent) -> bool:
-        self._ensure_in_messages(event, "start event")
         self.visited.add(event)
         return True
 
     def visit_end_event(self, event: EndEvent) -> bool:
-        if event.in_msgs:
-            raise Exception(
-                f"Exception occurred while visiting end event: {event.id}. End events cannot have incoming messages."
-            )
         self.visited.add(event)
         return True
 
     def visit_intermediate_event(self, event: IntermediateEvent) -> bool:
-        self._ensure_in_messages(event, "intermediate event")
         self.visited.add(event)
         return True
 
@@ -80,9 +65,6 @@ class ProcessConnectivityVisitor(BpmnVisitor):  # type: ignore
         return True
 
     def visit_sequence_flow(self, flow: SequenceFlow) -> bool:
-        return self.process_flow(flow)
-
-    def visit_message_flow(self, flow: MessageFlow) -> bool:
         return self.process_flow(flow)
 
     def end_visit_process(self, process: Process) -> None:
