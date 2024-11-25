@@ -1,14 +1,14 @@
 # type: ignore
+from bpmncwpverify.builder.process_builder import ProcessBuilder
 import pytest
-from bpmncwpverify.builder.bpmn_builder import BpmnBuilder
-from bpmncwpverify.core.bpmn import EndEvent, StartEvent
+from bpmncwpverify.core.bpmn import Bpmn, EndEvent, StartEvent
 from bpmncwpverify.visitors.process_connectivity_visitor import (
     ProcessConnectivityVisitor,
 )
 import xml.etree.ElementTree as ET
 
 
-def test_cwp_connectivity(mocker):
+def test_process_connectivity(mocker):
     ns = "{http://www.omg.org/spec/BPMN/20100524/MODEL}"
     root = ET.Element("root")
     process = ET.SubElement(root, f"{ns}process", attrib={"id": "process1"})
@@ -45,20 +45,25 @@ def test_cwp_connectivity(mocker):
     )
     ET.SubElement(task3, f"{ns}outgoing").text = cyclic_flow.attrib["id"]
 
-    builder = BpmnBuilder()
-    builder.add_process(process, mocker.Mock())
-    bpmn = builder.build().unwrap()
+    symbol_table = mocker.Mock()
+    bpmn = Bpmn()
+    builder = ProcessBuilder(bpmn, process, symbol_table)
+    for element in process:
+        builder.add_element(element)
+
+    builder._construct_flow_network()
 
     visitor = ProcessConnectivityVisitor()
-    bpmn.accept(visitor)
+    builder._process.accept(visitor)
 
     assert len(visitor.last_visited_set) == 6
-    for flow_id, flow in bpmn.processes["process1"]._flows.items():
+    for flow_id, flow in builder._process._flows.items():
         assert flow.is_leaf if flow_id == "cyclic_flow" else not flow.is_leaf
-    for process in bpmn.processes.values():
-        assert all(
-            task in visitor.last_visited_set for task in process.all_items().values()
-        )
+    __import__("pdb").set_trace()
+    assert all(
+        task in visitor.last_visited_set
+        for task in builder._process.all_items().values()
+    )
 
 
 @pytest.fixture
