@@ -59,7 +59,6 @@ def test_process_connectivity(mocker):
     assert len(visitor.last_visited_set) == 6
     for flow_id, flow in builder._process._flows.items():
         assert flow.is_leaf if flow_id == "cyclic_flow" else not flow.is_leaf
-    __import__("pdb").set_trace()
     assert all(
         task in visitor.last_visited_set
         for task in builder._process.all_items().values()
