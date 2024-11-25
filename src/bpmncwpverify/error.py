@@ -24,6 +24,14 @@ class NotImplementedError(Error):
         self.function = function
 
 
+class MessageError(Error):
+    __slots__ = ["msg"]
+
+    def __init__(self, msg: str) -> None:
+        super().__init__()
+        self.msg = msg
+
+
 class StateInitNotInValues(Error):
     __slots__ = ["id", "line", "column", "values"]
 
@@ -115,6 +123,8 @@ def _get_error_message(error: Error) -> str:
             return f"BPMN ERROR: node with id: {node_id} not found in graph."
         case NotImplementedError(function=function):
             return "ERROR: not implemented '{}'".format(function)
+        case MessageError(msg=msg):
+            return f"Message Error: {msg}"
         case StateInitNotInValues(id=id, line=line, column=column, values=values):
             # Convert to a list since Python sets are not stable
             return "STATE ERROR: init value '{}' at line {}:{} not in allowed values {}".format(

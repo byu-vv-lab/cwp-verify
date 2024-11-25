@@ -7,6 +7,7 @@ from bpmncwpverify.core.bpmn import (
     EndEvent,
     IntermediateEvent,
 )
+from bpmncwpverify.error import MessageError
 
 
 class BpmnConnectivityVisitor(BpmnVisitor):  # type: ignore
@@ -14,14 +15,18 @@ class BpmnConnectivityVisitor(BpmnVisitor):  # type: ignore
         if node.in_msgs:
             if not node.message_event_definition:
                 raise Exception(
-                    f"Exception occurred while visiting {obj_type}:{node.id}. A message flow can only go to a Message start or intermediate event; Receive, User, or Service task; Subprocess; or black box pool."
+                    MessageError(
+                        f"Exception occurred while visiting {obj_type}:{node.id}. A message flow can only go to a Message start or intermediate event; Receive, User, or Service task; Subprocess; or black box pool."
+                    )
                 )
 
     def _ensure_out_messages(self, node: Node, obj_type: str) -> None:
         if node.out_msgs:
             if not node.message_event_definition:
                 raise Exception(
-                    f"Exception occurred while visiting {obj_type}:{node.id}. A message flow can only come from a Messege end or intermediate event; Send, User, or Service task; Subprocess; or black box pool."
+                    MessageError(
+                        f"Exception occurred while visiting {obj_type}:{node.id}. A message flow can only come from a Messege end or intermediate event; Send, User, or Service task; Subprocess; or black box pool."
+                    )
                 )
 
     def visit_start_event(self, event: StartEvent) -> bool:
