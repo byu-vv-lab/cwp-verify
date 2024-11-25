@@ -6,10 +6,6 @@ from bpmncwpverify.core.bpmn import (
     StartEvent,
     EndEvent,
     IntermediateEvent,
-    Task,
-    SubProcess,
-    ExclusiveGatewayNode,
-    ParallelGatewayNode,
 )
 
 
@@ -43,18 +39,6 @@ class BpmnConnectivityVisitor(BpmnVisitor):  # type: ignore
     def visit_intermediate_event(self, event: IntermediateEvent) -> bool:
         self._ensure_in_messages(event, "intermediate event")
         self._ensure_out_messages(event, "intermediate event")
-        return True
-
-    def visit_task(self, task: Task) -> bool:
-        return True
-
-    def visit_sub_process(self, subprocess: SubProcess) -> bool:
-        return True
-
-    def visit_exclusive_gateway(self, gateway: ExclusiveGatewayNode) -> bool:
-        return True
-
-    def visit_parallel_gateway(self, gateway: ParallelGatewayNode) -> bool:
         return True
 
     def process_flow(self, flow: Flow) -> bool:
