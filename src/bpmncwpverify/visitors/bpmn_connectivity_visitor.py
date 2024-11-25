@@ -49,6 +49,7 @@ class BpmnConnectivityVisitor(BpmnVisitor):  # type: ignore
         return True
 
     def process_flow(self, flow: Flow) -> bool:
+        # For this is_leaf to work, this model would have already needed to been visited by a visitor that sets this attribute
         if flow.is_leaf:
             return False
         return True
