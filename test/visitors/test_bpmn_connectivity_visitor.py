@@ -3,55 +3,41 @@ import pytest
 from bpmncwpverify.core.bpmn import Node
 
 
-def test_ensure_in_messages_no_message_event_def(mocker):
-    test_node = mocker.Mock(spec=Node)
-    test_node.id = "123"
-    test_node.in_msgs = [1]
-    test_node.message_event_definition = ""
+def test_ensure_in_and_out_messages(mocker):
+    def setup_node(id, in_msgs=None, out_msgs=None, message_event_definition=""):
+        node = mocker.Mock(spec=Node)
+        node.id = id
+        node.in_msgs = in_msgs or []
+        node.out_msgs = out_msgs or []
+        node.message_event_definition = message_event_definition
+        return node
 
     visitor = BpmnConnectivityVisitor()
 
+    # Test ensure_in_messages - no message event definition
+    test_node_in = setup_node("123", in_msgs=[1])
     with pytest.raises(
         Exception,
         match="Exception occurred while visiting event:123. A message flow can only go to a Message start or intermediate event; Receive, User, or Service task; Subprocess; or black box pool.",
     ):
-        visitor._ensure_in_messages(test_node, "event")
+        visitor._ensure_in_messages(test_node_in, "event")
 
+    # Test ensure_in_messages - with message event definition
+    test_node_in_def = setup_node(
+        "123", in_msgs=[1], message_event_definition="test-id"
+    )
+    visitor._ensure_in_messages(test_node_in_def, "event")  # no error expected
 
-def test_ensure_in_messages_with_message_event_def(mocker):
-    test_node = mocker.Mock(spec=Node)
-    test_node.id = "123"
-    test_node.in_msgs = [1]
-    test_node.message_event_definition = "test-id"
-
-    visitor = BpmnConnectivityVisitor()
-
-    # no error thrown
-    visitor._ensure_in_messages(test_node, "event")
-
-
-def test_ensure_out_messages_no_message_event_def(mocker):
-    test_node = mocker.Mock(spec=Node)
-    test_node.id = "123"
-    test_node.out_msgs = [1]
-    test_node.message_event_definition = ""
-
-    visitor = BpmnConnectivityVisitor()
-
+    # Test ensure_out_messages - no message event definition
+    test_node_out = setup_node("123", out_msgs=[1])
     with pytest.raises(
         Exception,
         match="Exception occurred while visiting event:123. A message flow can only come from a Messege end or intermediate event; Send, User, or Service task; Subprocess; or black box pool.",
     ):
-        visitor._ensure_out_messages(test_node, "event")
+        visitor._ensure_out_messages(test_node_out, "event")
 
-
-def test_ensure_out_messages_with_message_event_def(mocker):
-    test_node = mocker.Mock(spec=Node)
-    test_node.id = "123"
-    test_node.out_msgs = [1]
-    test_node.message_event_definition = "test-id"
-
-    visitor = BpmnConnectivityVisitor()
-
-    # no error thrown
-    visitor._ensure_out_messages(test_node, "event")
+    # Test ensure_out_messages - with message event definition
+    test_node_out_def = setup_node(
+        "123", out_msgs=[1], message_event_definition="test-id"
+    )
+    visitor._ensure_out_messages(test_node_out_def, "event")  # no error expected
