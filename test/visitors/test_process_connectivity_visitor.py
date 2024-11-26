@@ -8,7 +8,7 @@ from bpmncwpverify.visitors.process_connectivity_visitor import (
 import xml.etree.ElementTree as ET
 
 
-def test_process_connectivity(mocker):
+def test_given_valid_tree_process_then_process_visitor_works(mocker):
     ns = "{http://www.omg.org/spec/BPMN/20100524/MODEL}"
     root = ET.Element("root")
     process = ET.SubElement(root, f"{ns}process", attrib={"id": "process1"})
