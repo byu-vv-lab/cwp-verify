@@ -1,3 +1,4 @@
+from bpmncwpverify.error import MessageError
 import pytest
 from xml.etree.ElementTree import Element
 from bpmncwpverify.builder.bpmn_builder import BpmnBuilder
@@ -82,3 +83,63 @@ def test_add_message_invalid_nodes(mocker):
 
     with pytest.raises(TypeError, match="to_node or from_node is not of type Node"):
         builder.add_message(mock_msg_flow)
+
+
+def test_check_messages_valid(mocker):
+    mock_bpmn = mocker.MagicMock()
+
+    mock_message1 = mocker.MagicMock()
+    mock_message1.id = "message1"
+    mock_message1.target_node.id = "target1"
+    mock_message1.source_node.id = "source1"
+    mock_bpmn.inter_process_msgs.values.return_value = [mock_message1]
+
+    mock_process = mocker.MagicMock()
+    mock_process.all_items.return_value = {"target1", "source1"}
+    mock_bpmn.processes.values.return_value = [mock_process]
+
+    obj = BpmnBuilder()
+    obj._bpmn = mock_bpmn
+
+    with pytest.raises(
+        Exception,
+    ) as exc_info:
+        obj._msg_connects_diff_pools()
+    assert isinstance(exc_info.value.args[0], MessageError)
+    assert (
+        "Error at Message message1, A message flow cannot connect nodes in the same pool."
+        == str(exc_info.value.args[0].msg)
+    )
+
+
+def test_check_messages_no_intersection(mocker):
+    mock_bpmn = mocker.MagicMock()
+
+    mock_message1 = mocker.MagicMock()
+    mock_message1.target_node.id = "target1"
+    mock_message1.source_node.id = "source2"
+    mock_bpmn.inter_process_msgs.values.return_value = [mock_message1]
+
+    mock_process = mocker.MagicMock()
+    mock_process.all_items.return_value = {"item1", "item2"}
+    mock_bpmn.processes.values.return_value = [mock_process]
+
+    obj = BpmnBuilder()
+    obj._bpmn = mock_bpmn
+
+    obj._msg_connects_diff_pools()
+
+
+def test_check_messages_empty(mocker):
+    mock_bpmn = mocker.MagicMock()
+
+    mock_bpmn.inter_process_msgs.values.return_value = []
+
+    mock_process = mocker.MagicMock()
+    mock_process.all_items.return_value = []
+    mock_bpmn.processes.values.return_value = [mock_process]
+
+    obj = mocker.MagicMock()
+    obj._bpmn = mock_bpmn
+
+    obj._msg_connects_diff_pools()
