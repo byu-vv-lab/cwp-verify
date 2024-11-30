@@ -113,3 +113,36 @@ def test_validate_gateway_no_msgs_with_both_messages(mocker):
         "Error occurred while visiting TestGateway: gateway4. Gateways cannot have incoming or outgoing messages."
         == str(exc_info.value.args[0].error_msg)
     )
+
+
+def test_visit_end_event_no_incoming_messages(mocker):
+    event = mocker.MagicMock()
+    event.in_msgs = []
+    event.id = "end_event_1"
+
+    obj = BpmnConnectivityVisitor()
+    obj._ensure_out_messages = mocker.MagicMock(return_value=None)
+
+    result = obj.visit_end_event(event)
+
+    obj._ensure_out_messages.assert_called_once_with(event, "end event")  # type: ignore
+    assert result is True
+
+
+def test_visit_end_event_with_incoming_messages(mocker):
+    event = mocker.MagicMock()
+    event.in_msgs = ["msg1"]
+    event.id = "end_event_2"
+
+    obj = BpmnConnectivityVisitor()
+    obj._ensure_out_messages = mocker.MagicMock()
+
+    with pytest.raises(Exception) as exc_info:
+        obj.visit_end_event(event)
+
+    assert isinstance(exc_info.value.args[0], MessageError)
+    assert (
+        "Exception occurred while visiting end event: end_event_2. End events cannot have incoming messages."
+        == str(exc_info.value.args[0].error_msg)
+    )
+    obj._ensure_out_messages.assert_not_called()  # type: ignore
