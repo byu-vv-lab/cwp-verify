@@ -50,3 +50,66 @@ def test_ensure_in_and_out_messages(mocker):
         "123", out_msgs=[1], message_event_definition="test-id"
     )
     visitor._ensure_out_messages(test_node_out_def, "event")  # no error expected
+
+
+def test_validate_gateway_no_msgs_no_messages(mocker):
+    gateway = mocker.MagicMock()
+    gateway.in_msgs = []
+    gateway.out_msgs = []
+    gateway.id = "gateway1"
+    obj = BpmnConnectivityVisitor()
+
+    result = obj._validate_gateway_no_msgs(gateway, "TestGateway")
+
+    assert result is True
+
+
+def test_validate_gateway_no_msgs_with_incoming_messages(mocker):
+    gateway = mocker.MagicMock()
+    gateway.in_msgs = ["msg1"]
+    gateway.out_msgs = []
+    gateway.id = "gateway2"
+    obj = BpmnConnectivityVisitor()
+
+    with pytest.raises(Exception) as exc_info:
+        obj._validate_gateway_no_msgs(gateway, "TestGateway")
+
+    assert isinstance(exc_info.value.args[0], MessageError)
+    assert (
+        "Error occurred while visiting TestGateway: gateway2. Gateways cannot have incoming or outgoing messages."
+        == str(exc_info.value.args[0].msg)
+    )
+
+
+def test_validate_gateway_no_msgs_with_outgoing_messages(mocker):
+    gateway = mocker.MagicMock()
+    gateway.in_msgs = []
+    gateway.out_msgs = ["msg1"]
+    gateway.id = "gateway3"
+    obj = BpmnConnectivityVisitor()
+
+    with pytest.raises(Exception) as exc_info:
+        obj._validate_gateway_no_msgs(gateway, "TestGateway")
+
+    assert isinstance(exc_info.value.args[0], MessageError)
+    assert (
+        "Error occurred while visiting TestGateway: gateway3. Gateways cannot have incoming or outgoing messages."
+        == str(exc_info.value.args[0].msg)
+    )
+
+
+def test_validate_gateway_no_msgs_with_both_messages(mocker):
+    gateway = mocker.MagicMock()
+    gateway.in_msgs = ["msg1"]
+    gateway.out_msgs = ["msg2"]
+    gateway.id = "gateway4"
+    obj = BpmnConnectivityVisitor()
+
+    with pytest.raises(Exception) as exc_info:
+        obj._validate_gateway_no_msgs(gateway, "TestGateway")
+
+    assert isinstance(exc_info.value.args[0], MessageError)
+    assert (
+        "Error occurred while visiting TestGateway: gateway4. Gateways cannot have incoming or outgoing messages."
+        == str(exc_info.value.args[0].msg)
+    )

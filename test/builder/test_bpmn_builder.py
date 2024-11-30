@@ -14,6 +14,7 @@ def test_build_method(mocker):
     builder = BpmnBuilder()
 
     builder._bpmn = mock_bpmn_instance
+    builder._msg_connects_diff_pools = mocker.MagicMock()
     mock_bpmn_instance.processes = [1]
     mock_bpmn_instance.add_inter_process_msg = [1]
 
