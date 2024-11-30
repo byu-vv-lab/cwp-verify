@@ -11,9 +11,18 @@ class Error:
 class BpmnNodeNotFound(Error):
     __slots__ = ["node_id"]
 
-    def __init__(self, node_id: str):
+    def __init__(self, node_id: str) -> None:
         super().__init__()
         self.node_id = node_id
+
+
+class BpmnStructureError(Error):
+    __slots__ = ["node_id", "error_msg"]
+
+    def __init__(self, node_id: str, error_msg: str) -> None:
+        super().__init__()
+        self.node_id = node_id
+        self.error_msg = error_msg
 
 
 class NotImplementedError(Error):
@@ -25,11 +34,11 @@ class NotImplementedError(Error):
 
 
 class MessageError(Error):
-    __slots__ = ["msg"]
+    __slots__ = ["error_msg"]
 
-    def __init__(self, msg: str) -> None:
+    def __init__(self, error_msg: str) -> None:
         super().__init__()
-        self.msg = msg
+        self.error_msg = error_msg
 
 
 class StateInitNotInValues(Error):
@@ -121,10 +130,12 @@ def _get_error_message(error: Error) -> str:
     match error:
         case BpmnNodeNotFound(node_id=node_id):
             return f"BPMN ERROR: node with id: {node_id} not found in graph."
+        case BpmnStructureError(node_id=node_id, error_msg=error_msg):
+            return f"BPMN ERROR at node: {node_id}. {error_msg}"
         case NotImplementedError(function=function):
             return "ERROR: not implemented '{}'".format(function)
-        case MessageError(msg=msg):
-            return f"Message Error: {msg}"
+        case MessageError(error_msg=error_msg):
+            return f"Message Error: {error_msg}"
         case StateInitNotInValues(id=id, line=line, column=column, values=values):
             # Convert to a list since Python sets are not stable
             return "STATE ERROR: init value '{}' at line {}:{} not in allowed values {}".format(

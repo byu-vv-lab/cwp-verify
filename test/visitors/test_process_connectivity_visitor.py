@@ -1,5 +1,6 @@
 # type: ignore
 from bpmncwpverify.builder.process_builder import ProcessBuilder
+from bpmncwpverify.error import BpmnStructureError
 import pytest
 from bpmncwpverify.core.bpmn import Bpmn, EndEvent, StartEvent
 from bpmncwpverify.visitors.process_connectivity_visitor import (
@@ -155,7 +156,7 @@ def test_no_start_event_with_no_incoming_msgs(setup_process_and_visitor):
 
 def test_valid_graph_resets_visited(setup_process_and_visitor):
     process, visitor, start_event, end_event, _ = setup_process_and_visitor
-    # Simulate a valid graph
+
     process.all_items.return_value = {"start": start_event, "end": end_event}
     visitor.visited = {start_event, end_event}
     start_event.in_msgs = []
@@ -163,5 +164,37 @@ def test_valid_graph_resets_visited(setup_process_and_visitor):
 
     visitor.end_visit_process(process)
 
-    # Ensure visited is reset
     assert visitor.visited == set()
+
+
+def test_visit_end_event_no_outgoing_flows(mocker):
+    event = mocker.MagicMock()
+    event.out_flows = []
+    event.id = "end_event_1"
+
+    obj = ProcessConnectivityVisitor()
+    obj.visited = set()
+
+    result = obj.visit_end_event(event)
+
+    assert result is True
+    assert event in obj.visited
+
+
+def test_visit_end_event_with_outgoing_flows(mocker):
+    event = mocker.MagicMock()
+    event.out_flows = ["flow1"]
+    event.id = "end_event_2"
+
+    obj = ProcessConnectivityVisitor()
+    obj.visited = set()
+
+    with pytest.raises(Exception) as exc_info:
+        obj.visit_end_event(event)
+
+    assert isinstance(exc_info.value.args[0], BpmnStructureError)
+    assert "end_event_2" == str(exc_info.value.args[0].node_id)
+    assert "An end event cannot have outgoing sequence flow" == str(
+        exc_info.value.args[0].error_msg
+    )
+    assert event not in obj.visited

@@ -109,7 +109,7 @@ def test_check_messages_valid(mocker):
     assert isinstance(exc_info.value.args[0], MessageError)
     assert (
         "Error at Message message1, A message flow cannot connect nodes in the same pool."
-        == str(exc_info.value.args[0].msg)
+        == str(exc_info.value.args[0].error_msg)
     )
 
 

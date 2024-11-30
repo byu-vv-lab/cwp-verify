@@ -24,7 +24,7 @@ def test_ensure_in_and_out_messages(mocker):
     assert isinstance(exc_info.value.args[0], MessageError)
     assert (
         "Exception occurred while visiting event:123. A message flow can only go to a Message start or intermediate event; Receive, User, or Service task; Subprocess; or black box pool."
-        == str(exc_info.value.args[0].msg)
+        == str(exc_info.value.args[0].error_msg)
     )
 
     # Test ensure_in_messages - with message event definition
@@ -42,7 +42,7 @@ def test_ensure_in_and_out_messages(mocker):
     assert isinstance(exc_info.value.args[0], MessageError)
     assert (
         "Exception occurred while visiting event:123. A message flow can only come from a Messege end or intermediate event; Send, User, or Service task; Subprocess; or black box pool."
-        == str(exc_info.value.args[0].msg)
+        == str(exc_info.value.args[0].error_msg)
     )
 
     # Test ensure_out_messages - with message event definition
@@ -77,7 +77,7 @@ def test_validate_gateway_no_msgs_with_incoming_messages(mocker):
     assert isinstance(exc_info.value.args[0], MessageError)
     assert (
         "Error occurred while visiting TestGateway: gateway2. Gateways cannot have incoming or outgoing messages."
-        == str(exc_info.value.args[0].msg)
+        == str(exc_info.value.args[0].error_msg)
     )
 
 
@@ -94,7 +94,7 @@ def test_validate_gateway_no_msgs_with_outgoing_messages(mocker):
     assert isinstance(exc_info.value.args[0], MessageError)
     assert (
         "Error occurred while visiting TestGateway: gateway3. Gateways cannot have incoming or outgoing messages."
-        == str(exc_info.value.args[0].msg)
+        == str(exc_info.value.args[0].error_msg)
     )
 
 
@@ -111,5 +111,5 @@ def test_validate_gateway_no_msgs_with_both_messages(mocker):
     assert isinstance(exc_info.value.args[0], MessageError)
     assert (
         "Error occurred while visiting TestGateway: gateway4. Gateways cannot have incoming or outgoing messages."
-        == str(exc_info.value.args[0].msg)
+        == str(exc_info.value.args[0].error_msg)
     )
