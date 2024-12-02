@@ -93,7 +93,9 @@ def test_add_and_check_expressions(mocker, builder):
     ]
 
     builder._add_and_check_expressions(all_items, mock_expr_checker)
-    mock_expr_checker.build.assert_called_once_with("someExpr", builder.symbol_table)
+    mock_expr_checker.type_check.assert_called_once_with(
+        "someExpr", builder.symbol_table
+    )
     assert edge.parent_id == "expr1"
 
 

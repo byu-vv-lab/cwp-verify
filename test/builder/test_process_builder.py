@@ -149,7 +149,8 @@ def test_build_graph_with_expression_checker(mocker):
 
     mock_symbol_table = mocker.MagicMock(spec=SymbolTable)
     mock_build = mocker.patch(
-        "bpmncwpverify.core.expr.ExpressionListener.build", return_value=Success("bool")
+        "bpmncwpverify.core.expr.ExpressionListener.type_check",
+        return_value=Success("bool"),
     )
 
     builder = ProcessBuilder(mocker.Mock(), mocker.Mock(), mock_symbol_table)

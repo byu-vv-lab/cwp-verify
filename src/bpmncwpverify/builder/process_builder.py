@@ -82,7 +82,7 @@ class ProcessBuilder:
     ) -> None:
         expression = flow.element.attrib.get("name", "")
         if expression:
-            result = ExpressionListener.build(expression, self._symbol_table)
+            result = ExpressionListener.type_check(expression, self._symbol_table)
             if not_(is_successful)(result) or result.unwrap() != "bool":
                 raise Exception(
                     f"Invalid expression: {result} while extracting expression from flow: {flow_id}"

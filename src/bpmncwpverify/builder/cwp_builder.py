@@ -63,7 +63,7 @@ class CwpBuilder:
                     raise Exception("Parent edge not found or no parent ID reference")
 
                 edge.expression = expression
-                result = expr_checker.build(edge.expression, self.symbol_table)
+                result = expr_checker.type_check(edge.expression, self.symbol_table)
                 if not_(is_successful)(result):
                     raise Exception(result)
 
