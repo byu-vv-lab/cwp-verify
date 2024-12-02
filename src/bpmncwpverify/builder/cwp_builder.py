@@ -10,7 +10,7 @@ from returns.pipeline import is_successful
 from returns.functions import not_
 
 
-class ConcreteCwpBuilder:
+class CwpBuilder:
     def __init__(self, symbol_table: SymbolTable) -> None:
         self.edges: List[Element] = []
         self.all_items: List[Element] = []
@@ -62,8 +62,8 @@ class ConcreteCwpBuilder:
                 if not edge or not (parent_id_ref := mx_cell.get("id")):
                     raise Exception("Parent edge not found or no parent ID reference")
 
-                edge.expression = edge.cleanup_expression(expression)
-                result = expr_checker.build(edge.expression, self.symbol_table)
+                edge.expression = expression
+                result = expr_checker.type_check(edge.expression, self.symbol_table)
                 if not_(is_successful)(result):
                     raise Exception(result)
 

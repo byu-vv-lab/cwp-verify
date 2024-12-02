@@ -146,7 +146,7 @@ class ExpressionListener(ExprListener):  # type: ignore
             return Failure(error)
 
     @staticmethod
-    def build(
+    def type_check(
         expression: str, symbol_table: SymbolTable
     ) -> Result["ExpressionListener", Error]:
         build_with_params = partial(ExpressionListener._build, symbol_table)

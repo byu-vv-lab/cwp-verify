@@ -1,4 +1,4 @@
-from bpmncwpverify.builder.cwp_builder import ConcreteCwpBuilder
+from bpmncwpverify.builder.cwp_builder import CwpBuilder
 from bpmncwpverify.core.cwp import CwpEdge, CwpState
 from returns.result import Success
 import pytest
@@ -9,7 +9,7 @@ from xml.etree.ElementTree import Element
 @pytest.fixture
 def builder(mocker):
     symbol_table = mocker.MagicMock()
-    return ConcreteCwpBuilder(symbol_table)
+    return CwpBuilder(symbol_table)
 
 
 def create_mock_state(mocker, state_id, out_edges=None, in_edges=None):
@@ -78,7 +78,6 @@ def test_add_and_check_expressions(mocker, builder):
     mock_expr_checker = mocker.MagicMock()
     mock_expr_checker.build.return_value = Success("bool")
     edge = create_mock_edge(mocker, "edge1")
-    edge.cleanup_expression.return_value = "someExpr"
     builder._cwp.edges = {"edge1": edge}
 
     all_items = [
@@ -94,8 +93,9 @@ def test_add_and_check_expressions(mocker, builder):
     ]
 
     builder._add_and_check_expressions(all_items, mock_expr_checker)
-    edge.cleanup_expression.assert_called_with("someExpr")
-    mock_expr_checker.build.assert_called_once_with("someExpr", builder.symbol_table)
+    mock_expr_checker.type_check.assert_called_once_with(
+        "someExpr", builder.symbol_table
+    )
     assert edge.parent_id == "expr1"
 
 
@@ -112,7 +112,7 @@ def test_build(mocker):
     mock_cwp = mocker.MagicMock()
     mock_cwp.states = states
 
-    obj = ConcreteCwpBuilder(mocker.MagicMock())
+    obj = CwpBuilder(mocker.MagicMock())
     obj._cwp = mock_cwp
     obj._cwp.states = states
     obj._cwp.edges = edges
