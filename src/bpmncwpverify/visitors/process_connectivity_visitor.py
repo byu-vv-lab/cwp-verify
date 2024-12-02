@@ -3,6 +3,7 @@ from bpmncwpverify.core.bpmn import (
     BpmnElement,
     BpmnVisitor,
     Flow,
+    GatewayNode,
     Process,
     SequenceFlow,
     StartEvent,
@@ -47,21 +48,23 @@ class ProcessConnectivityVisitor(BpmnVisitor):  # type: ignore
         self.visited.add(subprocess)
         return True
 
-    def visit_exclusive_gateway(self, gateway: ExclusiveGatewayNode) -> bool:
+    def _validate_out_flows(self, gateway: GatewayNode) -> None:
         for out_flow in gateway.out_flows:
             if not out_flow.expression:
                 raise Exception(
-                    f"Flow: `{out_flow.id}` from gateway: `{gateway.id}` does not have an expression. All flows coming out of gateways must have expressions."
+                    BpmnStructureError(
+                        gateway.id,
+                        f"Flow: `{out_flow.id}` does not have an expression. All flows coming out of gateways must have expressions.",
+                    )
                 )
+
+    def visit_exclusive_gateway(self, gateway: ExclusiveGatewayNode) -> bool:
+        self._validate_out_flows(gateway)
         self.visited.add(gateway)
         return True
 
     def visit_parallel_gateway(self, gateway: ParallelGatewayNode) -> bool:
-        for out_flow in gateway.out_flows:
-            if not out_flow.expression:
-                raise Exception(
-                    f"Flow: `{out_flow.id}` from gateway: `{gateway.id}` does not have an expression. All flows coming out of gateways must have expressions."
-                )
+        self._validate_out_flows(gateway)
         self.visited.add(gateway)
         return True
 

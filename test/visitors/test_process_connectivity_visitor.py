@@ -198,3 +198,93 @@ def test_visit_end_event_with_outgoing_flows(mocker):
         exc_info.value.args[0].error_msg
     )
     assert event not in obj.visited
+
+
+def test_validate_out_flows_valid_case(mocker):
+    visitor = ProcessConnectivityVisitor()
+    gateway = mocker.MagicMock()
+    gateway.out_flows = [
+        mocker.MagicMock(expression=True),
+        mocker.MagicMock(expression=True),
+    ]
+    # Should not raise any exceptions
+    visitor._validate_out_flows(gateway)
+
+
+def test_validate_out_flows_invalid_case(mocker):
+    visitor = ProcessConnectivityVisitor()
+    gateway = mocker.MagicMock()
+    gateway.id = "gateway1"
+    gateway.out_flows = [
+        mocker.MagicMock(expression=True, id="flow1"),
+        mocker.MagicMock(expression=False, id="flow2"),
+    ]
+    with pytest.raises(Exception) as exc_info:
+        visitor._validate_out_flows(gateway)
+    assert isinstance(exc_info.value.args[0], BpmnStructureError)
+    assert (
+        "Flow: `flow2` does not have an expression. All flows coming out of gateways must have expressions."
+        == str(exc_info.value.args[0].error_msg)
+    )
+
+
+def test_visit_exclusive_gateway_valid(mocker):
+    visitor = ProcessConnectivityVisitor()
+    gateway = mocker.MagicMock()
+    gateway.out_flows = [
+        mocker.MagicMock(expression=True),
+        mocker.MagicMock(expression=True),
+    ]
+    mocker.patch.object(
+        visitor, "_validate_out_flows", wraps=visitor._validate_out_flows
+    )
+    result = visitor.visit_exclusive_gateway(gateway)
+    assert result is True
+    assert gateway in visitor.visited
+    visitor._validate_out_flows.assert_called_once_with(gateway)
+
+
+def test_visit_exclusive_gateway_invalid(mocker):
+    visitor = ProcessConnectivityVisitor()
+    gateway = mocker.MagicMock()
+    gateway.out_flows = [
+        mocker.MagicMock(expression=True),
+        mocker.MagicMock(expression=False),
+    ]
+    mocker.patch.object(
+        visitor, "_validate_out_flows", wraps=visitor._validate_out_flows
+    )
+    with pytest.raises(Exception):
+        visitor.visit_exclusive_gateway(gateway)
+    visitor._validate_out_flows.assert_called_once_with(gateway)
+
+
+def test_visit_parallel_gateway_valid(mocker):
+    visitor = ProcessConnectivityVisitor()
+    gateway = mocker.MagicMock()
+    gateway.out_flows = [
+        mocker.MagicMock(expression=True),
+        mocker.MagicMock(expression=True),
+    ]
+    mocker.patch.object(
+        visitor, "_validate_out_flows", wraps=visitor._validate_out_flows
+    )
+    result = visitor.visit_parallel_gateway(gateway)
+    assert result is True
+    assert gateway in visitor.visited
+    visitor._validate_out_flows.assert_called_once_with(gateway)
+
+
+def test_visit_parallel_gateway_invalid(mocker):
+    visitor = ProcessConnectivityVisitor()
+    gateway = mocker.MagicMock()
+    gateway.out_flows = [
+        mocker.MagicMock(expression=True),
+        mocker.MagicMock(expression=False),
+    ]
+    mocker.patch.object(
+        visitor, "_validate_out_flows", wraps=visitor._validate_out_flows
+    )
+    with pytest.raises(Exception):
+        visitor.visit_parallel_gateway(gateway)
+    visitor._validate_out_flows.assert_called_once_with(gateway)
