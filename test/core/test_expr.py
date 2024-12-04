@@ -358,7 +358,7 @@ def test_given_good_state_when_build_then_success(state, expression, expression_
     assert is_successful(sym_table_result)
     symbol_table: SymbolTable = sym_table_result.unwrap()
 
-    expr_checker_result = ExpressionListener.build(expression, symbol_table)
+    expr_checker_result = ExpressionListener.type_check(expression, symbol_table)
 
     assert is_successful(expr_checker_result)
 
@@ -383,6 +383,6 @@ def test_given_bad_state_when_build_then_failure(state, expression):
     assert is_successful(sym_table_result)
     symbol_table: SymbolTable = sym_table_result.unwrap()
 
-    expr_checker_result = ExpressionListener.build(expression, symbol_table)
+    expr_checker_result = ExpressionListener.type_check(expression, symbol_table)
 
     assert not is_successful(expr_checker_result)

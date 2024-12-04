@@ -16,12 +16,12 @@ class Cwp:
 
     @staticmethod
     def from_xml(xml_file: str, symbol_table: SymbolTable) -> Result["Cwp", Error]:
-        from bpmncwpverify.builder.cwp_builder import ConcreteCwpBuilder
+        from bpmncwpverify.builder.cwp_builder import CwpBuilder
 
         try:
             tree = parse(xml_file)
             root = tree.getroot()
-            builder = ConcreteCwpBuilder(symbol_table)
+            builder = CwpBuilder(symbol_table)
 
             diagram = root.find("diagram")
             mx_graph_model = diagram.find("mxGraphModel")
@@ -124,20 +124,6 @@ class CwpEdge:
         if visitor.visit_edge(self):
             self.dest.accept(visitor)
         visitor.end_visit_edge(self)
-
-    def cleanup_expression(self, expression: str) -> str:
-        expression = re.sub(r"&amp;", "&", expression)
-        expression = re.sub(r"&lt;", "<", expression)
-        expression = re.sub(r"&gt;", ">", expression)
-
-        expression = re.sub(r"</?div>", "", expression)
-        expression = re.sub(r"<br>", " ", expression)
-
-        expression = re.sub(r"\s*(==|!=|&&|\|\|)\s*", r" \1 ", expression)
-
-        expression = re.sub(r"\s+", " ", expression)
-
-        return expression.strip()
 
 
 class CwpVisitor:
