@@ -16,6 +16,7 @@ from bpmncwpverify.core.bpmn import (
 )
 from bpmncwpverify.core.expr import ExpressionListener
 from bpmncwpverify.core.state import SymbolTable
+from bpmncwpverify.error import BpmnStructureError
 from returns.pipeline import is_successful
 from returns.functions import not_
 
@@ -55,15 +56,14 @@ class ProcessBuilder:
                 self._link_flow_to_nodes(flow, source_ref, target_ref)
 
     def _get_flow_id(self, outgoing: Element) -> str:
-        flow_id = outgoing.text
-        if not flow_id:
-            raise Exception("flow id is None")
+        if not (flow_id := outgoing.text):
+            raise Exception(BpmnStructureError("unknown", "flow id is None"))
         return flow_id.strip()
 
     def _get_flow(self, flow_id: str) -> SequenceFlow:
         flow = self._process[flow_id]
         if not isinstance(flow, SequenceFlow):
-            raise Exception("flow not flow type")
+            raise Exception(BpmnStructureError(flow_id, "flow not flow type"))
         return flow
 
     def _get_source_and_target_refs(self, flow: SequenceFlow) -> Tuple[Node, Node]:
@@ -74,7 +74,11 @@ class ProcessBuilder:
             flow.element.attrib["targetRef"]
         )
         if not (isinstance(source_ref, Node) and isinstance(target_ref, Node)):
-            raise Exception("Source ref or target ref is not of type node")
+            raise Exception(
+                BpmnStructureError(
+                    flow.id, "Source ref or target ref is not of type node"
+                )
+            )
         return source_ref, target_ref
 
     def _validate_and_set_flow_expression(
@@ -85,7 +89,10 @@ class ProcessBuilder:
             result = ExpressionListener.type_check(expression, self._symbol_table)
             if not_(is_successful)(result) or result.unwrap() != "bool":
                 raise Exception(
-                    f"Invalid expression: {result} while extracting expression from flow: {flow_id}"
+                    BpmnStructureError(
+                        flow_id,
+                        f"Invalid expression: {result} while extracting expression from flow",
+                    )
                 )
             flow.expression = expression
 

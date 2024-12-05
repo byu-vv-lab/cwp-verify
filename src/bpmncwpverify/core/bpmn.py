@@ -332,7 +332,7 @@ class Bpmn:
 
             return builder.build()
         except Exception as e:
-            return Failure(e)
+            return Failure(e.args[0])
 
 
 ###################
