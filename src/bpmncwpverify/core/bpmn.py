@@ -5,8 +5,8 @@ from returns.result import Failure, Result
 from defusedxml.ElementTree import parse
 from bpmncwpverify.constants import NAMESPACES
 from bpmncwpverify.error import (
+    BpmnStructureError,
     Error,
-    BpmnNodeNotFound,
 )
 
 
@@ -232,8 +232,9 @@ class Process(BpmnElement):
             return self._start_states[key]
         elif key in self._flows:
             return self._flows[key]
-        # TODO: Make a custom error here:
-        raise Exception(BpmnNodeNotFound(key))
+        raise Exception(
+            BpmnStructureError(key, "Key not found in any of the processe's elements")
+        )
 
     def get_flows(self) -> Dict[str, SequenceFlow]:
         return self._flows
