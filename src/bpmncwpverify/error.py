@@ -8,14 +8,6 @@ class Error:
         pass
 
 
-class BpmnNodeNotFound(Error):
-    __slots__ = ["node_id"]
-
-    def __init__(self, node_id: str) -> None:
-        super().__init__()
-        self.node_id = node_id
-
-
 class BpmnStructureError(Error):
     __slots__ = ["node_id", "error_msg"]
 
@@ -129,8 +121,6 @@ def _get_exception_message(error: Exception) -> str:
 
 def _get_error_message(error: Error) -> str:
     match error:
-        case BpmnNodeNotFound(node_id=node_id):
-            return f"BPMN ERROR: node with id: {node_id} not found in graph."
         case BpmnStructureError(node_id=node_id, error_msg=error_msg):
             return f"BPMN ERROR at node: {node_id}. {error_msg}"
         case NotImplementedError(function=function):

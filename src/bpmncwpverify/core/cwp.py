@@ -3,7 +3,7 @@ from xml.etree.ElementTree import Element
 from defusedxml.ElementTree import parse
 import re
 from bpmncwpverify.core.state import SymbolTable
-from returns.result import Failure, Result
+from returns.result import Result
 from bpmncwpverify.error import Error
 
 
@@ -18,26 +18,22 @@ class Cwp:
     def from_xml(xml_file: str, symbol_table: SymbolTable) -> Result["Cwp", Error]:
         from bpmncwpverify.builder.cwp_builder import CwpBuilder
 
-        try:
-            tree = parse(xml_file)
-            root = tree.getroot()
-            builder = CwpBuilder(symbol_table)
+        tree = parse(xml_file)
+        root = tree.getroot()
+        builder = CwpBuilder(symbol_table)
 
-            diagram = root.find("diagram")
-            mx_graph_model = diagram.find("mxGraphModel")
-            mx_root = mx_graph_model.find("root")
-            mx_cells = mx_root.findall("mxCell")
+        diagram = root.find("diagram")
+        mx_graph_model = diagram.find("mxGraphModel")
+        mx_root = mx_graph_model.find("root")
+        mx_cells = mx_root.findall("mxCell")
 
-            for itm in mx_cells:
-                if itm.get("vertex"):
-                    builder.add_state(itm)
-                elif itm.get("edge"):
-                    builder.add_edge(itm)
+        for itm in mx_cells:
+            if itm.get("vertex"):
+                builder.add_state(itm)
+            elif itm.get("edge"):
+                builder.add_edge(itm)
 
-            return builder.build()
-
-        except Exception as e:
-            return Failure(e)
+        return builder.build()
 
     def accept(self, visitor: "CwpVisitor") -> None:
         result = visitor.visit_cwp(self)

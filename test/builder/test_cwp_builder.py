@@ -2,6 +2,8 @@ from bpmncwpverify.builder.cwp_builder import CwpBuilder
 from bpmncwpverify.core.cwp import CwpEdge, CwpState
 from returns.result import Success
 import pytest
+from returns.pipeline import is_successful
+from returns.functions import not_
 
 from xml.etree.ElementTree import Element
 
@@ -140,7 +142,7 @@ def test_build(mocker):
     states["state1"].in_edges = [new_edge]
     states["state3"].out_edges = [new_edge]
 
-    with pytest.raises(Exception) as context:
-        obj.build()
+    result = obj.build()
 
-    assert str(context.value) == "No start states or no end states"
+    assert not_(is_successful)(result)
+    assert result.failure() == "No start states or no end states"

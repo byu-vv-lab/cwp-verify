@@ -1,12 +1,12 @@
 from typing import List, Dict, Union
 from xml.etree.ElementTree import Element
 from bpmncwpverify.core.state import SymbolTable
-from returns.result import Failure, Result
+from returns.result import Result
 from defusedxml.ElementTree import parse
 from bpmncwpverify.constants import NAMESPACES
 from bpmncwpverify.error import (
+    BpmnStructureError,
     Error,
-    BpmnNodeNotFound,
 )
 
 
@@ -232,8 +232,9 @@ class Process(BpmnElement):
             return self._start_states[key]
         elif key in self._flows:
             return self._flows[key]
-        # TODO: Make a custom error here:
-        raise Exception(BpmnNodeNotFound(key))
+        raise Exception(
+            BpmnStructureError(key, "Key not found in any of the processe's elements")
+        )
 
     def get_flows(self) -> Dict[str, SequenceFlow]:
         return self._flows
@@ -317,22 +318,19 @@ class Bpmn:
     def from_xml(xml_file: str, symbol_table: SymbolTable) -> Result["Bpmn", Error]:
         from bpmncwpverify.builder.bpmn_builder import BpmnBuilder
 
-        try:
-            tree = parse(xml_file)
-            root = tree.getroot()
-            builder = BpmnBuilder()
-            processes = root.findall("bpmn:process", NAMESPACES)
-            for process_element in processes:
-                builder.add_process(process_element, symbol_table)
+        tree = parse(xml_file)
+        root = tree.getroot()
+        builder = BpmnBuilder()
+        processes = root.findall("bpmn:process", NAMESPACES)
+        for process_element in processes:
+            builder.add_process(process_element, symbol_table)
 
-            collab = root.find("bpmn:collaboration", NAMESPACES)
-            if collab is not None:
-                for msg_flow in collab.findall("bpmn:messageFlow", NAMESPACES):
-                    builder.add_message(msg_flow)
+        collab = root.find("bpmn:collaboration", NAMESPACES)
+        if collab is not None:
+            for msg_flow in collab.findall("bpmn:messageFlow", NAMESPACES):
+                builder.add_message(msg_flow)
 
-            return builder.build()
-        except Exception as e:
-            return Failure(e)
+        return builder.build()
 
 
 ###################
