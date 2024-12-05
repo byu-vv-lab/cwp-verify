@@ -19,6 +19,7 @@ from bpmncwpverify.core.state import SymbolTable
 from bpmncwpverify.error import BpmnStructureError
 from returns.pipeline import is_successful
 from returns.functions import not_
+from returns.result import Result, Failure
 
 
 class ProcessBuilder:
@@ -130,12 +131,15 @@ class ProcessBuilder:
             self._process[element_instance.id] = element_instance
             self._bpmn.store_element(element_instance)
 
-    def build(self) -> None:
-        self._bpmn.processes[self._process.id] = self._process
-        self._construct_flow_network()
-        from bpmncwpverify.visitors.process_connectivity_visitor import (
-            ProcessConnectivityVisitor,
-        )
+    def build(self) -> Result[Process, BpmnStructureError]:
+        try:
+            self._bpmn.processes[self._process.id] = self._process
+            self._construct_flow_network()
+            from bpmncwpverify.visitors.process_connectivity_visitor import (
+                ProcessConnectivityVisitor,
+            )
 
-        visitor = ProcessConnectivityVisitor()
-        self._process.accept(visitor)
+            visitor = ProcessConnectivityVisitor()
+            self._process.accept(visitor)
+        except Exception as e:
+            return Failure(e.args[0])
