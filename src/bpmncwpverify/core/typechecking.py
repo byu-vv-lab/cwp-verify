@@ -24,6 +24,16 @@ INTMIN: Final[int] = -2147483648
 INTMAX: Final[int] = 2147483647
 
 
+def get_and_or_type_result(
+    ltype: str,
+    rtype: str,
+    error: Callable[[str, str], Error] = TypingAssignCompatabilityError,
+) -> Result[str, Error]:
+    if ltype == BOOL and rtype == BOOL:
+        return Success(BOOL)
+    return Failure(error(ltype, rtype))
+
+
 def get_computation_type_result(
     ltype: str,
     rtype: str,
@@ -53,18 +63,7 @@ def get_relational_type_result(
         "bool": "boolean",
     }
 
-    if similar_mapping[ltype] == similar_mapping[rtype]:
-        return Success(BOOL)
-
-    return Failure(error(ltype, rtype))
-
-
-def get_and_or_type_result(
-    ltype: str,
-    rtype: str,
-    error: Callable[[str, str], Error] = TypingAssignCompatabilityError,
-) -> Result[str, Error]:
-    if ltype == BOOL and rtype == BOOL:
+    if ltype == rtype or similar_mapping[ltype] == similar_mapping[rtype]:
         return Success(BOOL)
 
     return Failure(error(ltype, rtype))

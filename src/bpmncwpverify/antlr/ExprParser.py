@@ -1,5 +1,6 @@
 # Generated from antlr/Expr.g4 by ANTLR 4.13.2
 # encoding: utf-8
+# type: ignore
 from antlr4 import *
 from io import StringIO
 import sys
