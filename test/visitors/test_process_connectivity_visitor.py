@@ -229,3 +229,29 @@ def test_visit_parallel_gateway_invalid(mocker):
     with pytest.raises(Exception):
         visitor.visit_parallel_gateway(gateway)
     visitor._validate_out_flows.assert_called_once_with(gateway)
+
+
+def test_visit_task_with_good_task(mocker):
+    visitor = ProcessConnectivityVisitor()
+    task = mocker.MagicMock()
+    task.out_flows = [mocker.MagicMock()]
+    task.in_flows = [mocker.MagicMock()]
+
+    # No error thrown
+    visitor.visit_task(task)
+
+
+def test_visit_task_with_bad_task(mocker):
+    visitor = ProcessConnectivityVisitor()
+    task = mocker.MagicMock()
+    task.id = "task1"
+    task.out_flows = []
+    task.in_flows = []
+
+    with pytest.raises(Exception) as exc_info:
+        visitor.visit_task(task)
+    assert isinstance(exc_info.value.args[0], BpmnStructureError)
+    assert "task1" == str(exc_info.value.args[0].node_id)
+    assert "Tasks should at least have one incoming and one outgoing flow" == str(
+        exc_info.value.args[0].error_msg
+    )
