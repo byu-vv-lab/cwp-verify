@@ -41,6 +41,13 @@ class ProcessConnectivityVisitor(BpmnVisitor):  # type: ignore
         return True
 
     def visit_task(self, task: Task) -> bool:
+        if not (task.in_flows and task.out_flows):
+            raise Exception(
+                BpmnStructureError(
+                    task.id,
+                    "Tasks should at least have one incoming and one outgoing flow",
+                )
+            )
         self.visited.add(task)
         return True
 
