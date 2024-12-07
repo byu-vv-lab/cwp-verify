@@ -1,10 +1,10 @@
 from xml.etree.ElementTree import Element
-from bpmncwpverify.builder.cwp_builder import ConcreteCwpBuilder
+from bpmncwpverify.builder.cwp_builder import CwpBuilder
 from bpmncwpverify.visitors.cwp_connectivity_visitor import CwpConnectivityVisitor
 
 
 def test_cwp_connectivity(mocker):
-    builder = ConcreteCwpBuilder(mocker.MagicMock())
+    builder = CwpBuilder(mocker.MagicMock())
     for i in range(10):
         builder.add_state(
             Element(f"state{i}", attrib={"id": f"state{i}", "style": "test"})

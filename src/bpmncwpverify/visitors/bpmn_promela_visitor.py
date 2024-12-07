@@ -5,8 +5,6 @@ from bpmncwpverify.core.bpmn import (
     EndEvent,
     IntermediateEvent,
     Task,
-    SubProcess,
-    SequenceFlow,
     MessageFlow,
     ParallelGatewayNode,
     ExclusiveGatewayNode,
@@ -274,9 +272,6 @@ class PromelaGenVisitor(BpmnVisitor):  # type: ignore
             self.gen_activation_option(event, start_guard=guard)
         return True
 
-    def end_visit_start_event(self, event: StartEvent) -> None:
-        pass
-
     def visit_end_event(self, event: EndEvent) -> bool:
         self.visit_node(event)
         self.behavior_model_text += self.gen_behavior_model(
@@ -284,28 +279,13 @@ class PromelaGenVisitor(BpmnVisitor):  # type: ignore
         )
         return False
 
-    def end_visit_end_event(self, event: EndEvent) -> None:
-        pass
-
     def visit_intermediate_event(self, event: IntermediateEvent) -> bool:
         self.visit_node(event)
         return True
 
-    def end_visit_intermediate_event(self, event: IntermediateEvent) -> None:
-        pass
-
     def visit_task(self, task: Task) -> bool:
         self.visit_node(task, is_task=True)
         return True
-
-    def end_visit_task(self, task: Task) -> None:
-        pass
-
-    def visit_sub_process(self, subprocess: SubProcess) -> bool:
-        return True
-
-    def end_visit_sub_process(self, subprocess: SubProcess) -> None:
-        pass
 
     def visit_exclusive_gateway(self, gateway: ExclusiveGatewayNode) -> bool:
         self.gen_activation_option(gateway)
@@ -325,40 +305,31 @@ class PromelaGenVisitor(BpmnVisitor):  # type: ignore
         self.gen_activation_option(gateway, option_type=option_type)
         return True
 
-    def end_visit_parallel_gateway(self, gateway: ParallelGatewayNode) -> None:
-        pass
-
-    def visit_sequence_flow(self, flow: SequenceFlow) -> None:
-        pass
-
-    def end_visit_sequence_flow(self, flow: SequenceFlow) -> None:
-        pass
-
-    def visit_message_flow(self, flow: MessageFlow) -> None:
+    def visit_message_flow(self, flow: MessageFlow) -> bool:
         self.flow_places.append(flow.name)
+        return True
 
-    def end_visit_message_flow(self, flow: MessageFlow) -> None:
-        pass
-
-    def visit_process(self, process: Process) -> None:
+    def visit_process(self, process: Process) -> bool:
         self.write_workflow_lines("proctype {x}() {{".format(x=process.id))
         self.workflow_indent += 1
         self.write_workflow_lines("pid me = _pid")
         for start_node in process.get_start_states().values():
             self.write_workflow_lines("putToken({x})".format(x=start_node.name))
         self.write_workflow_lines("do")
+        return True
 
     def end_visit_process(self, process: Process) -> None:
         self.write_workflow_lines("od")
         self.workflow_indent -= 1
         self.write_workflow_lines("}")
 
-    def visit_bpmn(self, bpmn: Bpmn) -> None:
+    def visit_bpmn(self, bpmn: Bpmn) -> bool:
         init_lines = "init {\n\tatomic{\n\t\tupdateState()\n"
         for process in bpmn.processes.values():
             init_lines += "\t\trun {}()\n".format(process.name)
         init_lines += "\t}\n}\n\n"
         self.write_init_lines(init_lines)
+        return True
 
     def end_visit_bpmn(self, bpmn: Bpmn) -> None:
         for place in self.flow_places:

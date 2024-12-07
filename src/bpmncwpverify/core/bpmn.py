@@ -1,11 +1,12 @@
-from typing import List, Dict, Type, Union
+from typing import List, Dict, Union
 from xml.etree.ElementTree import Element
-from returns.result import Failure, Result, Success
+from bpmncwpverify.core.state import SymbolTable
+from returns.result import Result
 from defusedxml.ElementTree import parse
 from bpmncwpverify.constants import NAMESPACES
 from bpmncwpverify.error import (
+    BpmnStructureError,
     Error,
-    BpmnNodeNotFound,
 )
 
 
@@ -21,7 +22,7 @@ class BpmnElement:
 
         self.id = id
 
-        self.name = element.attrib.get("name", self.id)
+        self.name: str = element.attrib.get("name", self.id)
 
 
 ###################
@@ -30,6 +31,19 @@ class BpmnElement:
 class Node(BpmnElement):
     def __init__(self, element: Element) -> None:
         super().__init__(element)
+
+        message_event_def = element.find("bpmn:messageEventDefinition", NAMESPACES)
+        self.message_event_definition: str = (
+            message_event_def.attrib.get("id", "")
+            if message_event_def is not None
+            else ""
+        )
+
+        timer_event_def = element.find("bpmn:timerEventDefinition", NAMESPACES)
+        self.message_timer_definition: str = (
+            timer_event_def.attrib.get("id", "") if timer_event_def is not None else ""
+        )
+
         self.out_flows: List[SequenceFlow] = []
         self.in_flows: List[SequenceFlow] = []
         self.in_msgs: List[MessageFlow] = []
@@ -175,10 +189,10 @@ class Flow(BpmnElement):
 class SequenceFlow(Flow):
     def __init__(self, element: Element):
         super().__init__(element)
+        self.expression: str = ""
 
     def accept(self, visitor: "BpmnVisitor") -> None:
-        visitor.visit_sequence_flow(self)
-        if not self.is_leaf:
+        if visitor.visit_sequence_flow(self):
             self.target_node.accept(visitor)
         visitor.end_visit_sequence_flow(self)
 
@@ -188,8 +202,7 @@ class MessageFlow(Flow):
         super().__init__(element)
 
     def accept(self, visitor: "BpmnVisitor") -> None:
-        visitor.visit_message_flow(self)
-        if not self.is_leaf:
+        if visitor.visit_message_flow(self):
             self.target_node.accept(visitor)
         visitor.end_visit_message_flow(self)
 
@@ -219,8 +232,9 @@ class Process(BpmnElement):
             return self._start_states[key]
         elif key in self._flows:
             return self._flows[key]
-        # TODO: Make a custom error here:
-        raise Exception(BpmnNodeNotFound(key))
+        raise Exception(
+            BpmnStructureError(key, "Key not found in any of the processe's elements")
+        )
 
     def get_flows(self) -> Dict[str, SequenceFlow]:
         return self._flows
@@ -242,18 +256,6 @@ class Process(BpmnElement):
 # Bpmn class (building graph from xml happens here)
 ###################
 class Bpmn:
-    _TAG_CLASS_MAPPING: Dict[str, Type[BpmnElement]] = {
-        "task": Task,
-        "startEvent": StartEvent,
-        "endEvent": EndEvent,
-        "exclusiveGateway": ExclusiveGatewayNode,
-        "parallelGateway": ParallelGatewayNode,
-        "sendTask": IntermediateEvent,
-        "intermediateCatchEvent": IntermediateEvent,
-        "intermediateThrowEvent": IntermediateEvent,
-    }
-
-    _FLOW_MAPPING = {"sequenceFlow": SequenceFlow}
     _MSG_MAPPING = {"messageFlow": MessageFlow}
 
     def __init__(self) -> None:
@@ -269,23 +271,6 @@ class Bpmn:
 
     def add_inter_process_msg(self, msg: MessageFlow) -> None:
         self.inter_process_msgs[msg.id] = msg
-
-    def _set_leaf_flows(self) -> None:
-        visited = set()
-
-        def dfs(node: Node) -> None:
-            nonlocal visited
-
-            visited.add(node)
-            for flow in node.out_flows:
-                if flow.target_node in visited:
-                    flow.is_leaf = True
-                else:
-                    dfs(flow.target_node)
-
-        for process in self.processes.values():
-            for node in process.get_start_states().values():
-                dfs(node)
 
     def __str__(self) -> str:
         build_arr: List[str] = []
@@ -303,96 +288,6 @@ class Bpmn:
             build_arr.append("\n")
 
         return "\n".join(build_arr)
-
-    def _build_graph(self, process: Process) -> None:
-        for element_instance in process.all_items().values():
-            for outgoing in element_instance.element.findall(
-                "bpmn:outgoing", NAMESPACES
-            ):
-                flow_id = outgoing.text
-                if not flow_id:
-                    raise Exception("flow id is None")
-                flow = process[flow_id.strip()]
-                if not isinstance(flow, Flow):
-                    # TODO: Make a custom error here:
-                    raise Exception("flow not flow type")
-                if flow is not None:
-                    source_ref = self.get_element_from_id_mapping(
-                        flow.element.attrib["sourceRef"]
-                    )
-                    target_ref = self.get_element_from_id_mapping(
-                        flow.element.attrib["targetRef"]
-                    )
-
-                    if isinstance(source_ref, Node) and isinstance(target_ref, Node):
-                        # update flow's source_node
-                        flow.source_node = source_ref
-                        # update flow's target_node
-                        flow.target_node = target_ref
-
-                        if isinstance(flow, SequenceFlow):
-                            # update source node's out flows array
-                            source_ref.add_out_flow(flow)
-                            # update target node's in flows array
-                            target_ref.add_in_flow(flow)
-                    else:
-                        # TODO: Make a custom error here:
-                        raise TypeError("toNode or fromNode is not of type Node")
-
-    def _traverse_messages(self, root: Element) -> None:
-        self.collab = root.find("bpmn:collaboration", NAMESPACES)
-        if self.collab is not None:
-            for msg_flow in self.collab.findall("bpmn:messageFlow", NAMESPACES):
-                sourceRef, targetRef = (
-                    msg_flow.get("sourceRef"),
-                    msg_flow.get("targetRef"),
-                )
-
-                if not (sourceRef and targetRef):
-                    raise Exception(
-                        "source ref or target ref not included with message"
-                    )
-
-                message = MessageFlow(msg_flow)
-                self.add_inter_process_msg(message)
-                self.store_element(message)
-
-                fromNode, toNode = (
-                    self.get_element_from_id_mapping(sourceRef),
-                    self.get_element_from_id_mapping(targetRef),
-                )
-
-                if isinstance(fromNode, Node) and isinstance(toNode, Node):
-                    message.target_node, message.source_node = toNode, fromNode
-                    fromNode.add_out_msg(message)
-                    toNode.add_in_msg(message)
-                else:
-                    raise TypeError("toNode or fromNode is not of type Node")
-
-    def _traverse_process(self, process_element: Element) -> Process:
-        process = Process(process_element)
-
-        def get_tag_name(element: Element) -> str:
-            return element.tag.partition("}")[2]
-
-        for element in process_element:
-            tag_name = get_tag_name(element)
-            element_class = (
-                Bpmn._TAG_CLASS_MAPPING.get(tag_name)
-                or (
-                    Bpmn._TAG_CLASS_MAPPING["task"]
-                    if "task" in tag_name.lower()
-                    else None
-                )
-                or Bpmn._FLOW_MAPPING.get(tag_name)
-            )
-
-            if element_class:
-                element_instance = element_class(element)
-                process[element_instance.id] = element_instance
-                self.store_element(element_instance)
-
-        return process
 
     def accept(self, visitor: "BpmnVisitor") -> None:
         visitor.visit_bpmn(self)
@@ -420,22 +315,22 @@ class Bpmn:
         return str(promela_visitor)
 
     @staticmethod
-    def from_xml(xml_file: str) -> Result["Bpmn", Error]:
-        try:
-            tree = parse(xml_file)
-            root = tree.getroot()
-            bpmn = Bpmn()
-            processes = root.findall("bpmn:process", NAMESPACES)
-            for process_element in processes:
-                process = bpmn._traverse_process(process_element)
-                bpmn.processes[process.id] = process
-                bpmn._build_graph(process)
+    def from_xml(xml_file: str, symbol_table: SymbolTable) -> Result["Bpmn", Error]:
+        from bpmncwpverify.builder.bpmn_builder import BpmnBuilder
 
-            bpmn._traverse_messages(root)
-            bpmn._set_leaf_flows()
-            return Success(bpmn)
-        except Exception as e:
-            return Failure(e)
+        tree = parse(xml_file)
+        root = tree.getroot()
+        builder = BpmnBuilder()
+        processes = root.findall("bpmn:process", NAMESPACES)
+        for process_element in processes:
+            builder.add_process(process_element, symbol_table)
+
+        collab = root.find("bpmn:collaboration", NAMESPACES)
+        if collab is not None:
+            for msg_flow in collab.findall("bpmn:messageFlow", NAMESPACES):
+                builder.add_message(msg_flow)
+
+        return builder.build()
 
 
 ###################
@@ -484,26 +379,26 @@ class BpmnVisitor:
     def end_visit_parallel_gateway(self, gateway: ParallelGatewayNode) -> None:
         pass
 
-    def visit_sequence_flow(self, flow: SequenceFlow) -> None:
-        pass
+    def visit_sequence_flow(self, flow: SequenceFlow) -> bool:
+        return True
 
     def end_visit_sequence_flow(self, flow: SequenceFlow) -> None:
         pass
 
-    def visit_message_flow(self, flow: MessageFlow) -> None:
-        pass
+    def visit_message_flow(self, flow: MessageFlow) -> bool:
+        return True
 
     def end_visit_message_flow(self, flow: MessageFlow) -> None:
         pass
 
-    def visit_process(self, process: Process) -> None:
-        pass
+    def visit_process(self, process: Process) -> bool:
+        return True
 
     def end_visit_process(self, process: Process) -> None:
         pass
 
-    def visit_bpmn(self, bpmn: Bpmn) -> None:
-        pass
+    def visit_bpmn(self, bpmn: Bpmn) -> bool:
+        return True
 
     def end_visit_bpmn(self, bpmn: Bpmn) -> None:
         pass

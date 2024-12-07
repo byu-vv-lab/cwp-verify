@@ -2,7 +2,7 @@ from typing import List
 from xml.etree.ElementTree import Element
 from bpmncwpverify.core.state import SymbolTable
 from bpmncwpverify.visitors.cwp_connectivity_visitor import CwpConnectivityVisitor
-from returns.result import Result, Success
+from returns.result import Result, Success, Failure
 from bpmncwpverify.error import Error
 from bpmncwpverify.core.cwp import Cwp, CwpEdge, CwpState
 from bpmncwpverify.core.expr import ExpressionListener
@@ -10,7 +10,7 @@ from returns.pipeline import is_successful
 from returns.functions import not_
 
 
-class ConcreteCwpBuilder:
+class CwpBuilder:
     def __init__(self, symbol_table: SymbolTable) -> None:
         self.edges: List[Element] = []
         self.all_items: List[Element] = []
@@ -62,43 +62,48 @@ class ConcreteCwpBuilder:
                 if not edge or not (parent_id_ref := mx_cell.get("id")):
                     raise Exception("Parent edge not found or no parent ID reference")
 
-                edge.expression = edge.cleanup_expression(expression)
-                result = expr_checker.build(edge.expression, self.symbol_table)
+                edge.expression = expression
+                result = expr_checker.type_check(edge.expression, self.symbol_table)
                 if not_(is_successful)(result):
                     raise Exception(result)
 
                 edge.parent_id = parent_id_ref
 
     def build(self) -> Result[Cwp, Error]:
-        expression_checker = ExpressionListener(self.symbol_table)
-        self._parse_states(self.states)
-        self._parse_edges(self.edges)
+        try:
+            expression_checker = ExpressionListener(self.symbol_table)
+            self._parse_states(self.states)
+            self._parse_edges(self.edges)
 
-        # This step assigns expressions to each edge and checks to make sure expression is valid
-        self._add_and_check_expressions(self.all_items, expression_checker)
+            # This step assigns expressions to each edge and checks to make sure expression is valid
+            self._add_and_check_expressions(self.all_items, expression_checker)
 
-        end_states = [
-            state for state in self._cwp.states.values() if not state.out_edges
-        ]
+            end_states = [
+                state for state in self._cwp.states.values() if not state.out_edges
+            ]
 
-        self._cwp.start_states = {
-            id: state for id, state in self._cwp.states.items() if not state.in_edges
-        }
+            self._cwp.start_states = {
+                id: state
+                for id, state in self._cwp.states.items()
+                if not state.in_edges
+            }
 
-        if not (end_states and self._cwp.start_states):
-            raise Exception("No start states or no end states")
+            if not (end_states and self._cwp.start_states):
+                raise Exception("No start states or no end states")
 
-        self._cwp.states = {
-            id: state
-            for id, state in self._cwp.states.items()
-            if id not in self._cwp.start_states
-        }
+            self._cwp.states = {
+                id: state
+                for id, state in self._cwp.states.items()
+                if id not in self._cwp.start_states
+            }
 
-        # This step ensures connectivity of the graph and sets leaf edges
-        visitor = CwpConnectivityVisitor()
-        self._cwp.accept(visitor)
+            # This step ensures connectivity of the graph and sets leaf edges
+            visitor = CwpConnectivityVisitor()
+            self._cwp.accept(visitor)
 
-        return Success(self._cwp)
+            return Success(self._cwp)
+        except Exception as e:
+            return Failure(e.args[0])
 
     def add_edge(self, element: Element) -> None:
         self.edges.append(element)
