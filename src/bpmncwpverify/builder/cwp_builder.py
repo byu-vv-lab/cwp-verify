@@ -3,7 +3,15 @@ from xml.etree.ElementTree import Element
 from bpmncwpverify.core.state import SymbolTable
 from bpmncwpverify.visitors.cwp_connectivity_visitor import CwpConnectivityVisitor
 from returns.result import Result, Success, Failure
-from bpmncwpverify.error import Error
+from bpmncwpverify.error import (
+    CwpEdgeNoParentExprError,
+    CwpEdgeNoStateError,
+    CwpMultStartStateError,
+    CwpNoEndStatesError,
+    CwpNoParentEdgeError,
+    CwpNoStartStateError,
+    Error,
+)
 from bpmncwpverify.core.cwp import Cwp, CwpEdge, CwpState
 from bpmncwpverify.core.expr import ExpressionListener
 from returns.pipeline import is_successful
@@ -36,7 +44,7 @@ class CwpBuilder:
             sourceRef = mx_cell.get("source")
             targetRef = mx_cell.get("target")
             if not targetRef or not sourceRef:
-                raise Exception("Edge does not have a source or a target")
+                raise Exception(CwpEdgeNoStateError(mx_cell))
             edge = CwpEdge(mx_cell, self._gen_edge_name())
             source = self._cwp.states[sourceRef]
             source.out_edges.append(edge)
@@ -56,11 +64,11 @@ class CwpBuilder:
                 parent = mx_cell.get("parent")
                 expression = mx_cell.get("value")
                 if not (parent and expression):
-                    raise Exception("Expression or parent node not in edge")
+                    raise Exception(CwpEdgeNoParentExprError(mx_cell))
 
                 edge = self._cwp.edges.get(parent)
                 if not edge or not (parent_id_ref := mx_cell.get("id")):
-                    raise Exception("Parent edge not found or no parent ID reference")
+                    raise Exception(CwpNoParentEdgeError(mx_cell))
 
                 edge.expression = expression
                 result = expr_checker.type_check(edge.expression, self.symbol_table)
@@ -92,14 +100,16 @@ class CwpBuilder:
             ]
 
             if len(start_states) > 1:
-                raise Exception("More than one start state found")
+                raise Exception(
+                    CwpMultStartStateError([state.id for state in start_states])
+                )
             elif not start_states:
-                raise Exception("No start state found")
+                raise Exception(CwpNoStartStateError())
 
             self._cwp.start_state = start_states[0]
 
             if not end_states:
-                raise Exception("No end states found")
+                raise Exception(CwpNoEndStatesError())
 
             self._cwp.states = {
                 id: state

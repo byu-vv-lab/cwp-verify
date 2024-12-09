@@ -1,6 +1,12 @@
 from xml.etree.ElementTree import Element, SubElement
 
 from bpmncwpverify.core.cwp import Cwp
+from bpmncwpverify.error import (
+    CwpMultStartStateError,
+    CwpNoEndStatesError,
+    CwpNoStartStateError,
+    Error,
+)
 from returns.functions import not_
 from bpmncwpverify.core.state import SymbolTable
 from returns.pipeline import is_successful
@@ -28,14 +34,14 @@ def add_mx_cell(mx_root, **attributes):
     SubElement(mx_root, "mxCell", attrib=attributes)
 
 
-def setup_cwp_and_assert(xml_root, symbol_table, success=True, failure_message=None):
+def setup_cwp_and_assert(xml_root, symbol_table, success=True, failure_message=Error):
     cwp = Cwp.from_xml(xml_root, symbol_table)
     if success:
         assert is_successful(cwp)
         return cwp.unwrap()
     else:
         assert not_(is_successful)(cwp)
-        assert cwp.failure() == failure_message
+        assert isinstance(cwp.failure(), failure_message)
     return cwp
 
 
@@ -63,7 +69,7 @@ def test_invalid_cwp_missing_start_event():
     add_mx_cell(mx_root, id="s1", value="state", style="state", vertex="1")
 
     setup_cwp_and_assert(
-        root, symbol_table, success=False, failure_message="No start state found"
+        root, symbol_table, success=False, failure_message=CwpNoStartStateError
     )
 
 
@@ -91,7 +97,7 @@ def test_invalid_cwp_not_connected():
         root,
         symbol_table,
         success=False,
-        failure_message="More than one start state found",
+        failure_message=CwpMultStartStateError,
     )
 
 
@@ -122,5 +128,5 @@ def test_invalid_cwp_no_end_state():
         root,
         symbol_table,
         success=False,
-        failure_message="No end states found",
+        failure_message=CwpNoEndStatesError,
     )

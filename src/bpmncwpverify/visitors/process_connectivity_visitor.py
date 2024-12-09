@@ -14,7 +14,13 @@ from bpmncwpverify.core.bpmn import (
     ExclusiveGatewayNode,
     ParallelGatewayNode,
 )
-from bpmncwpverify.error import BpmnStructureError
+from bpmncwpverify.error import (
+    BpmnGraphConnError,
+    BpmnMissingEventsError,
+    BpmnSeqFlowEndEventError,
+    BpmnSeqFlowNoExprError,
+    BpmnTaskFlowError,
+)
 
 
 class ProcessConnectivityVisitor(BpmnVisitor):  # type: ignore
@@ -28,11 +34,7 @@ class ProcessConnectivityVisitor(BpmnVisitor):  # type: ignore
 
     def visit_end_event(self, event: EndEvent) -> bool:
         if event.out_flows:
-            raise Exception(
-                BpmnStructureError(
-                    event.id, "An end event cannot have outgoing sequence flow"
-                )
-            )
+            raise Exception(BpmnSeqFlowEndEventError(event.id))
         self.visited.add(event)
         return True
 
@@ -42,12 +44,7 @@ class ProcessConnectivityVisitor(BpmnVisitor):  # type: ignore
 
     def visit_task(self, task: Task) -> bool:
         if not (task.in_flows and task.out_flows):
-            raise Exception(
-                BpmnStructureError(
-                    task.id,
-                    "Tasks should at least have one incoming and one outgoing flow",
-                )
-            )
+            raise Exception(BpmnTaskFlowError(task.id))
         self.visited.add(task)
         return True
 
@@ -58,12 +55,7 @@ class ProcessConnectivityVisitor(BpmnVisitor):  # type: ignore
     def _validate_out_flows(self, gateway: GatewayNode) -> None:
         for out_flow in gateway.out_flows:
             if not out_flow.expression:
-                raise Exception(
-                    BpmnStructureError(
-                        gateway.id,
-                        f"Flow: `{out_flow.id}` does not have an expression. All flows coming out of gateways must have expressions.",
-                    )
-                )
+                raise Exception(BpmnSeqFlowNoExprError(gateway.id, out_flow.id))
 
     def visit_exclusive_gateway(self, gateway: ExclusiveGatewayNode) -> bool:
         self._validate_out_flows(gateway)
@@ -98,9 +90,11 @@ class ProcessConnectivityVisitor(BpmnVisitor):  # type: ignore
         )
 
         if not starting_point or end_events == 0:
-            raise Exception(
-                f"Error with end events or start events: # end events = {end_events}, # start events = {start_events}"
-            )
+            raise Exception(BpmnMissingEventsError(start_events, end_events))
+
+        # Ensure all items in the process graph are visited
+        if set(process.all_items().values()) != self.visited:
+            raise Exception(BpmnGraphConnError())
 
         # Ensure all items in the process graph are visited
         if set(process.all_items().values()) != self.visited:

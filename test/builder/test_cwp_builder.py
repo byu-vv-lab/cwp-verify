@@ -1,5 +1,6 @@
 from bpmncwpverify.builder.cwp_builder import CwpBuilder
 from bpmncwpverify.core.cwp import CwpEdge, CwpState
+from bpmncwpverify.error import CwpNoStartStateError
 from returns.result import Success
 import pytest
 from returns.pipeline import is_successful
@@ -145,4 +146,4 @@ def test_build(mocker):
     result = obj.build()
 
     assert not_(is_successful)(result)
-    assert result.failure() == "No start state found"
+    assert isinstance(result.failure(), CwpNoStartStateError)
