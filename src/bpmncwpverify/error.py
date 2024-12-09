@@ -352,6 +352,22 @@ class TypingNoTypeError(Error):
         return False
 
 
+class TypingNegateBoolError(Error):
+    __slots__ = ["expr_type"]
+
+    def __init__(self, expr_type: str) -> None:
+        super().__init__()
+        self.expr_type = expr_type
+
+
+class TypingNotNonBoolError(Error):
+    __slots__ = ["expr_type"]
+
+    def __init__(self, expr_type: str) -> None:
+        super().__init__()
+        self.expr_type = expr_type
+
+
 def _get_exception_message(error: Exception) -> str:
     return "ERROR: {0} ({1})".format(type(error), error)
 

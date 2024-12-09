@@ -73,7 +73,7 @@ class CwpBuilder:
                 edge.expression = expression
                 result = expr_checker.type_check(edge.expression, self.symbol_table)
                 if not_(is_successful)(result):
-                    raise Exception(result)
+                    raise Exception(result.failure())
 
                 edge.parent_id = parent_id_ref
 
