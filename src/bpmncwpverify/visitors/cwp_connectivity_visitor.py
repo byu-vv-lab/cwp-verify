@@ -19,7 +19,5 @@ class CwpConnectivityVisitor(CwpVisitor):  # type: ignore
 
     def end_visit_cwp(self, model: Cwp) -> None:
         # This checks to see if any part of the graph is not connected
-        if self.visited != set(model.states.values()) | set(
-            model.start_states.values()
-        ):
+        if self.visited != set(model.states.values()) | {model.start_state}:
             raise Exception("Graph is not connected")

@@ -78,23 +78,33 @@ class CwpBuilder:
             # This step assigns expressions to each edge and checks to make sure expression is valid
             self._add_and_check_expressions(self.all_items, expression_checker)
 
+            # end state must have no out edges and at least one in edge
             end_states = [
-                state for state in self._cwp.states.values() if not state.out_edges
+                state
+                for state in self._cwp.states.values()
+                if not state.out_edges and state.in_edges
             ]
 
-            self._cwp.start_states = {
-                id: state
-                for id, state in self._cwp.states.items()
-                if not state.in_edges
-            }
+            start_states = [
+                state
+                for state in self._cwp.states.values()
+                if not state.in_edges and state.out_edges
+            ]
 
-            if not (end_states and self._cwp.start_states):
-                raise Exception("No start states or no end states")
+            if len(start_states) > 1:
+                raise Exception("More than one start state found")
+            elif not start_states:
+                raise Exception("No start state found")
+
+            self._cwp.start_state = start_states[0]
+
+            if not end_states:
+                raise Exception("No end states found")
 
             self._cwp.states = {
                 id: state
                 for id, state in self._cwp.states.items()
-                if id not in self._cwp.start_states
+                if state != self._cwp.start_state
             }
 
             # This step ensures connectivity of the graph and sets leaf edges

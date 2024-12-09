@@ -1,6 +1,5 @@
 from typing import Dict, List, Optional
 from xml.etree.ElementTree import Element
-from defusedxml.ElementTree import parse
 import re
 from bpmncwpverify.core.state import SymbolTable
 from returns.result import Result
@@ -11,21 +10,23 @@ class Cwp:
     def __init__(self) -> None:
         self.states: Dict[str, CwpState] = {}
         self.edges: Dict[str, CwpEdge] = {}
-        self.start_states: Dict[str, CwpState] = {}
+        self.start_state: CwpState
         self.end_states: List[CwpState] = []
 
     @staticmethod
-    def from_xml(xml_file: str, symbol_table: SymbolTable) -> Result["Cwp", Error]:
+    def from_xml(root: Element, symbol_table: SymbolTable) -> Result["Cwp", Error]:
         from bpmncwpverify.builder.cwp_builder import CwpBuilder
 
-        tree = parse(xml_file)
-        root = tree.getroot()
         builder = CwpBuilder(symbol_table)
 
-        diagram = root.find("diagram")
-        mx_graph_model = diagram.find("mxGraphModel")
-        mx_root = mx_graph_model.find("root")
-        mx_cells = mx_root.findall("mxCell")
+        if (diagram := root.find("diagram")) is None:
+            raise Exception("No 'diagram' element found")
+        if (mx_graph_model := diagram.find("mxGraphModel")) is None:
+            raise Exception("No 'mxGraphModel' element found")
+        if (mx_root := mx_graph_model.find("root")) is None:
+            raise Exception("No 'root' element found")
+        if (mx_cells := mx_root.findall("mxCell")) is None:
+            raise Exception("No 'mxCell' elements found")
 
         for itm in mx_cells:
             if itm.get("vertex"):
@@ -38,8 +39,7 @@ class Cwp:
     def accept(self, visitor: "CwpVisitor") -> None:
         result = visitor.visit_cwp(self)
         if result:
-            for state in self.start_states.values():
-                state.accept(visitor)
+            self.start_state.accept(visitor)
         visitor.end_visit_cwp(self)
 
     def generate_graph_viz(self) -> None:

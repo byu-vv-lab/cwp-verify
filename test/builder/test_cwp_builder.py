@@ -128,9 +128,9 @@ def test_build(mocker):
     assert isinstance(result, Success)
     assert result.unwrap() == mock_cwp
 
-    start_states = {"state1": states["state1"]}
+    start_state = states["state1"]
     end_states = [states["state3"]]
-    assert mock_cwp.start_states == start_states
+    assert mock_cwp.start_state == start_state
     assert list(end_states) == [states["state3"]]
 
     mock_cwp.accept.assert_called_once()
@@ -145,4 +145,4 @@ def test_build(mocker):
     result = obj.build()
 
     assert not_(is_successful)(result)
-    assert result.failure() == "No start states or no end states"
+    assert result.failure() == "No start state found"
