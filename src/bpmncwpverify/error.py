@@ -1,6 +1,7 @@
 # TODO: create a "match" function on Failure(Error) and create standard error messaging.
 import typing
 import builtins
+from xml.etree.ElementTree import Element
 
 
 class Error:
@@ -82,6 +83,175 @@ class ExpressionUnrecognizedID(Error):
         if isinstance(other, ExpressionUnrecognizedID):
             return self._id == other._id
         return False
+
+
+class BpmnFlowNoIdError(Error):
+    __slots__ = ["element"]
+
+    def __init__(self, element: Element) -> None:
+        super().__init__()
+        self.element = element
+
+
+class BpmnFlowTypeError(Error):
+    __slots__ = ["flow_id"]
+
+    def __init__(self, flow_id: str) -> None:
+        super().__init__()
+        self.flow_id = flow_id
+
+
+class BpmnGraphConnError(Error):
+    def __init__(self) -> None:
+        super().__init__()
+
+
+class BpmnMissingEventsError(Error):
+    __slots__ = ["start_events", "end_events"]
+
+    def __init__(self, start_events: int, end_events: int) -> None:
+        super().__init__()
+        self.start_events = start_events
+        self.end_events = end_events
+
+
+class BpmnMsgEndEventError(Error):
+    __slots__ = ["event_id"]
+
+    def __init__(self, event_id: str) -> None:
+        super().__init__()
+        self.event_id = event_id
+
+
+class BpmnMsgFlowSamePoolError(Error):
+    __slots__ = ["msg_id"]
+
+    def __init__(self, msg_id: str) -> None:
+        super().__init__()
+        self.msg_id = msg_id
+
+
+class BpmnMsgGatewayError(Error):
+    __slots__ = ["gateway_type", "gateway_id"]
+
+    def __init__(self, gateway_type: str, gateway_id: str) -> None:
+        super().__init__()
+        self.gateway_type = gateway_type
+        self.gateway_id = gateway_id
+
+
+class BpmnMsgMissingRefError(Error):
+    __slots__ = ["msg_id"]
+
+    def __init__(self, msg_id: str) -> None:
+        super().__init__()
+        self.msg_id = msg_id
+
+
+class BpmnMsgNodeTypeError(Error):
+    __slots__ = ["msg_id"]
+
+    def __init__(self, msg_id: str) -> None:
+        super().__init__()
+        self.msg_id = msg_id
+
+
+class BpmnMsgSrcError(Error):
+    __slots__ = ["obj_type", "msg_id"]
+
+    def __init__(self, obj_type: str, msg_id: str) -> None:
+        super().__init__()
+        self.obj_type = obj_type
+        self.msg_id = msg_id
+
+
+class BpmnMsgTargetError(Error):
+    __slots__ = ["obj_type", "msg_id"]
+
+    def __init__(self, obj_type: str, msg_id: str) -> None:
+        super().__init__()
+        self.obj_type = obj_type
+        self.msg_id = msg_id
+
+
+class BpmnNodeTypeError(Error):
+    __slots__ = ["flow_id"]
+
+    def __init__(self, flow_id: str) -> None:
+        super().__init__()
+        self.flow_id = flow_id
+
+
+class BpmnSeqFlowEndEventError(Error):
+    __slots__ = ["event_id"]
+
+    def __init__(self, event_id: str) -> None:
+        super().__init__()
+        self.event_id = event_id
+
+
+class BpmnSeqFlowNoExprError(Error):
+    __slots__ = ["gateway_id", "out_flow_id"]
+
+    def __init__(self, gateway_id: str, out_flow_id: str) -> None:
+        super().__init__()
+        self.gateway_id = gateway_id
+        self.out_flow_id = out_flow_id
+
+
+class BpmnTaskFlowError(Error):
+    __slots__ = ["task_id"]
+
+    def __init__(self, task_id: str) -> None:
+        super().__init__()
+        self.task_id = task_id
+
+
+class CwpEdgeNoParentExprError(Error):
+    __slots__ = ["edge"]
+
+    def __init__(self, edge: Element) -> None:
+        super().__init__()
+        self.edge = edge
+
+
+class CwpEdgeNoStateError(Error):
+    __slots__ = ["edge"]
+
+    def __init__(self, edge: Element) -> None:
+        super().__init__()
+        self.edge = edge
+
+
+class CwpGraphConnError(Error):
+    def __init__(self) -> None:
+        super().__init__()
+
+
+class CwpMultStartStateError(Error):
+    __slots__ = ["start_states"]
+
+    def __init__(self, start_states: typing.List[str]) -> None:
+        super().__init__()
+        self.start_states = start_states
+
+
+class CwpNoEndStatesError(Error):
+    def __init__(self) -> None:
+        super().__init__()
+
+
+class CwpNoParentEdgeError(Error):
+    __slots__ = ["edge"]
+
+    def __init__(self, edge: Element) -> None:
+        super().__init__()
+        self.edge = edge
+
+
+class CwpNoStartStateError(Error):
+    def __init__(self) -> None:
+        super().__init__()
 
 
 class NotImplementedError(Error):
@@ -214,6 +384,50 @@ def _get_error_message(error: Error) -> str:
             return "ERROR: not implemented '{}'".format(function)
         case MessageError(node_id=node_id, error_msg=error_msg):
             return f"Inter-process message error at node: {node_id}. {error_msg}"
+        case BpmnFlowNoIdError(element=element):
+            return f"Flow error: Flow_id does not exist. Occurred at tree element with following attributes: {element.attrib}."
+        case BpmnFlowTypeError(flow_id=flow_id):
+            return f"Flow error: Flow '{flow_id}' is not a sequence flow when it should be."
+        case BpmnNodeTypeError(flow_id=flow_id):
+            return f"Node type error: Source or target node of flow is not of type node. Flow details: {flow_id}."
+        case BpmnMsgFlowSamePoolError(msg_id=msg_id):
+            return f"Message flow error: {msg_id} connects nodes in the same pool."
+        case BpmnMsgMissingRefError(msg_id=msg_id):
+            return f"Message flow error: Source ref or target ref is missing for message '{msg_id}'."
+        case BpmnMsgNodeTypeError(msg_id=msg_id):
+            return f"Message flow error: 'From' node and 'To' node of message are not of type Node. Message flow id: {msg_id}."
+        case BpmnMsgTargetError(obj_type=obj_type, msg_id=msg_id):
+            return f"Message flow target error while visiting {obj_type}. A message flow can only go to specific targets. Message ID: {msg_id}."
+        case BpmnMsgSrcError(obj_type=obj_type, msg_id=msg_id):
+            return f"Message flow source error while visiting {obj_type}. A message flow can only come from specific sources. Message ID: {msg_id}."
+        case BpmnMsgEndEventError(event_id=event_id):
+            return f"Message flow error: End events cannot have incoming messages. Event ID: {event_id}."
+        case BpmnMsgGatewayError(gateway_type=gateway_type, gateway_id=gateway_id):
+            return f"Gateway error: {gateway_type} gateways cannot have incoming or outgoing messages. Gateway ID: {gateway_id}."
+        case BpmnSeqFlowEndEventError(event_id=event_id):
+            return f"Sequence flow error: End event '{event_id}' cannot have outgoing sequence flows."
+        case BpmnTaskFlowError(task_id=task_id):
+            return f"Task flow error: Task '{task_id}' should have at least one incoming and one outgoing flow."
+        case BpmnSeqFlowNoExprError(gateway_id=gateway_id, out_flow_id=out_flow_id):
+            return f"Sequence flow error: Flow '{out_flow_id}' does not have an expression. All flows coming out of gateway '{gateway_id}' must have expressions."
+        case BpmnMissingEventsError(start_events=start_events, end_events=end_events):
+            return f"Event error: Start events = {start_events}, End events = {end_events}. Missing required start or end events."
+        case BpmnGraphConnError():
+            return "Bpmn Process graph error: Process graph is not fully connected."
+        case CwpEdgeNoStateError(edge=edge):
+            return f"CWP ERROR: Edge does not have a source or a target. Edge details: {edge.attrib}."
+        case CwpEdgeNoParentExprError(edge=edge):
+            return f"CWP ERROR: Expression or parent node not found in edge. Edge details: {edge.attrib}."
+        case CwpNoParentEdgeError(edge=edge):
+            return f"CWP ERROR: Parent edge not found or no parent ID reference. Edge details: {edge.attrib}."
+        case CwpMultStartStateError(start_states=start_states):
+            return f"CWP ERROR: More than one start state found. Start state IDs: {start_states}."
+        case CwpNoStartStateError():
+            return "CWP ERROR: No start states found."
+        case CwpNoEndStatesError():
+            return "CWP ERROR: No end states found."
+        case CwpGraphConnError():
+            return "CWP ERROR: Graph is not connected."
         case StateInitNotInValues(id=id, line=line, column=column, values=values):
             # Convert to a list since Python sets are not stable
             return "STATE ERROR: init value '{}' at line {}:{} not in allowed values {}".format(
