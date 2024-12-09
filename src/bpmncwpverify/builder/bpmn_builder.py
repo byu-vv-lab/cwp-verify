@@ -1,8 +1,8 @@
 from xml.etree.ElementTree import Element
-from bpmncwpverify.core.bpmn import Bpmn, MessageFlow, Node
+from bpmncwpverify.core.bpmn import Bpmn, MessageFlow, Node, Process
 from bpmncwpverify.core.state import SymbolTable
 from bpmncwpverify.visitors.bpmn_connectivity_visitor import BpmnConnectivityVisitor
-from returns.result import Result, Success
+from returns.result import Result, Success, Failure
 from bpmncwpverify.error import Error, MessageError
 
 
@@ -25,16 +25,21 @@ class BpmnBuilder:
                     )
 
     def build(self) -> Result[Bpmn, Error]:
-        visitor = BpmnConnectivityVisitor()
+        try:
+            visitor = BpmnConnectivityVisitor()
 
-        self._bpmn.accept(visitor)
+            self._bpmn.accept(visitor)
 
-        # Check to make sure messages do not connect nodes from same pool:
-        self._msg_connects_diff_pools()
+            # Check to make sure messages do not connect nodes from same pool:
+            self._msg_connects_diff_pools()
 
-        return Success(self._bpmn)
+            return Success(self._bpmn)
+        except Exception as e:
+            return Failure(e)
 
-    def add_process(self, element: Element, symbol_table: SymbolTable) -> None:
+    def add_process(
+        self, element: Element, symbol_table: SymbolTable
+    ) -> Result[Process, Error]:
         from bpmncwpverify.builder.process_builder import ProcessBuilder
 
         process_builder = ProcessBuilder(self._bpmn, element, symbol_table)
@@ -42,7 +47,7 @@ class BpmnBuilder:
         for element in element:
             process_builder.add_element(element)
 
-        process_builder.build()
+        return process_builder.build()
 
     def add_message(self, msg_flow: Element) -> None:
         source_ref, target_ref = (

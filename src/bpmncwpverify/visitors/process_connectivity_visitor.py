@@ -85,10 +85,6 @@ class ProcessConnectivityVisitor(BpmnVisitor):  # type: ignore
         return self.process_flow(flow)
 
     def end_visit_process(self, process: Process) -> None:
-        # Ensure all items in the process graph are visited
-        if set(process.all_items().values()) != self.visited:
-            raise Exception("Process graph is not fully connected")
-
         start_events = sum(
             isinstance(itm, StartEvent) for itm in process.all_items().values()
         )
@@ -103,8 +99,12 @@ class ProcessConnectivityVisitor(BpmnVisitor):  # type: ignore
 
         if not starting_point or end_events == 0:
             raise Exception(
-                f"Error with end events or start events: # end states = {end_events}, # start states = {start_events}"
+                f"Error with end events or start events: # end events = {end_events}, # start events = {start_events}"
             )
+
+        # Ensure all items in the process graph are visited
+        if set(process.all_items().values()) != self.visited:
+            raise Exception("Process graph is not fully connected")
 
         # Testing and cleanup
         self.last_visited_set = self.visited
