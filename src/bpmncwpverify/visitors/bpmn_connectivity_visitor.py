@@ -10,29 +10,24 @@ from bpmncwpverify.core.bpmn import (
     EndEvent,
     IntermediateEvent,
 )
-from bpmncwpverify.error import MessageError
+from bpmncwpverify.error import (
+    BpmnMsgEndEventError,
+    BpmnMsgGatewayError,
+    BpmnMsgSrcError,
+    BpmnMsgTargetError,
+)
 
 
 class BpmnConnectivityVisitor(BpmnVisitor):  # type: ignore
     def _ensure_in_messages(self, node: Node, obj_type: str) -> None:
         if node.in_msgs:
             if not node.message_event_definition:
-                raise Exception(
-                    MessageError(
-                        node.id,
-                        f"Error while visiting a {obj_type}. A message flow can only go to a Message start or intermediate event; Receive, User, or Service task; Subprocess; or black box pool.",
-                    )
-                )
+                raise Exception(BpmnMsgTargetError(obj_type, node.id))
 
     def _ensure_out_messages(self, node: Node, obj_type: str) -> None:
         if node.out_msgs:
             if not node.message_event_definition:
-                raise Exception(
-                    MessageError(
-                        node.id,
-                        f"Error while visiting a {obj_type}. A message flow can only come from a Messege end or intermediate event; Send, User, or Service task; Subprocess; or black box pool.",
-                    )
-                )
+                raise Exception(BpmnMsgSrcError(obj_type, node.id))
 
     def visit_start_event(self, event: StartEvent) -> bool:
         self._ensure_in_messages(event, "start event")
@@ -40,12 +35,7 @@ class BpmnConnectivityVisitor(BpmnVisitor):  # type: ignore
 
     def visit_end_event(self, event: EndEvent) -> bool:
         if event.in_msgs:
-            raise Exception(
-                MessageError(
-                    event.id,
-                    "Error while visiting an end_event. End events cannot have incoming messages.",
-                )
-            )
+            raise Exception(BpmnMsgEndEventError(event.id))
         self._ensure_out_messages(event, "end event")
         return True
 
@@ -53,12 +43,7 @@ class BpmnConnectivityVisitor(BpmnVisitor):  # type: ignore
         self, gateway: GatewayNode, gateway_type: str
     ) -> bool:
         if gateway.in_msgs or gateway.out_msgs:
-            raise Exception(
-                MessageError(
-                    gateway.id,
-                    f"Error while visiting a {gateway_type}. Gateways cannot have incoming or outgoing messages.",
-                )
-            )
+            raise Exception(BpmnMsgGatewayError(gateway_type, gateway.id))
         return True
 
     def visit_parallel_gateway(self, gateway: ParallelGatewayNode) -> bool:

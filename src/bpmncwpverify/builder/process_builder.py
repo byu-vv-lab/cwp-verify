@@ -16,7 +16,12 @@ from bpmncwpverify.core.bpmn import (
 )
 from bpmncwpverify.core.expr import ExpressionListener
 from bpmncwpverify.core.state import SymbolTable
-from bpmncwpverify.error import BpmnStructureError
+from bpmncwpverify.error import (
+    BpmnFlowNoIdError,
+    BpmnFlowTypeError,
+    BpmnNodeTypeError,
+    BpmnStructureError,
+)
 from returns.pipeline import is_successful
 from returns.functions import not_
 from returns.result import Result, Failure, Success
@@ -58,13 +63,13 @@ class ProcessBuilder:
 
     def _get_flow_id(self, outgoing: Element) -> str:
         if not (flow_id := outgoing.text):
-            raise Exception(BpmnStructureError("unknown", "flow id is None"))
+            raise Exception(BpmnFlowNoIdError(outgoing))
         return flow_id.strip()
 
     def _get_flow(self, flow_id: str) -> SequenceFlow:
         flow = self._process[flow_id]
         if not isinstance(flow, SequenceFlow):
-            raise Exception(BpmnStructureError(flow_id, "flow not flow type"))
+            raise Exception(BpmnFlowTypeError(flow.id))
         return flow
 
     def _get_source_and_target_refs(self, flow: SequenceFlow) -> Tuple[Node, Node]:
@@ -75,11 +80,7 @@ class ProcessBuilder:
             flow.element.attrib["targetRef"]
         )
         if not (isinstance(source_ref, Node) and isinstance(target_ref, Node)):
-            raise Exception(
-                BpmnStructureError(
-                    flow.id, "Source ref or target ref is not of type node"
-                )
-            )
+            raise Exception(BpmnNodeTypeError(flow.id))
         return source_ref, target_ref
 
     def _validate_and_set_flow_expression(

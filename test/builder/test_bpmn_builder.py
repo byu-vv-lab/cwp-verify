@@ -1,4 +1,8 @@
-from bpmncwpverify.error import MessageError
+from bpmncwpverify.error import (
+    BpmnMsgFlowSamePoolError,
+    BpmnMsgMissingRefError,
+    BpmnMsgNodeTypeError,
+)
 import pytest
 from xml.etree.ElementTree import Element
 from bpmncwpverify.builder.bpmn_builder import BpmnBuilder
@@ -61,10 +65,10 @@ def test_add_message_missing_refs(mocker):
     builder = BpmnBuilder()
     builder._bpmn = mock_bpmn
 
-    with pytest.raises(
-        Exception, match="source ref or target ref not included with message"
-    ):
+    with pytest.raises(Exception) as exc_info:
         builder.add_message(mock_msg_flow)
+
+    assert isinstance(exc_info.value.args[0], BpmnMsgMissingRefError)
 
 
 def test_add_message_invalid_nodes(mocker):
@@ -82,8 +86,10 @@ def test_add_message_invalid_nodes(mocker):
     builder = BpmnBuilder()
     builder._bpmn = mock_bpmn
 
-    with pytest.raises(TypeError, match="to_node or from_node is not of type Node"):
+    with pytest.raises(Exception) as exc_info:
         builder.add_message(mock_msg_flow)
+
+    assert isinstance(exc_info.value.args[0], BpmnMsgNodeTypeError)
 
 
 def test_check_messages_valid(mocker):
@@ -106,11 +112,8 @@ def test_check_messages_valid(mocker):
         Exception,
     ) as exc_info:
         obj._msg_connects_diff_pools()
-    assert isinstance(exc_info.value.args[0], MessageError)
-    assert "message1" == str(exc_info.value.args[0].node_id)
-    assert "A message flow cannot connect nodes in the same pool." == str(
-        exc_info.value.args[0].error_msg
-    )
+    assert isinstance(exc_info.value.args[0], BpmnMsgFlowSamePoolError)
+    assert "message1" == str(exc_info.value.args[0].msg_id)
 
 
 def test_check_messages_no_intersection(mocker):

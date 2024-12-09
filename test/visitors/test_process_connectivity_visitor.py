@@ -1,5 +1,11 @@
 # type: ignore
-from bpmncwpverify.error import BpmnStructureError
+from bpmncwpverify.error import (
+    BpmnGraphConnError,
+    BpmnMissingEventsError,
+    BpmnSeqFlowEndEventError,
+    BpmnSeqFlowNoExprError,
+    BpmnTaskFlowError,
+)
 import pytest
 from bpmncwpverify.core.bpmn import EndEvent, StartEvent
 from bpmncwpverify.visitors.process_connectivity_visitor import (
@@ -44,8 +50,10 @@ def test_disconnected_graph_raises_exception(setup_process_and_visitor):
     }
     visitor.visited = {start_event, other_event}  # Missing end_event
 
-    with pytest.raises(Exception, match="Process graph is not fully connected"):
+    with pytest.raises(Exception) as exc_info:
         visitor.end_visit_process(process)
+
+    assert isinstance(exc_info.value.args[0], BpmnGraphConnError)
 
 
 def test_no_start_or_end_event_raises_exception(setup_process_and_visitor):
@@ -55,8 +63,10 @@ def test_no_start_or_end_event_raises_exception(setup_process_and_visitor):
     visitor.visited = {other_event}
     other_event.in_msgs = []
 
-    with pytest.raises(Exception, match="Error with end events or start events"):
+    with pytest.raises(Exception) as exc_info:
         visitor.end_visit_process(process)
+
+    assert isinstance(exc_info.value.args[0], BpmnMissingEventsError)
 
 
 def test_no_start_event_with_incoming_msgs(setup_process_and_visitor):
@@ -79,8 +89,10 @@ def test_no_end_event_raises_exception(setup_process_and_visitor):
     start_event.in_msgs = []
     other_event.in_msgs = [1]
 
-    with pytest.raises(Exception, match="Error with end events or start events"):
+    with pytest.raises(Exception) as exc_info:
         visitor.end_visit_process(process)
+
+    assert isinstance(exc_info.value.args[0], BpmnMissingEventsError)
 
 
 def test_no_start_event_with_no_incoming_msgs(setup_process_and_visitor):
@@ -91,8 +103,10 @@ def test_no_start_event_with_no_incoming_msgs(setup_process_and_visitor):
     other_event.in_msgs = []
     end_event.in_msgs = []
 
-    with pytest.raises(Exception, match="Error with end events or start events"):
+    with pytest.raises(Exception) as exc_info:
         visitor.end_visit_process(process)
+
+    assert isinstance(exc_info.value.args[0], BpmnMissingEventsError)
 
 
 def test_valid_graph_resets_visited(setup_process_and_visitor):
@@ -133,11 +147,8 @@ def test_visit_end_event_with_outgoing_flows(mocker):
     with pytest.raises(Exception) as exc_info:
         obj.visit_end_event(event)
 
-    assert isinstance(exc_info.value.args[0], BpmnStructureError)
-    assert "end_event_2" == str(exc_info.value.args[0].node_id)
-    assert "An end event cannot have outgoing sequence flow" == str(
-        exc_info.value.args[0].error_msg
-    )
+    assert isinstance(exc_info.value.args[0], BpmnSeqFlowEndEventError)
+    assert "end_event_2" == str(exc_info.value.args[0].event_id)
     assert event not in obj.visited
 
 
@@ -162,11 +173,7 @@ def test_validate_out_flows_invalid_case(mocker):
     ]
     with pytest.raises(Exception) as exc_info:
         visitor._validate_out_flows(gateway)
-    assert isinstance(exc_info.value.args[0], BpmnStructureError)
-    assert (
-        "Flow: `flow2` does not have an expression. All flows coming out of gateways must have expressions."
-        == str(exc_info.value.args[0].error_msg)
-    )
+    assert isinstance(exc_info.value.args[0], BpmnSeqFlowNoExprError)
 
 
 def test_visit_exclusive_gateway_valid(mocker):
@@ -250,8 +257,5 @@ def test_visit_task_with_bad_task(mocker):
 
     with pytest.raises(Exception) as exc_info:
         visitor.visit_task(task)
-    assert isinstance(exc_info.value.args[0], BpmnStructureError)
-    assert "task1" == str(exc_info.value.args[0].node_id)
-    assert "Tasks should at least have one incoming and one outgoing flow" == str(
-        exc_info.value.args[0].error_msg
-    )
+    assert isinstance(exc_info.value.args[0], BpmnTaskFlowError)
+    assert "task1" == str(exc_info.value.args[0].task_id)

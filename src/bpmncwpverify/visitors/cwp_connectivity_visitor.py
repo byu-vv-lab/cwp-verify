@@ -1,5 +1,6 @@
 from typing import Set
 from bpmncwpverify.core.cwp import Cwp, CwpState, CwpVisitor, CwpEdge
+from bpmncwpverify.error import CwpGraphConnError
 
 
 class CwpConnectivityVisitor(CwpVisitor):  # type: ignore
@@ -20,4 +21,4 @@ class CwpConnectivityVisitor(CwpVisitor):  # type: ignore
     def end_visit_cwp(self, model: Cwp) -> None:
         # This checks to see if any part of the graph is not connected
         if self.visited != set(model.states.values()) | {model.start_state}:
-            raise Exception("Graph is not connected")
+            raise Exception(CwpGraphConnError())
