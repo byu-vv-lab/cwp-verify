@@ -17,6 +17,73 @@ class BpmnStructureError(Error):
         self.error_msg = error_msg
 
 
+class ExpressionComputationCompatabilityError(Error):
+    __slots__ = ["ltype", "rtype"]
+
+    def __init__(self, ltype: str, rtype: str) -> None:
+        super().__init__()
+        self.ltype = ltype
+        self.rtype = rtype
+
+    def __eq__(self, other: typing.Any) -> bool:
+        if isinstance(other, ExpressionComputationCompatabilityError):
+            return self.ltype == other.ltype and self.rtype == other.rtype
+        return False
+
+
+class ExpressionNegatorError(Error):
+    __slots__ = ["_type"]
+
+    def __init__(self, type: str) -> None:
+        super().__init__()
+        self._type = type
+
+    def __eq__(self, other: typing.Any) -> bool:
+        if isinstance(other, ExpressionNegatorError):
+            return self._type == other._type
+        return False
+
+
+class ExpressionRelationCompatabilityError(Error):
+    __slots__ = ["ltype", "rtype"]
+
+    def __init__(self, ltype: str, rtype: str) -> None:
+        super().__init__()
+        self.ltype = ltype
+        self.rtype = rtype
+
+    def __eq__(self, other: typing.Any) -> bool:
+        if isinstance(other, ExpressionComputationCompatabilityError):
+            return self.ltype == other.ltype and self.rtype == other.rtype
+        return False
+
+
+class ExpressionRelationalNotError(Error):
+    __slots__ = ["_type"]
+
+    def __init__(self, type: str) -> None:
+        super().__init__()
+        self._type = type
+
+    def __eq__(self, other: typing.Any) -> bool:
+        if isinstance(other, ExpressionRelationalNotError):
+            return self._type == other._type
+        return False
+
+
+class ExpressionUnrecognizedID(Error):
+    __slots__ = ["_id"]
+
+    def __init__(self, id: str) -> None:
+        super().__init__()
+        self._id = id
+
+    def __eq__(self, other: typing.Any) -> bool:
+        if isinstance(other, ExpressionUnrecognizedID):
+            return self._id == other._id
+        return False
+
+
 class NotImplementedError(Error):
     __slots__ = ["function"]
 
@@ -123,6 +190,26 @@ def _get_error_message(error: Error) -> str:
     match error:
         case BpmnStructureError(node_id=node_id, error_msg=error_msg):
             return f"BPMN ERROR at node: {node_id}. {error_msg}"
+        case ExpressionComputationCompatabilityError(ltype=ltype, rtype=rtype):
+            return "EXPR ERROR: sometion of type '{}' cannot be computed with something of type '{}'".format(
+                rtype, ltype
+            )
+        case ExpressionNegatorError(_type=_type):
+            return "EXPR ERROR: sometiong of type '{}' cannot be used with a mathmatical negator".format(
+                _type
+            )
+        case ExpressionRelationCompatabilityError(ltype=ltype, rtype=rtype):
+            return "EXPR ERROR: sometion of type '{}' cannot be related with something of type '{}'".format(
+                rtype, ltype
+            )
+        case ExpressionRelationalNotError(_type=_type):
+            return "EXPR ERROR: sometiong of type '{}' cannot be used with a relational not".format(
+                _type
+            )
+        case ExpressionUnrecognizedID(_id=_id):
+            return "EXPR ERROR: '{}' is not recognized as a literal or something stored in the symbol table".format(
+                _id
+            )
         case NotImplementedError(function=function):
             return "ERROR: not implemented '{}'".format(function)
         case MessageError(node_id=node_id, error_msg=error_msg):
