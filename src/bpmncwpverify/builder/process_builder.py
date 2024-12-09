@@ -141,7 +141,6 @@ class ProcessBuilder:
 
             visitor = ProcessConnectivityVisitor()
             self._process.accept(visitor)
-
             return Success(self._process)
         except Exception as e:
             return Failure(e.args[0])

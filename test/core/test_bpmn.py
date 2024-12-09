@@ -56,7 +56,7 @@ def test_complete_bpmn_with_no_start_or_end_event():
     assert isinstance(result, Failure)
     exception = result.failure()
     assert (
-        exception
+        str(exception)
         == "Error with end events or start events: # end events = 0, # start events = 0"
     )
 
