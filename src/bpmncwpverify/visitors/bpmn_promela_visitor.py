@@ -112,7 +112,7 @@ class PromelaGenVisitor(BpmnVisitor):  # type: ignore
         ret += "\t\t{x}\n".format(x=behavior_inline)
         ret += "\t\td_step {\n"
         for location in consume_locations:
-            ret += "\t\t\tconsume_token({x})\n".format(x=location)
+            ret += "\t\t\tconsumeToken({x})\n".format(x=location)
         if "ParallelFALSE" in type:
             ret += "\t\t\tif\n"
             ret += "\t\t\t:: (locked[me]) -> locked[me] = false; unlock()\n"
@@ -124,13 +124,13 @@ class PromelaGenVisitor(BpmnVisitor):  # type: ignore
             for condition, location, id in zip(
                 put_conditions, put_locations, put_flow_ids
             ):
-                ret += "\t\t\t\t:: {x} -> put_token({y})\n".format(
+                ret += "\t\t\t\t:: {x} -> putToken({y})\n".format(
                     x=condition, y=location
                 )
             ret += "\t\t\tfi\n"
         else:
             for location, id in zip(put_locations, put_flow_ids):
-                ret += "\t\t\tput_token({x})\n".format(x=location)
+                ret += "\t\t\tputToken({x})\n".format(x=location)
         if "ParallelFALSE" in type:
             ret += "\t\t\tif\n"
             ret += '\t\t\t:: (!locked[me]) -> printf("###END PARALLEL GATEWAY###\\n")\n'
@@ -274,9 +274,6 @@ class PromelaGenVisitor(BpmnVisitor):  # type: ignore
 
     def visit_end_event(self, event: EndEvent) -> bool:
         self.visit_node(event)
-        self.behavior_model_text += self.gen_behavior_model(
-            self.get_location(event), update_state=False
-        )
         return False
 
     def visit_intermediate_event(self, event: IntermediateEvent) -> bool:

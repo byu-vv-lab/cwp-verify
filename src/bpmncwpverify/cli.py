@@ -1,9 +1,11 @@
 # Imports from refactor
 import argparse
+from bpmncwpverify.core.promcreate import create_promela, write_promela
 from returns.io import impure_safe, IOResult, IOResultE
 
 from returns.pipeline import managed, flow
 from returns.pointfree import bind_result
+from returns.curry import partial
 from returns.result import ResultE, Result, Success, Failure
 from typing import TextIO
 
@@ -51,13 +53,20 @@ def verify() -> None:
     argument_parser = _get_argument_parser()
     args = argument_parser.parse_args()
     managed_read = managed(_read_file, _close_file)
-    filename: str = args.statefile
+    state_filename: str = args.statefile
+    bpmn_filename: str = args.bpmnfile
+    cwp_filename: str = args.cwpfile
 
+    prom_create = partial(create_promela, cwp_filename, bpmn_filename)
+
+    write_file = partial(write_promela, "output.pml")
     result: IOResultE[Result[SymbolTable, Error]] = flow(
-        filename,
+        state_filename,
         impure_safe(lambda filename: open(filename, "r")),
         managed_read,
         bind_result(SymbolTable.build),
+        bind_result(prom_create),
+        bind_result(write_file),
     )
 
     match result:

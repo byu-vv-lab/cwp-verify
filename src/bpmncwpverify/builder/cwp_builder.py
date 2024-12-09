@@ -70,7 +70,7 @@ class CwpBuilder:
                 if not edge or not (parent_id_ref := mx_cell.get("id")):
                     raise Exception(CwpNoParentEdgeError(mx_cell))
 
-                edge.expression = expression
+                edge.expression = CwpEdge.cleanup_expression(expression)
                 result = expr_checker.type_check(edge.expression, self.symbol_table)
                 if not_(is_successful)(result):
                     raise Exception(result.failure())

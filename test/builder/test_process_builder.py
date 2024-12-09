@@ -113,25 +113,27 @@ def test_build_graph(mocker):
             self.in_flows.append(flow)
 
     mock_element_1 = mocker.MagicMock()
-    mock_element_1.element.findall.return_value = [mocker.MagicMock(text="flow_1")]
     mock_element_2 = mocker.MagicMock()
-    mock_element_2.element.findall.return_value = [mocker.MagicMock(text="flow_2")]
 
     mock_process.all_items.return_value = {
         "node_1": mock_element_1,
         "node_2": mock_element_2,
     }
 
-    flow_1 = MockFlow(
-        element=mocker.MagicMock(attrib={"sourceRef": "node_1", "targetRef": "node_2"})
+    element_1 = mocker.MagicMock(
+        attrib={"id": "flow_1", "sourceRef": "node_1", "targetRef": "node_2"}
     )
-    flow_2 = MockFlow(
-        element=mocker.MagicMock(attrib={"sourceRef": "node_2", "targetRef": "node_1"})
+    element_2 = mocker.MagicMock(
+        attrib={"id": "flow_2", "sourceRef": "node_2", "targetRef": "node_1"}
     )
     mock_process.__getitem__.side_effect = lambda key: {
         "flow_1": flow_1,
         "flow_2": flow_2,
     }[key.strip()]
+
+    mock_process.element.findall.return_value = [element_1, element_2]
+    flow_1 = mocker.MagicMock(spec=SequenceFlow, element=element_1, expression="")
+    flow_2 = mocker.MagicMock(spec=SequenceFlow, element=element_2, expression="")
 
     node_1 = MockNode(id="node_1")
     node_2 = MockNode(id="node_2")
@@ -158,66 +160,43 @@ def test_build_graph(mocker):
 def test_build_graph_with_expression_checker(mocker):
     mock_process = mocker.MagicMock()
     mock_bpmn = mocker.MagicMock()
-
-    class MockFlow(SequenceFlow):
-        def __init__(self, element, source_node=None, target_node=None, name=None):
-            self.element = element
-            self.expression = name
-            self.source_node = source_node
-            self.target_node = target_node
-
-    class MockNode(Node):
-        def __init__(self, id):
-            self.id = id
-            self.out_flows = []
-            self.in_flows = []
-
-        def add_out_flow(self, flow):
-            self.out_flows.append(flow)
-
-        def add_in_flow(self, flow):
-            self.in_flows.append(flow)
-
-    mock_element_1 = mocker.MagicMock()
-    mock_element_1.element.findall.return_value = [mocker.MagicMock(text="flow_1")]
-    mock_element_2 = mocker.MagicMock()
-    mock_element_2.element.findall.return_value = []
-
+    mock_element_1, mock_element_2 = mocker.MagicMock(), mocker.MagicMock()
     mock_process.all_items.return_value = {
         "node_1": mock_element_1,
         "node_2": mock_element_2,
     }
 
-    flow_1 = MockFlow(
-        element=mocker.MagicMock(
-            attrib={
-                "sourceRef": "node_1",
-                "targetRef": "node_2",
-                "name": "clean_expression",
-            }
-        )
-    )
-    mock_process.__getitem__.side_effect = lambda key: {
-        "flow_1": flow_1,
-    }[key.strip()]
+    class MockNode(Node):
+        def __init__(self, id):
+            self.id = id
+            self.out_flows, self.in_flows = [], []
 
-    node_1 = MockNode(id="node_1")
-    node_2 = MockNode(id="node_2")
+    flow_element = mocker.MagicMock(
+        attrib={
+            "id": "flow_1",
+            "sourceRef": "node_1",
+            "targetRef": "node_2",
+            "name": "clean_expression",
+        }
+    )
+    mock_process.element.findall.return_value = [flow_element]
+    node_1, node_2 = MockNode("node_1"), MockNode("node_2")
     mock_bpmn.get_element_from_id_mapping.side_effect = lambda id: {
         "node_1": node_1,
         "node_2": node_2,
     }[id]
+    flow_1 = mocker.MagicMock(spec=SequenceFlow, element=flow_element, expression="")
+    mock_process.__getitem__.side_effect = lambda key: {"flow_1": flow_1}[key.strip()]
 
     mock_symbol_table = mocker.MagicMock(spec=SymbolTable)
-    mock_build = mocker.patch(
+    mock_type_check = mocker.patch(
         "bpmncwpverify.core.expr.ExpressionListener.type_check",
         return_value=Success("bool"),
     )
 
     builder = ProcessBuilder(mocker.Mock(), mocker.Mock(), mock_symbol_table)
-    builder._bpmn = mock_bpmn
-    builder._process = mock_process
+    builder._bpmn, builder._process = mock_bpmn, mock_process
     builder._construct_flow_network()
 
-    mock_build.assert_called_once_with("clean_expression", mock_symbol_table)
+    mock_type_check.assert_called_once_with("clean_expression", mock_symbol_table)
     assert flow_1.expression == "clean_expression"
