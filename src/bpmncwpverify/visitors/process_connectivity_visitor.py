@@ -96,10 +96,6 @@ class ProcessConnectivityVisitor(BpmnVisitor):  # type: ignore
         if set(process.all_items().values()) != self.visited:
             raise Exception(BpmnGraphConnError())
 
-        # Ensure all items in the process graph are visited
-        if set(process.all_items().values()) != self.visited:
-            raise Exception("Process graph is not fully connected")
-
         # Testing and cleanup
         self.last_visited_set = self.visited
         self.visited = set()

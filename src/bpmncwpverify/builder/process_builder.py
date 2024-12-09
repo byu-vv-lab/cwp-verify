@@ -90,12 +90,7 @@ class ProcessBuilder:
         if expression:
             result = ExpressionListener.type_check(expression, self._symbol_table)
             if not_(is_successful)(result) or result.unwrap() != "bool":
-                raise Exception(
-                    BpmnStructureError(
-                        flow_id,
-                        f"Invalid expression: {result} while extracting expression from flow",
-                    )
-                )
+                raise Exception(result.failure())
             flow.expression = expression
 
     def _link_flow_to_nodes(
