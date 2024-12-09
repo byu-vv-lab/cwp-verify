@@ -19,7 +19,7 @@ from bpmncwpverify.core.state import SymbolTable
 from bpmncwpverify.error import BpmnStructureError
 from returns.pipeline import is_successful
 from returns.functions import not_
-from returns.result import Result, Failure
+from returns.result import Result, Failure, Success
 
 
 class ProcessBuilder:
@@ -141,5 +141,7 @@ class ProcessBuilder:
 
             visitor = ProcessConnectivityVisitor()
             self._process.accept(visitor)
+
+            return Success(self._process)
         except Exception as e:
             return Failure(e.args[0])
