@@ -2,8 +2,8 @@ from typing import Dict, List, Optional
 from xml.etree.ElementTree import Element
 import re
 from bpmncwpverify.core.state import SymbolTable
-from returns.result import Result
-from bpmncwpverify.error import Error
+from returns.result import Result, Failure
+from bpmncwpverify.error import CwpFileStructureError, Error
 
 
 class Cwp:
@@ -20,13 +20,13 @@ class Cwp:
         builder = CwpBuilder(symbol_table)
 
         if (diagram := root.find("diagram")) is None:
-            raise Exception("No 'diagram' element found")
+            return Failure(CwpFileStructureError("diagram"))
         if (mx_graph_model := diagram.find("mxGraphModel")) is None:
-            raise Exception("No 'mxGraphModel' element found")
+            return Failure(CwpFileStructureError("mxGraphModel"))
         if (mx_root := mx_graph_model.find("root")) is None:
-            raise Exception("No 'root' element found")
-        if (mx_cells := mx_root.findall("mxCell")) is None:
-            raise Exception("No 'mxCell' elements found")
+            return Failure(CwpFileStructureError("root"))
+        if not (mx_cells := mx_root.findall("mxCell")):
+            return Failure(CwpFileStructureError("mxCell"))
 
         for itm in mx_cells:
             if itm.get("vertex"):
@@ -117,9 +117,24 @@ class CwpEdge:
         self.dest = state
 
     def accept(self, visitor: "CwpVisitor") -> None:
-        if visitor.visit_edge(self):
+        if visitor.visit_edge(self) and not self.is_leaf:
             self.dest.accept(visitor)
         visitor.end_visit_edge(self)
+
+    @staticmethod
+    def cleanup_expression(expression: str) -> str:
+        expression = re.sub(r"&amp;", "&", expression)
+        expression = re.sub(r"&lt;", "<", expression)
+        expression = re.sub(r"&gt;", ">", expression)
+
+        expression = re.sub(r"</?div>", "", expression)
+        expression = re.sub(r"<br>", " ", expression)
+
+        expression = re.sub(r"\s*(==|!=|&&|\|\|)\s*", r" \1 ", expression)
+
+        expression = re.sub(r"\s+", " ", expression)
+
+        return expression.strip()
 
 
 class CwpVisitor:

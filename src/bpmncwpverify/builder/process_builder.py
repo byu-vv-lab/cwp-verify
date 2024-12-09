@@ -50,20 +50,16 @@ class ProcessBuilder:
     # Start of helper methods
     ########################
     def _construct_flow_network(self) -> None:
-        for element_instance in self._process.all_items().values():
-            for outgoing in element_instance.element.findall(
-                "bpmn:outgoing", NAMESPACES
-            ):
-                flow_id = self._get_flow_id(outgoing)
-                flow = self._get_flow(flow_id)
-                source_ref, target_ref = self._get_source_and_target_refs(flow)
+        for seq_flow in self._process.element.findall("bpmn:sequenceFlow", NAMESPACES):
+            flow_id = self._get_flow_id(seq_flow)
+            flow = self._get_flow(flow_id)
+            source_ref, target_ref = self._get_source_and_target_refs(flow)
+            self._validate_and_set_flow_expression(flow, flow_id)
+            self._link_flow_to_nodes(flow, source_ref, target_ref)
 
-                self._validate_and_set_flow_expression(flow, flow_id)
-                self._link_flow_to_nodes(flow, source_ref, target_ref)
-
-    def _get_flow_id(self, outgoing: Element) -> str:
-        if not (flow_id := outgoing.text):
-            raise Exception(BpmnFlowNoIdError(outgoing))
+    def _get_flow_id(self, seq_flow: Element) -> str:
+        if not (flow_id := seq_flow.attrib["id"]):
+            raise Exception(BpmnFlowNoIdError(seq_flow))
         return flow_id.strip()
 
     def _get_flow(self, flow_id: str) -> SequenceFlow:

@@ -193,7 +193,7 @@ class SequenceFlow(Flow):
         self.expression: str = ""
 
     def accept(self, visitor: "BpmnVisitor") -> None:
-        if visitor.visit_sequence_flow(self):
+        if visitor.visit_sequence_flow(self) and not self.is_leaf:
             self.target_node.accept(visitor)
         visitor.end_visit_sequence_flow(self)
 

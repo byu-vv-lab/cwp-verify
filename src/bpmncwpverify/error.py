@@ -236,6 +236,14 @@ class CwpMultStartStateError(Error):
         self.start_states = start_states
 
 
+class CwpFileStructureError(Error):
+    __slots__ = ["element"]
+
+    def __init__(self, element: str) -> None:
+        super().__init__()
+        self.element = element
+
+
 class CwpNoEndStatesError(Error):
     def __init__(self) -> None:
         super().__init__()
@@ -352,6 +360,22 @@ class TypingNoTypeError(Error):
         return False
 
 
+class TypingNegateBoolError(Error):
+    __slots__ = ["expr_type"]
+
+    def __init__(self, expr_type: str) -> None:
+        super().__init__()
+        self.expr_type = expr_type
+
+
+class TypingNotNonBoolError(Error):
+    __slots__ = ["expr_type"]
+
+    def __init__(self, expr_type: str) -> None:
+        super().__init__()
+        self.expr_type = expr_type
+
+
 def _get_exception_message(error: Exception) -> str:
     return "ERROR: {0} ({1})".format(type(error), error)
 
@@ -424,6 +448,8 @@ def _get_error_message(error: Error) -> str:
             return f"CWP ERROR: More than one start state found. Start state IDs: {start_states}."
         case CwpNoStartStateError():
             return "CWP ERROR: No start states found."
+        case CwpFileStructureError(element=element):
+            return f"A {element} element is missing from your cwp file."
         case CwpNoEndStatesError():
             return "CWP ERROR: No end states found."
         case CwpGraphConnError():

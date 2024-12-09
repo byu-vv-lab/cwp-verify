@@ -165,7 +165,7 @@ def test_gen_places_with_activity(mocker, promela_gen_visitor):
             ["put_loc1", "put_loc2"],
             ["flow_id1", "flow_id2"],
             "",
-            ":: atomic { guard_condition -> \n\t\tbehavior_code\n\t\td_step {\n\t\t\tconsume_token(loc1)\n\t\t\tconsume_token(loc2)\n\t\t\tput_token(put_loc1)\n\t\t\tput_token(put_loc2)\n\t\t}\n\t}",
+            ":: atomic { guard_condition -> \n\t\tbehavior_code\n\t\td_step {\n\t\t\tconsumeToken(loc1)\n\t\t\tconsumeToken(loc2)\n\t\t\tputToken(put_loc1)\n\t\t\tputToken(put_loc2)\n\t\t}\n\t}",
         ),
         (
             "guard_condition",
@@ -175,7 +175,7 @@ def test_gen_places_with_activity(mocker, promela_gen_visitor):
             ["put_loc1"],
             ["flow_id1"],
             "ParallelFALSE",
-            ':: atomic { guard_condition -> \n\t\tbehavior_code\n\t\td_step {\n\t\t\tconsume_token(loc1)\n\t\t\tif\n\t\t\t:: (locked[me]) -> locked[me] = false; unlock()\n\t\t\t:: (!locked[me]) -> locked[me] = true; lock(me)\n\t\t\tfi\n\t\t\tput_token(put_loc1)\n\t\t\tif\n\t\t\t:: (!locked[me]) -> printf("###END PARALLEL GATEWAY###\\n")\n\t\t\t:: (locked[me]) -> printf("###START PARALLEL GATEWAY###\\n")\n\t\t\tfi\n\t\t}\n\t}',
+            ':: atomic { guard_condition -> \n\t\tbehavior_code\n\t\td_step {\n\t\t\tconsumeToken(loc1)\n\t\t\tif\n\t\t\t:: (locked[me]) -> locked[me] = false; unlock()\n\t\t\t:: (!locked[me]) -> locked[me] = true; lock(me)\n\t\t\tfi\n\t\t\tputToken(put_loc1)\n\t\t\tif\n\t\t\t:: (!locked[me]) -> printf("###END PARALLEL GATEWAY###\\n")\n\t\t\t:: (locked[me]) -> printf("###START PARALLEL GATEWAY###\\n")\n\t\t\tfi\n\t\t}\n\t}',
         ),
         (
             "guard_condition",
@@ -185,7 +185,7 @@ def test_gen_places_with_activity(mocker, promela_gen_visitor):
             ["put_loc1", "put_loc2"],
             ["flow_id1", "flow_id2"],
             "XOR",
-            ":: atomic { guard_condition -> \n\t\tbehavior_code\n\t\td_step {\n\t\t\tconsume_token(loc1)\n\t\t\tif\n\t\t\t\t:: cond1 -> put_token(put_loc1)\n\t\t\t\t:: cond2 -> put_token(put_loc2)\n\t\t\tfi\n\t\t}\n\t}",
+            ":: atomic { guard_condition -> \n\t\tbehavior_code\n\t\td_step {\n\t\t\tconsumeToken(loc1)\n\t\t\tif\n\t\t\t\t:: cond1 -> putToken(put_loc1)\n\t\t\t\t:: cond2 -> putToken(put_loc2)\n\t\t\tfi\n\t\t}\n\t}",
         ),
     ],
 )

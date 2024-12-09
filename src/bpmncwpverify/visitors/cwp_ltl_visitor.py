@@ -48,7 +48,7 @@ class CwpLtlVisitor(CwpVisitor):  # type: ignore
             self.write_line("\n")
         self.write_line("\n")
         for name, value in self.symbol_table._vars.items():
-            if len(value) == 3:
+            if len(value) == 3 and value[2]:
                 self.write_line(f"mytype {name} = {value[1]}")
             else:
                 self.write_line(f"{value[0]} {name} = {value[1]}")
@@ -101,6 +101,7 @@ class CwpLtlVisitor(CwpVisitor):  # type: ignore
         self.tab += 1
         self.write_line("d_step {")
         self.tab += 1
+        self.write_line("skip")
         self.tab -= 1
         self.write_line("}")
         self.tab -= 1
