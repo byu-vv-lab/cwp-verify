@@ -1,10 +1,9 @@
 from xml.etree.ElementTree import Element
 from bpmncwpverify.core.bpmn import Bpmn, MessageFlow, Node, Process
 from bpmncwpverify.core.state import SymbolTable
-from bpmncwpverify.visitors.bpmn_connectivity_visitor import BpmnConnectivityVisitor
+from bpmncwpverify.visitors.bpmnchecks.bpmnvalidate import validate_bpmn
 from returns.result import Result, Success, Failure
 from bpmncwpverify.error import (
-    BpmnMsgFlowSamePoolError,
     BpmnMsgMissingRefError,
     BpmnMsgNodeTypeError,
     Error,
@@ -15,24 +14,9 @@ class BpmnBuilder:
     def __init__(self) -> None:
         self._bpmn = Bpmn()
 
-    def _msg_connects_diff_pools(self) -> None:
-        for msg in self._bpmn.inter_process_msgs.values():
-            for process in self._bpmn.processes.values():
-                if (
-                    msg.target_node.id in process.all_items()
-                    and msg.source_node.id in process.all_items()
-                ):
-                    raise Exception(BpmnMsgFlowSamePoolError(msg.id))
-
     def build(self) -> Result[Bpmn, Error]:
         try:
-            visitor = BpmnConnectivityVisitor()
-
-            self._bpmn.accept(visitor)
-
-            # Check to make sure messages do not connect nodes from same pool:
-            self._msg_connects_diff_pools()
-
+            validate_bpmn(self._bpmn)
             return Success(self._bpmn)
         except Exception as e:
             return Failure(e)

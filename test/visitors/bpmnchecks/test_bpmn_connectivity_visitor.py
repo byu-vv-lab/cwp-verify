@@ -4,7 +4,7 @@ from bpmncwpverify.error import (
     BpmnMsgSrcError,
     BpmnMsgTargetError,
 )
-from bpmncwpverify.visitors.bpmn_connectivity_visitor import BpmnConnectivityVisitor
+from bpmncwpverify.visitors.bpmnchecks.bpmnvalidations import ValidateMsgsVisitor
 import pytest
 from bpmncwpverify.core.bpmn import Node
 
@@ -18,7 +18,7 @@ def test_ensure_in_and_out_messages(mocker):
         node.message_event_definition = message_event_definition
         return node
 
-    visitor = BpmnConnectivityVisitor()
+    visitor = ValidateMsgsVisitor()
 
     # Test ensure_in_messages - no message event definition
     test_node_in = setup_node("123", in_msgs=[1])
@@ -56,7 +56,7 @@ def test_validate_gateway_no_msgs_no_messages(mocker):
     gateway.in_msgs = []
     gateway.out_msgs = []
     gateway.id = "gateway1"
-    obj = BpmnConnectivityVisitor()
+    obj = ValidateMsgsVisitor()
 
     result = obj._validate_gateway_no_msgs(gateway, "TestGateway")
 
@@ -68,7 +68,7 @@ def test_validate_gateway_no_msgs_with_incoming_messages(mocker):
     gateway.in_msgs = ["msg1"]
     gateway.out_msgs = []
     gateway.id = "gateway2"
-    obj = BpmnConnectivityVisitor()
+    obj = ValidateMsgsVisitor()
 
     with pytest.raises(Exception) as exc_info:
         obj._validate_gateway_no_msgs(gateway, "TestGateway")
@@ -83,7 +83,7 @@ def test_validate_gateway_no_msgs_with_outgoing_messages(mocker):
     gateway.in_msgs = []
     gateway.out_msgs = ["msg1"]
     gateway.id = "gateway3"
-    obj = BpmnConnectivityVisitor()
+    obj = ValidateMsgsVisitor()
 
     with pytest.raises(Exception) as exc_info:
         obj._validate_gateway_no_msgs(gateway, "TestGateway")
@@ -98,7 +98,7 @@ def test_validate_gateway_no_msgs_with_both_messages(mocker):
     gateway.in_msgs = ["msg1"]
     gateway.out_msgs = ["msg2"]
     gateway.id = "gateway4"
-    obj = BpmnConnectivityVisitor()
+    obj = ValidateMsgsVisitor()
 
     with pytest.raises(Exception) as exc_info:
         obj._validate_gateway_no_msgs(gateway, "TestGateway")
@@ -113,7 +113,7 @@ def test_visit_end_event_no_incoming_messages(mocker):
     event.in_msgs = []
     event.id = "end_event_1"
 
-    obj = BpmnConnectivityVisitor()
+    obj = ValidateMsgsVisitor()
     obj._ensure_out_messages = mocker.MagicMock(return_value=None)
 
     result = obj.visit_end_event(event)
@@ -127,7 +127,7 @@ def test_visit_end_event_with_incoming_messages(mocker):
     event.in_msgs = ["msg1"]
     event.id = "end_event_2"
 
-    obj = BpmnConnectivityVisitor()
+    obj = ValidateMsgsVisitor()
     obj._ensure_out_messages = mocker.MagicMock()
 
     with pytest.raises(Exception) as exc_info:

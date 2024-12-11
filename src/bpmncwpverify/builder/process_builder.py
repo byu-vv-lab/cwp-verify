@@ -25,6 +25,7 @@ from bpmncwpverify.error import (
 from returns.pipeline import is_successful
 from returns.functions import not_
 from returns.result import Result, Failure, Success
+from bpmncwpverify.visitors.bpmnchecks.bpmnvalidate import validate_process
 
 
 class ProcessBuilder:
@@ -127,12 +128,8 @@ class ProcessBuilder:
         try:
             self._bpmn.processes[self._process.id] = self._process
             self._construct_flow_network()
-            from bpmncwpverify.visitors.process_connectivity_visitor import (
-                ProcessConnectivityVisitor,
-            )
 
-            visitor = ProcessConnectivityVisitor()
-            self._process.accept(visitor)
+            validate_process(self._process)
             return Success(self._process)
         except Exception as e:
             return Failure(e.args[0])

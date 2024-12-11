@@ -1,70 +1,9 @@
 # type: ignore
-from xml.etree.ElementTree import Element, SubElement
+from xml.etree.ElementTree import Element
 from bpmncwpverify.builder.process_builder import ProcessBuilder
-from bpmncwpverify.core.bpmn import Node, SequenceFlow, Bpmn
+from bpmncwpverify.core.bpmn import Node, SequenceFlow
 from bpmncwpverify.core.state import SymbolTable
 from returns.result import Success
-
-
-def test_given_valid_tree_process_then_process_visitor_works(mocker):
-    from bpmncwpverify.visitors.process_connectivity_visitor import (
-        ProcessConnectivityVisitor,
-    )
-
-    ns = "{http://www.omg.org/spec/BPMN/20100524/MODEL}"
-    root = Element("root")
-    process = SubElement(root, f"{ns}process", attrib={"id": "process1"})
-    start_event = SubElement(process, f"{ns}startEvent", attrib={"id": "startEvent"})
-    start_flow = SubElement(
-        process,
-        f"{ns}sequenceFlow",
-        attrib={"id": "first_flow", "sourceRef": "startEvent", "targetRef": "task0"},
-    )
-    SubElement(start_event, f"{ns}outgoing").text = start_flow.attrib["id"]
-
-    for j in range(5):
-        if j == 4:
-            task = SubElement(process, f"{ns}endEvent", attrib={"id": f"task{j}"})
-        else:
-            task = SubElement(process, f"{ns}task", attrib={"id": f"task{j}"})
-        if j < 4:
-            flow = SubElement(
-                process,
-                f"{ns}sequenceFlow",
-                attrib={
-                    "id": f"flow{j}",
-                    "sourceRef": f"task{j}",
-                    "targetRef": f"task{j+1}",
-                },
-            )
-            SubElement(task, f"{ns}outgoing").text = flow.attrib["id"]
-
-    task3 = process.find(".//*[@id='task3']")
-    cyclic_flow = SubElement(
-        process,
-        f"{ns}sequenceFlow",
-        attrib={"id": "cyclic_flow", "sourceRef": "task3", "targetRef": "task1"},
-    )
-    SubElement(task3, f"{ns}outgoing").text = cyclic_flow.attrib["id"]
-
-    symbol_table = mocker.Mock()
-    bpmn = Bpmn()
-    builder = ProcessBuilder(bpmn, process, symbol_table)
-    for element in process:
-        builder.add_element(element)
-
-    builder._construct_flow_network()
-
-    visitor = ProcessConnectivityVisitor()
-    builder._process.accept(visitor)
-
-    assert len(visitor.last_visited_set) == 6
-    for flow_id, flow in builder._process._flows.items():
-        assert flow.is_leaf if flow_id == "cyclic_flow" else not flow.is_leaf
-    assert all(
-        task in visitor.last_visited_set
-        for task in builder._process.all_items().values()
-    )
 
 
 def test_add_element(mocker):
