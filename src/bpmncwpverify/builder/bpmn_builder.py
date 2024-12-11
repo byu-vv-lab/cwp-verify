@@ -21,7 +21,7 @@ class BpmnBuilder:
         except Exception as e:
             return Failure(e)
 
-    def add_process(
+    def with_process(
         self, element: Element, symbol_table: SymbolTable
     ) -> Result[Process, Error]:
         from bpmncwpverify.builder.process_builder import ProcessBuilder
@@ -29,11 +29,11 @@ class BpmnBuilder:
         process_builder = ProcessBuilder(self._bpmn, element, symbol_table)
 
         for element in element:
-            process_builder.add_element(element)
+            process_builder.with_element(element)
 
         return process_builder.build()
 
-    def add_message(self, msg_flow: Element) -> None:
+    def with_message(self, msg_flow: Element) -> None:
         source_ref, target_ref = (
             msg_flow.get("sourceRef"),
             msg_flow.get("targetRef"),

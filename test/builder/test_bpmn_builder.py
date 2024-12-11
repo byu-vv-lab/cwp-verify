@@ -26,7 +26,7 @@ def test_add_message_valid_input(mocker):
     builder = BpmnBuilder()
     builder._bpmn = mock_bpmn
 
-    builder.add_message(mock_msg_flow)
+    builder.with_message(mock_msg_flow)
 
     mock_bpmn.add_inter_process_msg.assert_called_once()
     mock_bpmn.store_element.assert_called_once()
@@ -46,7 +46,7 @@ def test_add_message_missing_refs(mocker):
     builder._bpmn = mock_bpmn
 
     with pytest.raises(Exception) as exc_info:
-        builder.add_message(mock_msg_flow)
+        builder.with_message(mock_msg_flow)
 
     assert isinstance(exc_info.value.args[0], BpmnMsgMissingRefError)
 
@@ -67,7 +67,7 @@ def test_add_message_invalid_nodes(mocker):
     builder._bpmn = mock_bpmn
 
     with pytest.raises(Exception) as exc_info:
-        builder.add_message(mock_msg_flow)
+        builder.with_message(mock_msg_flow)
 
     assert isinstance(exc_info.value.args[0], BpmnMsgNodeTypeError)
 

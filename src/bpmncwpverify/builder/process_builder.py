@@ -103,7 +103,7 @@ class ProcessBuilder:
     # End of helper methods
     ########################
 
-    def add_element(self, element: Element) -> None:
+    def with_element(self, element: Element) -> None:
         def get_tag_name(element: Element) -> str:
             return element.tag.partition("}")[2]
 

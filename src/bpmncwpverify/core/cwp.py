@@ -30,9 +30,9 @@ class Cwp:
 
         for itm in mx_cells:
             if itm.get("vertex"):
-                builder.add_state(itm)
+                builder.with_state(itm)
             elif itm.get("edge"):
-                builder.add_edge(itm)
+                builder.with_edge(itm)
 
         return builder.build()
 

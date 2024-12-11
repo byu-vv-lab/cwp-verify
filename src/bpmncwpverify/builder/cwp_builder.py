@@ -125,10 +125,10 @@ class CwpBuilder:
         except Exception as e:
             return Failure(e.args[0])
 
-    def add_edge(self, element: Element) -> None:
+    def with_edge(self, element: Element) -> None:
         self.edges.append(element)
         self.all_items.append(element)
 
-    def add_state(self, element: Element) -> None:
+    def with_state(self, element: Element) -> None:
         self.states.append(element)
         self.all_items.append(element)
