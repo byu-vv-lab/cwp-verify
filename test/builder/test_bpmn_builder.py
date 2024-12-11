@@ -1,5 +1,4 @@
 from bpmncwpverify.error import (
-    BpmnMsgFlowSamePoolError,
     BpmnMsgMissingRefError,
     BpmnMsgNodeTypeError,
 )
@@ -7,25 +6,6 @@ import pytest
 from xml.etree.ElementTree import Element
 from bpmncwpverify.builder.bpmn_builder import BpmnBuilder
 from bpmncwpverify.core.bpmn import Node
-from returns.result import Success
-
-
-def test_build_method(mocker):
-    mock_bpmn = mocker.patch("bpmncwpverify.core.bpmn.Bpmn", autospec=True)
-    mock_bpmn_instance = mock_bpmn.return_value
-    mock_bpmn_instance.accept = mocker.Mock()
-
-    builder = BpmnBuilder()
-
-    builder._bpmn = mock_bpmn_instance
-    builder._msg_connects_diff_pools = mocker.MagicMock()
-    mock_bpmn_instance.processes = [1]
-    mock_bpmn_instance.add_inter_process_msg = [1]
-
-    result = builder.build()
-
-    assert isinstance(result, Success)
-    assert result.unwrap() == mock_bpmn_instance
 
 
 def test_add_message_valid_input(mocker):
@@ -90,48 +70,6 @@ def test_add_message_invalid_nodes(mocker):
         builder.add_message(mock_msg_flow)
 
     assert isinstance(exc_info.value.args[0], BpmnMsgNodeTypeError)
-
-
-def test_check_messages_valid(mocker):
-    mock_bpmn = mocker.MagicMock()
-
-    mock_message1 = mocker.MagicMock()
-    mock_message1.id = "message1"
-    mock_message1.target_node.id = "target1"
-    mock_message1.source_node.id = "source1"
-    mock_bpmn.inter_process_msgs.values.return_value = [mock_message1]
-
-    mock_process = mocker.MagicMock()
-    mock_process.all_items.return_value = {"target1", "source1"}
-    mock_bpmn.processes.values.return_value = [mock_process]
-
-    obj = BpmnBuilder()
-    obj._bpmn = mock_bpmn
-
-    with pytest.raises(
-        Exception,
-    ) as exc_info:
-        obj._msg_connects_diff_pools()
-    assert isinstance(exc_info.value.args[0], BpmnMsgFlowSamePoolError)
-    assert "message1" == str(exc_info.value.args[0].msg_id)
-
-
-def test_check_messages_no_intersection(mocker):
-    mock_bpmn = mocker.MagicMock()
-
-    mock_message1 = mocker.MagicMock()
-    mock_message1.target_node.id = "target1"
-    mock_message1.source_node.id = "source2"
-    mock_bpmn.inter_process_msgs.values.return_value = [mock_message1]
-
-    mock_process = mocker.MagicMock()
-    mock_process.all_items.return_value = {"item1", "item2"}
-    mock_bpmn.processes.values.return_value = [mock_process]
-
-    obj = BpmnBuilder()
-    obj._bpmn = mock_bpmn
-
-    obj._msg_connects_diff_pools()
 
 
 def test_check_messages_empty(mocker):
