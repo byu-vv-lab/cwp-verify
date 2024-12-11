@@ -85,6 +85,14 @@ class ExpressionUnrecognizedID(Error):
         return False
 
 
+class BpmnFlowIncomingError(Error):
+    __slots__ = ["node_id"]
+
+    def __init__(self, node_id: str) -> None:
+        super().__init__()
+        self.node_id = node_id
+
+
 class BpmnFlowNoIdError(Error):
     __slots__ = ["element"]
 
@@ -408,6 +416,8 @@ def _get_error_message(error: Error) -> str:
             return "ERROR: not implemented '{}'".format(function)
         case MessageError(node_id=node_id, error_msg=error_msg):
             return f"Inter-process message error at node: {node_id}. {error_msg}"
+        case BpmnFlowIncomingError(node_id=node_id):
+            return f"Flow error: No incoming flow into node: {node_id}."
         case BpmnFlowNoIdError(element=element):
             return f"Flow error: Flow_id does not exist. Occurred at tree element with following attributes: {element.attrib}."
         case BpmnFlowTypeError(flow_id=flow_id):

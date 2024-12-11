@@ -1,6 +1,7 @@
 from bpmncwpverify.core.bpmn import Bpmn, Process
 from bpmncwpverify.error import BpmnMsgFlowSamePoolError
 from bpmncwpverify.visitors.bpmnchecks.bpmnvalidations import (
+    ValidateBpmnIncomingFlows,
     ValidateMsgsVisitor,
     ValidateSeqFlowVisitor,
     validate_start_end_events,
@@ -29,9 +30,11 @@ def validate_process(process: Process) -> None:
     process_connectivity_visitor = ProcessConnectivityVisitor()
     validate_msgs_visitor = ValidateMsgsVisitor()
     validate_seq_flow_visitor = ValidateSeqFlowVisitor()
+    validate_bpmn_incoming_flows = ValidateBpmnIncomingFlows()
 
     validate_start_end_events(process)
     process.accept(set_leafs_visitor)
     process.accept(process_connectivity_visitor)
     process.accept(validate_msgs_visitor)
     process.accept(validate_seq_flow_visitor)
+    process.accept(validate_bpmn_incoming_flows)
