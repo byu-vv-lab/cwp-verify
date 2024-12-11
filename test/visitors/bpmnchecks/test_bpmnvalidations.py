@@ -1,4 +1,5 @@
 from bpmncwpverify.error import (
+    BpmnFlowIncomingError,
     BpmnGraphConnError,
     BpmnMissingEventsError,
     BpmnSeqFlowEndEventError,
@@ -6,9 +7,10 @@ from bpmncwpverify.error import (
     BpmnTaskFlowError,
 )
 import pytest
-from bpmncwpverify.core.bpmn import EndEvent, StartEvent
+from bpmncwpverify.core.bpmn import EndEvent, ExclusiveGatewayNode, StartEvent, Task
 from bpmncwpverify.visitors.bpmnchecks.bpmnvalidations import (
     ProcessConnectivityVisitor,
+    ValidateBpmnIncomingFlows,
     validate_start_end_events,
     ValidateSeqFlowVisitor,
 )
@@ -238,3 +240,74 @@ class TestValidateSeqFlowVisitor:
             validate_start_end_events(process)
 
         assert isinstance(exc_info.value.args[0], BpmnMissingEventsError)
+
+
+class TestValidateBpmnIncomingFlows:
+    def test_visit_end_event_with_incoming_flows(self, mocker):
+        mock_event = mocker.MagicMock(spec=EndEvent)
+        mock_event.id = "end1"
+        mock_event.in_flows = ["flow1"]
+
+        visitor = ValidateBpmnIncomingFlows()
+        result = visitor.visit_end_event(mock_event)
+
+        assert result is True
+
+    def test_visit_end_event_without_incoming_flows(self, mocker):
+        mock_event = mocker.MagicMock(spec=EndEvent)
+        mock_event.id = "end1"
+        mock_event.in_flows = []
+
+        visitor = ValidateBpmnIncomingFlows()
+
+        with pytest.raises(Exception) as exc_info:
+            visitor.visit_end_event(mock_event)
+
+        assert isinstance(exc_info.value.args[0], BpmnFlowIncomingError)
+        assert exc_info.value.args[0].node_id == "end1"
+
+    def test_visit_task_with_incoming_flows(self, mocker):
+        mock_task = mocker.MagicMock(spec=Task)
+        mock_task.id = "task1"
+        mock_task.in_flows = ["flow1"]
+
+        visitor = ValidateBpmnIncomingFlows()
+        result = visitor.visit_task(mock_task)
+
+        assert result is True
+
+    def test_visit_task_without_incoming_flows(self, mocker):
+        mock_task = mocker.MagicMock(spec=Task)
+        mock_task.id = "task1"
+        mock_task.in_flows = []
+
+        visitor = ValidateBpmnIncomingFlows()
+
+        with pytest.raises(Exception) as exc_info:
+            visitor.visit_task(mock_task)
+
+        assert isinstance(exc_info.value.args[0], BpmnFlowIncomingError)
+        assert exc_info.value.args[0].node_id == "task1"
+
+    def test_visit_exclusive_gateway_with_incoming_flows(self, mocker):
+        mock_gateway = mocker.MagicMock(spec=ExclusiveGatewayNode)
+        mock_gateway.id = "gateway1"
+        mock_gateway.in_flows = ["flow1"]
+
+        visitor = ValidateBpmnIncomingFlows()
+        result = visitor.visit_exclusive_gateway(mock_gateway)
+
+        assert result is True
+
+    def test_visit_exclusive_gateway_without_incoming_flows(self, mocker):
+        mock_gateway = mocker.MagicMock(spec=ExclusiveGatewayNode)
+        mock_gateway.id = "gateway1"
+        mock_gateway.in_flows = []
+
+        visitor = ValidateBpmnIncomingFlows()
+
+        with pytest.raises(Exception) as exc_info:
+            visitor.visit_exclusive_gateway(mock_gateway)
+
+        assert isinstance(exc_info.value.args[0], BpmnFlowIncomingError)
+        assert exc_info.value.args[0].node_id == "gateway1"
