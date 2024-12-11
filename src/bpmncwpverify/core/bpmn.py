@@ -300,14 +300,14 @@ class Bpmn:
         builder = BpmnBuilder()
         processes = root.findall("bpmn:process", NAMESPACES)
         for process_element in processes:
-            result = builder.add_process(process_element, symbol_table)
+            result = builder.with_process(process_element, symbol_table)
             if not_(is_successful)(result):
                 return result
 
         collab = root.find("bpmn:collaboration", NAMESPACES)
         if collab is not None:
             for msg_flow in collab.findall("bpmn:messageFlow", NAMESPACES):
-                builder.add_message(msg_flow)
+                builder.with_message(msg_flow)
 
         return builder.build()
 

@@ -6,11 +6,11 @@ from bpmncwpverify.visitors.cwp_connectivity_visitor import CwpConnectivityVisit
 def test_cwp_connectivity(mocker):
     builder = CwpBuilder(mocker.MagicMock())
     for i in range(10):
-        builder.add_state(
+        builder.with_state(
             Element(f"state{i}", attrib={"id": f"state{i}", "style": "test"})
         )
     for i in range(9):
-        builder.add_edge(
+        builder.with_edge(
             Element(
                 f"edge{i}",
                 attrib={
@@ -21,7 +21,7 @@ def test_cwp_connectivity(mocker):
             )
         )
 
-    builder.add_edge(
+    builder.with_edge(
         Element("edge9", attrib={"id": "edge9", "target": "state1", "source": "state8"})
     )
     cwp = builder.build().unwrap()

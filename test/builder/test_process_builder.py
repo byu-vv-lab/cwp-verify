@@ -23,7 +23,7 @@ def test_add_element(mocker):
     mock_process = mocker.MagicMock()
     builder._process = mock_process
 
-    builder.add_element(mock_element)
+    builder.with_element(mock_element)
 
     mock_process.__setitem__.assert_called_once_with("1", mock_task)
     mock_bpmn.store_element.assert_called_once_with(mock_task)
