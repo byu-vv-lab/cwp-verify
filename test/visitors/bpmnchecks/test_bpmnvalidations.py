@@ -1,3 +1,4 @@
+# type: ignore
 from bpmncwpverify.error import (
     BpmnFlowIncomingError,
     BpmnGraphConnError,

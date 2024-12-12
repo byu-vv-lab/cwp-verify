@@ -1,5 +1,4 @@
 # type: ignore
-
 from bpmncwpverify.core.expr import ExpressionListener
 from bpmncwpverify.core.state import SymbolTable
 from bpmncwpverify.error import (

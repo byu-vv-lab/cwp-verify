@@ -34,7 +34,8 @@ class Cwp:
             elif itm.get("edge"):
                 builder.with_edge(itm)
 
-        return builder.build()
+        result: Result["Cwp", Error] = builder.build()
+        return result
 
     def accept(self, visitor: "CwpVisitor") -> None:
         result = visitor.visit_cwp(self)
@@ -49,7 +50,7 @@ class Cwp:
 
         self.accept(graph_viz_visitor)
 
-        graph_viz_visitor.dot.render("graphs/cwp_graph.gv", format="png")
+        graph_viz_visitor.dot.render("graphs/cwp_graph.gv", format="png")  # type: ignore[unused-ignore]
 
     def generate_ltl(self, symbol_table: SymbolTable) -> str:
         from bpmncwpverify.visitors.cwp_ltl_visitor import CwpLtlVisitor

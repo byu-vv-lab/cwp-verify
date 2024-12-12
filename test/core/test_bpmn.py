@@ -1,3 +1,4 @@
+# type: ignore
 from xml.etree.ElementTree import Element, SubElement, tostring
 from defusedxml import ElementTree
 from bpmncwpverify.constants import NAMESPACES

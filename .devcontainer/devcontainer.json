@@ -27,7 +27,16 @@
         // Configure properties specific to VS Code.
         "vscode": {
             // Set *default* container specific settings.json values on container create.
-            "settings": {},
+            "settings": {
+                "mypy.configFile": "${workspaceFolder}/pyproject.toml",
+                "mypy.path": "/home/vscode/.local/bin/mypy",
+                "python.analysis.extraPaths": [
+                    "/home/vscode/.local/lib/python3.12/site-packages"
+                ],
+                "python.analysis.diagnosticSeverityOverrides": {
+                    "reportUnknownArgumentType": "none"
+                }
+            },
             "extensions": ["mike-lischke.vscode-antlr4", "ms-python.mypy-type-checker", "charliermarsh.ruff", "peacekeeper228.spin-promela"]
         }
     }

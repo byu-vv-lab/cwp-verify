@@ -1,3 +1,4 @@
+# type: ignore
 from bpmncwpverify.core.bpmn import Activity, SequenceFlow, MessageFlow
 from bpmncwpverify.visitors.bpmn_promela_visitor import PromelaGenVisitor
 import pytest

@@ -1,5 +1,6 @@
 import argparse
-import defusedxml.ElementTree as ElementTree
+from defusedxml import ElementTree
+from xml.etree.ElementTree import Element
 
 from returns.unsafe import unsafe_perform_io
 from returns.io import impure_safe, IOResultE
@@ -9,12 +10,16 @@ from returns.pointfree import bind_result
 from returns.result import ResultE, Result, Success, Failure
 from returns.functions import not_
 
-from typing import TextIO
+from typing import TextIO, cast
 
-from bpmncwpverify.error import Error, get_error_message
+from bpmncwpverify.error import Error, ExceptionError, get_error_message
 from bpmncwpverify.core.state import SymbolTable
 from bpmncwpverify.core.cwp import Cwp
 from bpmncwpverify.core.bpmn import Bpmn
+
+
+def element_tree_from_string(input: str) -> Element:
+    return cast(Element, ElementTree.fromstring(input))  # type: ignore[unused-ignore]
 
 
 def _close_file(
@@ -51,7 +56,7 @@ def _get_argument_parser() -> "argparse.ArgumentParser":
 def _get_file_contents(name: str) -> IOResultE[str]:
     return flow(
         name,
-        impure_safe(lambda filename: open(filename, "r")),
+        impure_safe(lambda filename: open(filename, "r")),  # type: ignore[unused-ignore]
         managed(_read_file, _close_file),
     )
 
@@ -60,17 +65,21 @@ def _read_file(file_obj: TextIO) -> IOResultE[str]:
     return impure_safe(file_obj.read)()
 
 
-def _verify() -> Result["Outputs", Error | Exception]:
+def _verify() -> Result["Outputs", Error]:
     argument_parser = _get_argument_parser()
     args = argument_parser.parse_args()
     state_str = _get_file_contents(args.state_file)
-    bpmn_root = _get_file_contents(args.bpmn_file).map(ElementTree.fromstring)
-    cwp_root = _get_file_contents(args.cwp_file).map(ElementTree.fromstring)
+    bpmn_root: IOResultE[Element] = _get_file_contents(args.bpmn_file).map(
+        element_tree_from_string
+    )
+    cwp_root: IOResultE[Element] = _get_file_contents(args.cwp_file).map(
+        element_tree_from_string
+    )
     behavior_str = _get_file_contents(args.behavior_file)
 
     builder: Builder = Builder()
 
-    result: Result["Outputs", Error | Exception] = flow(
+    result: Result["Outputs", Error] = flow(
         Success(builder),
         partial(Builder.with_state_, state_str),
         partial(Builder.with_cwp_, cwp_root),
@@ -96,18 +105,17 @@ class Builder:
     def __init__(self) -> None:
         self.behavior_str: Result[str, Error] = Failure(Error())
         self.bpmn: Result[Bpmn, Error] = Failure(Error())
-        self.bpmn_root: Result[ElementTree, Error] = Failure(Error())
+        self.bpmn_root: Result[Element, Error] = Failure(Error())
         self.cwp: Result[Cwp, Error] = Failure(Error())
-        self.cwp_root: Result[ElementTree, Error] = Failure(Error())
+        self.cwp_root: Result[Element, Error] = Failure(Error())
         self.state_str: Result[str, Error] = Failure(Error())
         self.symbol_table: Result[SymbolTable, Error] = Failure(Error())
 
     @staticmethod
     def _build_bpmn(builder: "Builder") -> Result["Builder", Error]:
-        assert is_successful(builder.symbol_table)
-        assert is_successful(builder.bpmn_root)
-        builder.bpmn = (builder.symbol_table).bind(
-            partial(Bpmn.from_xml, builder.bpmn_root.unwrap())
+        assert is_successful(builder.symbol_table) and is_successful(builder.bpmn_root)
+        builder.bpmn = Bpmn.from_xml(
+            builder.bpmn_root.unwrap(), builder.symbol_table.unwrap()
         )
         if not_(is_successful)(builder.bpmn):
             return Failure(builder.bpmn.failure())
@@ -118,8 +126,8 @@ class Builder:
     def _build_cwp(builder: "Builder") -> Result["Builder", Error]:
         assert is_successful(builder.symbol_table)
         assert is_successful(builder.cwp_root)
-        builder.cwp = (builder.symbol_table).bind(
-            partial(Cwp.from_xml, builder.cwp_root.unwrap())
+        builder.cwp = Cwp.from_xml(
+            builder.cwp_root.unwrap(), builder.symbol_table.unwrap()
         )
         if not_(is_successful)(builder.cwp):
             return Failure(builder.cwp.failure())
@@ -129,7 +137,7 @@ class Builder:
     @staticmethod
     def _build_symbol_table(builder: "Builder") -> Result["Builder", Error]:
         assert is_successful(builder.state_str)
-        builder.symbol_table = (builder.state_str).bind(SymbolTable.build)
+        builder.symbol_table = SymbolTable.build(builder.state_str.unwrap())
         if not_(is_successful)(builder.symbol_table):
             return Failure(builder.symbol_table.failure())
         else:
@@ -149,9 +157,9 @@ class Builder:
         outputs.promela = f"{ltl}{behavior}{workflow}"
         return Success(outputs)
 
-    def build(self) -> Result["Outputs", Error | Exception]:
+    def build(self) -> Result["Outputs", Error]:
         outputs: Outputs = Outputs("")
-        result = flow(
+        result: Result["Outputs", Error] = flow(
             Success(self),
             bind_result(Builder._build_symbol_table),
             bind_result(Builder._build_cwp),
@@ -165,11 +173,11 @@ class Builder:
         self.behavior_str = Success(behavior_str)
         return self
 
-    def with_bpmn(self, bpmn: ElementTree) -> "Builder":
+    def with_bpmn(self, bpmn: Element) -> "Builder":
         self.bpmn_root = Success(bpmn)
         return self
 
-    def with_cwp(self, cwp: ElementTree) -> "Builder":
+    def with_cwp(self, cwp: Element) -> "Builder":
         self.cwp_root = Success(cwp)
         return self
 
@@ -184,12 +192,13 @@ class Builder:
     @staticmethod
     def with_behavior_(
         behavior_str: IOResultE[str],
-        builder_result: Result["Builder", Error | Exception],
-    ) -> Result["Builder", Error | Exception]:
+        builder_result: Result["Builder", Error],
+    ) -> Result["Builder", Error]:
         if not_(is_successful)(builder_result):
             return builder_result
         if not_(is_successful)(behavior_str):
-            return Failure(unsafe_perform_io(behavior_str.failure()))
+            error = unsafe_perform_io(behavior_str.failure())
+            return Failure(ExceptionError(str(error)))
 
         bpmn = Success(unsafe_perform_io(behavior_str.unwrap()))
         builder = builder_result.unwrap()
@@ -197,13 +206,14 @@ class Builder:
 
     @staticmethod
     def with_bpmn_(
-        bpmn_root: IOResultE[ElementTree],
-        builder_result: Result["Builder", Error | Exception],
-    ) -> Result["Builder", Error | Exception]:
+        bpmn_root: IOResultE[Element],
+        builder_result: Result["Builder", Error],
+    ) -> Result["Builder", Error]:
         if not_(is_successful)(builder_result):
             return builder_result
         if not_(is_successful)(bpmn_root):
-            return Failure(unsafe_perform_io(bpmn_root.failure()))
+            error = unsafe_perform_io(bpmn_root.failure())
+            return Failure(ExceptionError(str(error)))
 
         bpmn = Success(unsafe_perform_io(bpmn_root.unwrap()))
         builder = builder_result.unwrap()
@@ -211,13 +221,14 @@ class Builder:
 
     @staticmethod
     def with_cwp_(
-        cwp_root: IOResultE[ElementTree],
-        builder_result: Result["Builder", Error | Exception],
-    ) -> Result["Builder", Error | Exception]:
+        cwp_root: IOResultE[Element],
+        builder_result: Result["Builder", Error],
+    ) -> Result["Builder", Error]:
         if not_(is_successful)(builder_result):
             return builder_result
         if not_(is_successful)(cwp_root):
-            return Failure(unsafe_perform_io(cwp_root.failure()))
+            error = unsafe_perform_io(cwp_root.failure())
+            return Failure(ExceptionError(str(error)))
 
         cwp = Success(unsafe_perform_io(cwp_root.unwrap()))
         builder = builder_result.unwrap()
@@ -226,11 +237,12 @@ class Builder:
     @staticmethod
     def with_state_(
         state_str: IOResultE[str], builder_result: Result["Builder", Error]
-    ) -> Result["Builder", Exception | Error]:
+    ) -> Result["Builder", Error]:
         if not_(is_successful)(builder_result):
             return builder_result
         if not_(is_successful)(state_str):
-            return Failure(unsafe_perform_io(state_str.failure()))
+            error = unsafe_perform_io(state_str.failure())
+            return Failure(ExceptionError(str(error)))
 
         builder = builder_result.unwrap()
         state = Success(unsafe_perform_io(state_str.unwrap()))
@@ -245,7 +257,7 @@ class Outputs:
 
 
 def verify() -> None:
-    result: Result[Outputs, Error | Exception] = _verify()
+    result: Result[Outputs, Error] = _verify()
 
     match result:
         case Success(o):
@@ -253,6 +265,8 @@ def verify() -> None:
         case Failure(e):
             msg = get_error_message(e)
             print(msg)
+        case _:
+            assert False, "ERROR: unhandled type"
 
 
 def generate_stubs() -> None:

@@ -1,3 +1,4 @@
+# type: ignore
 from bpmncwpverify.builder.cwp_builder import CwpBuilder
 from bpmncwpverify.core.cwp import CwpEdge, CwpState
 from bpmncwpverify.error import CwpNoStartStateError

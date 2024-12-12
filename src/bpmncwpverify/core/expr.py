@@ -2,19 +2,27 @@ from antlr4 import CommonTokenStream, InputStream, ParseTreeWalker
 from antlr4.error.ErrorStrategy import ParseCancellationException
 from antlr4.error.ErrorListener import ConsoleErrorListener, ErrorListener
 
+from typing import cast
+
 from bpmncwpverify.antlr.ExprListener import ExprListener
 from bpmncwpverify.antlr.ExprLexer import ExprLexer
 from bpmncwpverify.antlr.ExprParser import ExprParser
 from bpmncwpverify.core import typechecking
-from bpmncwpverify.core.state import SymbolTable
+from bpmncwpverify.core.state import (
+    SymbolTable,
+    antlr_get_terminal_node_impl,
+    antlr_get_text,
+)
 from bpmncwpverify.error import (
     Error,
+    ExceptionError,
     ExpressionComputationCompatabilityError,
     ExpressionRelationCompatabilityError,
     ExpressionRelationalNotError,
     ExpressionNegatorError,
     ExpressionUnrecognizedID,
 )
+
 from returns.result import Failure, Result, Success
 from returns.pipeline import flow, is_successful
 from returns.pointfree import bind_result
@@ -45,22 +53,22 @@ def _get_parser(file_contents: str) -> Result[ExprParser, Error]:
     lexer = ExprLexer(input_stream)
     stream = CommonTokenStream(lexer)
     parser = ExprParser(stream)
-    parser.removeErrorListener(ConsoleErrorListener.INSTANCE)
-    parser.addErrorListener(ThrowingErrorListener())
+    parser.removeErrorListener(ConsoleErrorListener.INSTANCE)  # type: ignore[unused-ignore]
+    parser.addErrorListener(ThrowingErrorListener())  # type: ignore[unused-ignore]
     return Success(parser)
 
 
-def _parse_expressions(parser: ExprParser) -> Result[ExprParser.ExprContext, Error]:
+def _parse_expressions(parser: ExprParser) -> Result[ExprParser.StartContext, Error]:
     try:
         tree: ExprParser.StartContext = parser.start()
         return Success(tree)
     except ParseCancellationException as exception:
         msg = str(exception)
-        failure_value = Exception(msg)
+        failure_value = ExceptionError(msg)
         return Failure(failure_value)
 
 
-class ExpressionListener(ExprListener):  # type: ignore
+class ExpressionListener(ExprListener):  # type: ignore[misc]
     __slots__ = ["symbol_table", "type_stack", "final_type"]
 
     def __init__(self, symbol_table: SymbolTable) -> None:
@@ -133,7 +141,8 @@ class ExpressionListener(ExprListener):  # type: ignore
         self.type_stack.append(expr_type)
 
     def enterID(self, ctx: ExprParser.IDContext) -> None:
-        identifier: str = ctx.ID().getText()
+        node = antlr_get_terminal_node_impl(ctx.ID())
+        identifier = antlr_get_text(node)
         type = self.symbol_table.get_type(identifier)
         if not_(is_successful)(type):
             raise Exception(ExpressionUnrecognizedID(identifier))
@@ -145,19 +154,19 @@ class ExpressionListener(ExprListener):  # type: ignore
     ) -> Result[str, Error]:
         listener = ExpressionListener(symbol_table)
         try:
-            ParseTreeWalker.DEFAULT.walk(listener, context)
-            return Success(listener.final_type)
+            walker: ParseTreeWalker = cast(ParseTreeWalker, ParseTreeWalker.DEFAULT)
+            walker.walk(listener, context)
+            result: Result[str, Error] = Success(listener.final_type)
+            return result
         except Exception as exception:
             assert len(exception.args) == 1
             error: Error = exception.args[0]
             return Failure(error)
 
     @staticmethod
-    def type_check(
-        expression: str, symbol_table: SymbolTable
-    ) -> Result["ExpressionListener", Error]:
+    def type_check(expression: str, symbol_table: SymbolTable) -> Result[str, Error]:
         build_with_params = partial(ExpressionListener._build, symbol_table)
-        result: Result["ExpressionListener", Error] = flow(
+        result: Result[str, Error] = flow(
             expression,
             _get_parser,
             bind_result(_parse_expressions),
