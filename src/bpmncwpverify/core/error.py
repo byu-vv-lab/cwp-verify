@@ -111,6 +111,14 @@ class BpmnFlowNoIdError(Error):
         self.element = element
 
 
+class BpmnFlowOutgoingError(Error):
+    __slots__ = ["node_id"]
+
+    def __init__(self, node_id: str) -> None:
+        super().__init__()
+        self.node_id = node_id
+
+
 class BpmnFlowTypeError(Error):
     __slots__ = ["flow_id"]
 
@@ -434,9 +442,11 @@ def _get_error_message(error: Error) -> str:
         case MessageError(node_id=node_id, error_msg=error_msg):
             return f"Inter-process message error at node: {node_id}. {error_msg}"
         case BpmnFlowIncomingError(node_id=node_id):
-            return f"Flow error: No incoming flow into node: {node_id}."
+            return f"Flow error: All flow objects other than start events, boundary events, and compensating activities must have an incoming sequence flow, if the process level includes any start or end events. node: {node_id}."
         case BpmnFlowNoIdError(element=element):
             return f"Flow error: Flow_id does not exist. Occurred at tree element with following attributes: {element.attrib}."
+        case BpmnFlowOutgoingError(node_id=node_id):
+            return f"Flow error: All flow objects other than end events and compensating activities must have an outgoing sequence flow, if the process level includes any start or end events. node: {node_id}"
         case BpmnFlowTypeError(flow_id=flow_id):
             return f"Flow error: Flow '{flow_id}' is not a sequence flow when it should be."
         case BpmnNodeTypeError(flow_id=flow_id):
