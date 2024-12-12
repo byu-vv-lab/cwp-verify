@@ -43,6 +43,7 @@ style = "https://raw.githubusercontent.com/wemake-services/wemake-python-stylegu
 plugins = ["returns.contrib.mypy.returns_plugin"]
 exclude = [
   "^src/bpmncwpverify/antlr",
+  "^original"
 ]
 disallow_any_explicit = false
 disallow_any_generics = false
@@ -53,14 +54,6 @@ warn_unreachable = true
 force_uppercase_builtins = true
 force_union_syntax = true
 disallow_subclassing_any = true
-
-[[tool.mypy.overrides]]
-module = [
-    "antlr4.*",
-    "antlr.*",
-    "bpmncwpverify.antlr.*",
-]
-ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 addopts = "--cov=./src/bpmncwpverify/ --cov-report=html --cov-report=term"

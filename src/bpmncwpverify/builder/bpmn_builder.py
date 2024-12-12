@@ -7,6 +7,7 @@ from bpmncwpverify.error import (
     BpmnMsgMissingRefError,
     BpmnMsgNodeTypeError,
     Error,
+    ExceptionError,
 )
 
 
@@ -19,7 +20,7 @@ class BpmnBuilder:
             validate_bpmn(self._bpmn)
             return Success(self._bpmn)
         except Exception as e:
-            return Failure(e)
+            return Failure(ExceptionError(str(e)))
 
     def with_process(
         self, element: Element, symbol_table: SymbolTable
@@ -31,7 +32,8 @@ class BpmnBuilder:
         for element in element:
             process_builder.with_element(element)
 
-        return process_builder.build()
+        result: Result[Process, Error] = process_builder.build()
+        return result
 
     def with_message(self, msg_flow: Element) -> None:
         source_ref, target_ref = (

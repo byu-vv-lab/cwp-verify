@@ -1,7 +1,7 @@
 from typing import List, Dict, Union
 from xml.etree.ElementTree import Element
 from bpmncwpverify.core.state import SymbolTable
-from returns.result import Result
+from returns.result import Result, Failure
 from bpmncwpverify.constants import NAMESPACES
 from returns.pipeline import is_successful
 from returns.functions import not_
@@ -282,7 +282,7 @@ class Bpmn:
 
             self.accept(graph_viz_visitor)
 
-            graph_viz_visitor.dot.render("graphs/bpmn_graph.gv", format="png")
+            graph_viz_visitor.dot.render("graphs/bpmn_graph.gv", format="png")  # type: ignore[unused-ignore]
 
     def generate_promela(self) -> str:
         from bpmncwpverify.visitors.bpmn_promela_visitor import PromelaGenVisitor
@@ -299,17 +299,19 @@ class Bpmn:
 
         builder = BpmnBuilder()
         processes = root.findall("bpmn:process", NAMESPACES)
+        result: Result["Bpmn", Error] = Failure(Error())
+        process_result: Result[Process, Error] = Failure(Error())
         for process_element in processes:
-            result = builder.with_process(process_element, symbol_table)
-            if not_(is_successful)(result):
-                return result
+            process_result = builder.with_process(process_element, symbol_table)
+            if not_(is_successful)(process_result):
+                return Failure(process_result.failure())
 
         collab = root.find("bpmn:collaboration", NAMESPACES)
         if collab is not None:
             for msg_flow in collab.findall("bpmn:messageFlow", NAMESPACES):
                 builder.with_message(msg_flow)
-
-        return builder.build()
+        result = builder.build()
+        return result
 
 
 ###################

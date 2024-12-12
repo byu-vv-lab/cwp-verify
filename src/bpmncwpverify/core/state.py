@@ -1,16 +1,17 @@
 from antlr4 import CommonTokenStream, InputStream, ParseTreeWalker
 from antlr4.error.ErrorStrategy import ParseCancellationException
 from antlr4.error.ErrorListener import ConsoleErrorListener, ErrorListener
-from antlr4.tree.Tree import TerminalNode
+from antlr4.tree.Tree import TerminalNode, TerminalNodeImpl
 from antlr4.Token import Token
 
+from returns.maybe import Maybe, Nothing, Some
 from returns.result import Failure, Result, Success
 from returns.pipeline import flow, is_successful
 from returns.pointfree import bind_result
 from returns.functions import not_
 from returns.curry import partial
 
-from typing import Iterable, Any
+from typing import Iterable, Any, cast
 
 from bpmncwpverify.antlr.StateLexer import StateLexer
 from bpmncwpverify.antlr.StateParser import StateParser
@@ -24,6 +25,38 @@ from bpmncwpverify.error import (
 )
 
 from bpmncwpverify.core import typechecking
+
+
+def antlr_id_set_context_get_children(
+    ctx: StateParser.Id_setContext,
+) -> list[TerminalNodeImpl]:
+    return [antlr_get_terminal_node_impl(i) for i in ctx.getChildren()]  # type: ignore[unused-ignore]
+
+
+def antlr_get_id_set_context(ctx: Any) -> Maybe[StateParser.Id_setContext]:
+    if ctx is None:
+        return Nothing
+    assert isinstance(ctx, StateParser.Id_setContext)
+    return Some(ctx)
+
+
+def antlr_get_terminal_node_impl(node: TerminalNode | None) -> TerminalNodeImpl:
+    assert isinstance(node, TerminalNodeImpl)
+    return node
+
+
+def antlr_get_text(node: TerminalNodeImpl | StateParser.TypeContext) -> str:
+    text: str | None = node.getText()
+    assert isinstance(text, str)
+    return text
+
+
+def antlr_get_type_from_type_context(
+    ctx: StateParser.Const_var_declContext | StateParser.Var_declContext,
+) -> str:
+    type_context: Any = ctx.type_()
+    assert isinstance(type_context, StateParser.TypeContext)
+    return antlr_get_text(type_context)
 
 
 class ThrowingErrorListener(ErrorListener):  # type: ignore[misc]
@@ -48,8 +81,8 @@ def _get_parser(file_contents: str) -> Result[StateParser, Error]:
     lexer = StateLexer(input_stream)
     stream = CommonTokenStream(lexer)
     parser = StateParser(stream)
-    parser.removeErrorListener(ConsoleErrorListener.INSTANCE)
-    parser.addErrorListener(ThrowingErrorListener())
+    parser.removeErrorListener(ConsoleErrorListener.INSTANCE)  # type: ignore[unused-ignore]
+    parser.addErrorListener(ThrowingErrorListener())  # type: ignore[unused-ignore]
     return Success(parser)
 
 
@@ -66,14 +99,14 @@ def _parse_state(parser: StateParser) -> Result[StateParser.StateContext, Error]
 class SymbolTable:
     __slots__ = ["_consts", "_enums", "_id2type", "_vars"]
 
-    class _Listener(StateListener):  # type: ignore
-        __slots__ = ["_duplicates", "_first_def", "_symbol_table"]
+    class _Listener(StateListener):  # type: ignore[misc]
+        __slots__ = ["_duplicates", "_first_def", "symbol_table"]
 
         def __init__(self) -> None:
             super().__init__()
             self._duplicates: dict[str, tuple[int, int]] = dict()
             self._first_def: dict[str, tuple[int, int]] = dict()
-            self._symbol_table: "SymbolTable" = SymbolTable()
+            self.symbol_table: "SymbolTable" = SymbolTable()
 
         @staticmethod
         def _add_definition(
@@ -91,65 +124,70 @@ class SymbolTable:
 
         @staticmethod
         def _get_id_and_add_definition(
-            definitions: dict[str, tuple[int, int]], id_node: TerminalNode
+            definitions: dict[str, tuple[int, int]], id_node: TerminalNodeImpl
         ) -> str:
-            id: str = id_node.getText()
+            id: str = antlr_get_text(id_node)
             symbol: Token = id_node.getSymbol()
             SymbolTable._Listener._add_definition(
-                definitions, id, symbol.line, symbol.column
+                definitions, id, cast(int, symbol.line), cast(int, symbol.column)
             )
             return id
 
         @staticmethod
         def _get_values(
-            definitions: dict[str, tuple[int, int]], ctx: StateParser.Id_setContext
+            definitions: dict[str, tuple[int, int]],
+            ctx: Maybe[StateParser.Id_setContext],
         ) -> set[str]:
+            if ctx == Nothing:
+                return set()
             get_id = SymbolTable._Listener._get_id_and_add_definition
-            result: set[str] = (
-                {get_id(definitions, i) for i in ctx.getChildren()}
-                if ctx is not None
-                else set()
-            )
-
-            return result
+            return {
+                get_id(definitions, i)
+                for i in antlr_id_set_context_get_children(ctx.unwrap())
+            }
 
         def exitEnum_type_decl(self, ctx: StateParser.Enum_type_declContext) -> None:
             get_id = SymbolTable._Listener._get_id_and_add_definition
-            id: str = get_id(self._first_def, ctx.ID())
+            node = antlr_get_terminal_node_impl(ctx.ID())
+            id: str = get_id(self._first_def, node)
             values: set[str] = SymbolTable._Listener._get_values(
                 self._first_def,
-                ctx.id_set(),
+                antlr_get_id_set_context(ctx.id_set()),
             )
 
-            self._symbol_table._add_enum_type_decl(id, values)
+            self.symbol_table._add_enum_type_decl(id, values)
 
         def exitConst_var_decl(self, ctx: StateParser.Const_var_declContext) -> None:
             get_id = SymbolTable._Listener._get_id_and_add_definition
-            id: str = get_id(self._first_def, ctx.ID(0))
-            type_: str = ctx.type_().getText()
-            init: str = ctx.ID(1).getText()
-
-            self._symbol_table._add_const_decl(id, type_, init)
+            node = antlr_get_terminal_node_impl(ctx.ID(0))
+            id: str = get_id(self._first_def, node)
+            type_: str = antlr_get_type_from_type_context(ctx)
+            node = antlr_get_terminal_node_impl(ctx.ID(1))
+            init = antlr_get_text(node)
+            self.symbol_table._add_const_decl(id, type_, init)
 
         def exitVar_decl(self, ctx: StateParser.Var_declContext) -> None:
             get_id = SymbolTable._Listener._get_id_and_add_definition
-            id: str = get_id(self._first_def, ctx.ID(0))
-            type_: str = ctx.type_().getText()
-            init_node: TerminalNode = ctx.ID(1)
-            init: str = init_node.getText()
+            node = antlr_get_terminal_node_impl(ctx.ID(0))
+            id: str = get_id(self._first_def, node)
+            type_: str = antlr_get_type_from_type_context(ctx)
+            init_node: TerminalNode = antlr_get_terminal_node_impl(ctx.ID(1))
+            init: str = antlr_get_text(init_node)
 
             definitions: dict[str, tuple[int, int]] = dict()
             values: set[str] = SymbolTable._Listener._get_values(
                 definitions,
-                ctx.id_set(),
+                antlr_get_id_set_context(ctx.id_set()),
             )
 
             if len(values) != 0 and init not in values:
                 symbol: Token = init_node.getSymbol()
-                error = StateInitNotInValues(init, symbol.line, symbol.column, values)
+                error = StateInitNotInValues(
+                    init, cast(int, symbol.line), cast(int, symbol.column), values
+                )
                 raise Exception(error)
 
-            self._symbol_table._add_var_decl(id, type_, init, values)
+            self.symbol_table._add_var_decl(id, type_, init, values)
 
     def __init__(self) -> None:
         self._consts: dict[str, tuple[str, str]] = dict()
@@ -194,8 +232,9 @@ class SymbolTable:
     def _build(context: StateParser.StateContext) -> Result["SymbolTable", Error]:
         listener = SymbolTable._Listener()
         try:
-            ParseTreeWalker.DEFAULT.walk(listener, context)
-            return Success(listener._symbol_table)
+            walker: ParseTreeWalker = cast(ParseTreeWalker, ParseTreeWalker.DEFAULT)
+            walker.walk(listener, context)
+            return Success(listener.symbol_table)
         except Exception as exception:
             # requires
             assert len(exception.args) == 1
@@ -249,7 +288,8 @@ class SymbolTable:
     def get_type(self, id: str) -> Result[str, Error]:
         if id in self._id2type:
             return Success(self._id2type[id])
-        return typechecking.get_type_literal(id)
+        result: Result[str, Error] = typechecking.get_type_literal(id)
+        return result
 
     def is_defined(self, id: str) -> bool:
         defined: bool = is_successful(self.get_type(id))

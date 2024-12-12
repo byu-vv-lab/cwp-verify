@@ -121,7 +121,7 @@ class PromelaGenVisitor(BpmnVisitor):  # type: ignore
 
         if type == "XOR":
             ret += "\t\t\tif\n"
-            for condition, location, id in zip(
+            for condition, location, _id in zip(
                 put_conditions, put_locations, put_flow_ids
             ):
                 ret += "\t\t\t\t:: {x} -> putToken({y})\n".format(
@@ -129,7 +129,7 @@ class PromelaGenVisitor(BpmnVisitor):  # type: ignore
                 )
             ret += "\t\t\tfi\n"
         else:
-            for location, id in zip(put_locations, put_flow_ids):
+            for location, _id in zip(put_locations, put_flow_ids):
                 ret += "\t\t\tputToken({x})\n".format(x=location)
         if "ParallelFALSE" in type:
             ret += "\t\t\tif\n"

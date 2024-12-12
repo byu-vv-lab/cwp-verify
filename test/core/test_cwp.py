@@ -1,3 +1,4 @@
+# type: ignore
 from xml.etree.ElementTree import Element, SubElement
 
 from bpmncwpverify.core.cwp import Cwp

@@ -18,6 +18,14 @@ class BpmnStructureError(Error):
         self.error_msg = error_msg
 
 
+class ExceptionError(Error):
+    __slots__ = "exception_str"
+
+    def __init__(self, exception_str: str):
+        super().__init__()
+        self.exception_str = exception_str
+
+
 class ExpressionComputationCompatabilityError(Error):
     __slots__ = ["ltype", "rtype"]
 
