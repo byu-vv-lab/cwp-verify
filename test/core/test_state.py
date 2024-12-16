@@ -18,7 +18,7 @@ from bpmncwpverify.core.error import (
     TypingAssignCompatabilityError,
 )
 
-from bpmncwpverify.core.state import _get_parser, _parse_state, SymbolTable
+from bpmncwpverify.core.state import _get_parser, _parse_state, State
 from bpmncwpverify.core import typechecking
 
 
@@ -121,7 +121,7 @@ class Test_SymbolTable_build:
         # good_input
 
         # when
-        result = SymbolTable.build(good_input)
+        result = State.build(good_input)
 
         # then
         assert is_successful(result)
@@ -131,7 +131,7 @@ class Test_SymbolTable_build:
         # bad_input
 
         # when
-        result = SymbolTable.build(bad_input)
+        result = State.build(bad_input)
 
         # then
         assert not_(is_successful)(result)
@@ -163,11 +163,11 @@ class Test_SymbolTable_build:
         # good, expected
 
         # when
-        result = SymbolTable.build(good_input)
+        result = State.build(good_input)
 
         # then
         assert is_successful(result)
-        symbol_table: SymbolTable = result.unwrap()
+        symbol_table: State = result.unwrap()
         for i, expected_type in expected:
             result_type = symbol_table.get_type(i)
             assert is_successful(result_type)
@@ -243,7 +243,7 @@ class Test_SymbolTable_build:
         # bad, expected
 
         # when
-        result = SymbolTable.build(bad_input)
+        result = State.build(bad_input)
 
         # then
         assert not_(is_successful)(result)

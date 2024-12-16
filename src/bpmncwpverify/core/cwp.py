@@ -1,7 +1,7 @@
 from typing import Dict, List, Optional
 from xml.etree.ElementTree import Element
 import re
-from bpmncwpverify.core.state import SymbolTable
+from bpmncwpverify.core.state import State
 from returns.result import Result, Failure
 from bpmncwpverify.core.error import CwpFileStructureError, Error
 
@@ -14,7 +14,7 @@ class Cwp:
         self.end_states: List[CwpState] = []
 
     @staticmethod
-    def from_xml(root: Element, symbol_table: SymbolTable) -> Result["Cwp", Error]:
+    def from_xml(root: Element, symbol_table: State) -> Result["Cwp", Error]:
         from bpmncwpverify.builder.cwp_builder import CwpBuilder
 
         builder = CwpBuilder(symbol_table)
@@ -52,7 +52,7 @@ class Cwp:
 
         graph_viz_visitor.dot.render("graphs/cwp_graph.gv", format="png")  # type: ignore[unused-ignore]
 
-    def generate_ltl(self, symbol_table: SymbolTable) -> str:
+    def generate_ltl(self, symbol_table: State) -> str:
         from bpmncwpverify.visitors.cwp_ltl_visitor import CwpLtlVisitor
 
         ltl_visitor = CwpLtlVisitor(symbol_table)

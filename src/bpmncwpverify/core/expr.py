@@ -9,7 +9,7 @@ from bpmncwpverify.antlr.ExprLexer import ExprLexer
 from bpmncwpverify.antlr.ExprParser import ExprParser
 from bpmncwpverify.core import typechecking
 from bpmncwpverify.core.state import (
-    SymbolTable,
+    State,
     antlr_get_terminal_node_impl,
     antlr_get_text,
 )
@@ -71,7 +71,7 @@ def _parse_expressions(parser: ExprParser) -> Result[ExprParser.StartContext, Er
 class ExpressionListener(ExprListener):  # type: ignore[misc]
     __slots__ = ["symbol_table", "type_stack", "final_type"]
 
-    def __init__(self, symbol_table: SymbolTable) -> None:
+    def __init__(self, symbol_table: State) -> None:
         self.symbol_table = symbol_table
         self.type_stack: List[str] = []
         self.final_type: str
@@ -150,7 +150,7 @@ class ExpressionListener(ExprListener):  # type: ignore[misc]
 
     @staticmethod
     def _build(
-        symbol_table: SymbolTable, context: ExprParser.ExprContext
+        symbol_table: State, context: ExprParser.ExprContext
     ) -> Result[str, Error]:
         listener = ExpressionListener(symbol_table)
         try:
@@ -164,7 +164,7 @@ class ExpressionListener(ExprListener):  # type: ignore[misc]
             return Failure(error)
 
     @staticmethod
-    def type_check(expression: str, symbol_table: SymbolTable) -> Result[str, Error]:
+    def type_check(expression: str, symbol_table: State) -> Result[str, Error]:
         build_with_params = partial(ExpressionListener._build, symbol_table)
         result: Result[str, Error] = flow(
             expression,

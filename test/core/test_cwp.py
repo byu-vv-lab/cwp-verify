@@ -9,7 +9,7 @@ from bpmncwpverify.core.error import (
     Error,
 )
 from returns.functions import not_
-from bpmncwpverify.core.state import SymbolTable
+from bpmncwpverify.core.state import State
 from returns.pipeline import is_successful
 
 
@@ -26,7 +26,7 @@ def get_root_mx_root():
 
 
 def build_symbol_table(code):
-    symbol_table = SymbolTable.build(code)
+    symbol_table = State.build(code)
     assert is_successful(symbol_table)
     return symbol_table.unwrap()
 

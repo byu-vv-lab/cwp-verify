@@ -15,7 +15,7 @@ from bpmncwpverify.core.bpmn import (
     BPMN_XML_NAMESPACE,
 )
 from bpmncwpverify.core.expr import ExpressionListener
-from bpmncwpverify.core.state import SymbolTable
+from bpmncwpverify.core.state import State
 from bpmncwpverify.core.error import (
     BpmnFlowNoIdError,
     BpmnFlowTypeError,
@@ -29,7 +29,7 @@ from bpmncwpverify.visitors.bpmnchecks.bpmnvalidate import validate_process
 
 
 class ProcessBuilder:
-    def __init__(self, bpmn: Bpmn, element: Element, symbol_table: SymbolTable) -> None:
+    def __init__(self, bpmn: Bpmn, element: Element, symbol_table: State) -> None:
         self._process = Process(element)
         self._bpmn = bpmn
         self._symbol_table = symbol_table
