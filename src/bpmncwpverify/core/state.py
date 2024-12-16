@@ -96,7 +96,7 @@ def _parse_state(parser: StateParser) -> Result[StateParser.StateContext, Error]
         return Failure(failure_value)
 
 
-class SymbolTable:
+class State:
     __slots__ = ["_consts", "_enums", "_id2type", "_vars"]
 
     class _Listener(StateListener):  # type: ignore[misc]
@@ -106,7 +106,7 @@ class SymbolTable:
             super().__init__()
             self._duplicates: dict[str, tuple[int, int]] = dict()
             self._first_def: dict[str, tuple[int, int]] = dict()
-            self.symbol_table: "SymbolTable" = SymbolTable()
+            self.symbol_table: "State" = State()
 
         @staticmethod
         def _add_definition(
@@ -128,7 +128,7 @@ class SymbolTable:
         ) -> str:
             id: str = antlr_get_text(id_node)
             symbol: Token = id_node.getSymbol()
-            SymbolTable._Listener._add_definition(
+            State._Listener._add_definition(
                 definitions, id, cast(int, symbol.line), cast(int, symbol.column)
             )
             return id
@@ -140,17 +140,17 @@ class SymbolTable:
         ) -> set[str]:
             if ctx == Nothing:
                 return set()
-            get_id = SymbolTable._Listener._get_id_and_add_definition
+            get_id = State._Listener._get_id_and_add_definition
             return {
                 get_id(definitions, i)
                 for i in antlr_id_set_context_get_children(ctx.unwrap())
             }
 
         def exitEnum_type_decl(self, ctx: StateParser.Enum_type_declContext) -> None:
-            get_id = SymbolTable._Listener._get_id_and_add_definition
+            get_id = State._Listener._get_id_and_add_definition
             node = antlr_get_terminal_node_impl(ctx.ID())
             id: str = get_id(self._first_def, node)
-            values: set[str] = SymbolTable._Listener._get_values(
+            values: set[str] = State._Listener._get_values(
                 self._first_def,
                 antlr_get_id_set_context(ctx.id_set()),
             )
@@ -158,7 +158,7 @@ class SymbolTable:
             self.symbol_table._add_enum_type_decl(id, values)
 
         def exitConst_var_decl(self, ctx: StateParser.Const_var_declContext) -> None:
-            get_id = SymbolTable._Listener._get_id_and_add_definition
+            get_id = State._Listener._get_id_and_add_definition
             node = antlr_get_terminal_node_impl(ctx.ID(0))
             id: str = get_id(self._first_def, node)
             type_: str = antlr_get_type_from_type_context(ctx)
@@ -167,7 +167,7 @@ class SymbolTable:
             self.symbol_table._add_const_decl(id, type_, init)
 
         def exitVar_decl(self, ctx: StateParser.Var_declContext) -> None:
-            get_id = SymbolTable._Listener._get_id_and_add_definition
+            get_id = State._Listener._get_id_and_add_definition
             node = antlr_get_terminal_node_impl(ctx.ID(0))
             id: str = get_id(self._first_def, node)
             type_: str = antlr_get_type_from_type_context(ctx)
@@ -175,7 +175,7 @@ class SymbolTable:
             init: str = antlr_get_text(init_node)
 
             definitions: dict[str, tuple[int, int]] = dict()
-            values: set[str] = SymbolTable._Listener._get_values(
+            values: set[str] = State._Listener._get_values(
                 definitions,
                 antlr_get_id_set_context(ctx.id_set()),
             )
@@ -229,8 +229,8 @@ class SymbolTable:
         self._id2type[id] = type
 
     @staticmethod
-    def _build(context: StateParser.StateContext) -> Result["SymbolTable", Error]:
-        listener = SymbolTable._Listener()
+    def _build(context: StateParser.StateContext) -> Result["State", Error]:
+        listener = State._Listener()
         try:
             walker: ParseTreeWalker = cast(ParseTreeWalker, ParseTreeWalker.DEFAULT)
             walker.walk(listener, context)
@@ -243,9 +243,9 @@ class SymbolTable:
 
     @staticmethod
     def _type_check_assigns(
-        symbol_table: "SymbolTable", ltype: str, values: Iterable[str]
+        symbol_table: "State", ltype: str, values: Iterable[str]
     ) -> Result[tuple[()], Error]:
-        get_type_init = partial(SymbolTable.get_type, symbol_table)
+        get_type_init = partial(State.get_type, symbol_table)
         get_type_assign = partial(typechecking.get_type_assign, ltype)
         for i in values:
             result: Result[str, Error] = flow(
@@ -256,8 +256,8 @@ class SymbolTable:
         return Success(())
 
     @staticmethod
-    def _type_check_consts(symbol_table: "SymbolTable") -> Result["SymbolTable", Error]:
-        type_check_assigns = partial(SymbolTable._type_check_assigns, symbol_table)
+    def _type_check_consts(symbol_table: "State") -> Result["State", Error]:
+        type_check_assigns = partial(State._type_check_assigns, symbol_table)
         for key in symbol_table._consts:
             type_, init = symbol_table._consts[key]
             result = type_check_assigns(type_, [init])
@@ -266,8 +266,8 @@ class SymbolTable:
         return Success(symbol_table)
 
     @staticmethod
-    def _type_check_vars(symbol_table: "SymbolTable") -> Result["SymbolTable", Error]:
-        type_check_assigns = partial(SymbolTable._type_check_assigns, symbol_table)
+    def _type_check_vars(symbol_table: "State") -> Result["State", Error]:
+        type_check_assigns = partial(State._type_check_assigns, symbol_table)
         for key in symbol_table._vars:
             type_, init, values = symbol_table._vars[key]
             result = type_check_assigns(type_, {init}.union(values))
@@ -276,11 +276,11 @@ class SymbolTable:
         return Success(symbol_table)
 
     @staticmethod
-    def _type_check(symbol_table: "SymbolTable") -> Result["SymbolTable", Error]:
-        result: Result["SymbolTable", Error] = flow(
+    def _type_check(symbol_table: "State") -> Result["State", Error]:
+        result: Result["State", Error] = flow(
             symbol_table,
-            SymbolTable._type_check_consts,
-            bind_result(SymbolTable._type_check_vars),
+            State._type_check_consts,
+            bind_result(State._type_check_vars),
         )
 
         return result
@@ -296,12 +296,12 @@ class SymbolTable:
         return defined
 
     @staticmethod
-    def build(state_def: str) -> Result["SymbolTable", Error]:
-        result: Result["SymbolTable", Error] = flow(
+    def build(state_def: str) -> Result["State", Error]:
+        result: Result["State", Error] = flow(
             state_def,
             _get_parser,
             bind_result(_parse_state),
-            bind_result(SymbolTable._build),
-            bind_result(SymbolTable._type_check),
+            bind_result(State._build),
+            bind_result(State._type_check),
         )
         return result

@@ -1,6 +1,6 @@
 from typing import List
 from xml.etree.ElementTree import Element
-from bpmncwpverify.core.state import SymbolTable
+from bpmncwpverify.core.state import State
 from bpmncwpverify.visitors.cwp_connectivity_visitor import CwpConnectivityVisitor
 from returns.result import Result, Success, Failure
 from bpmncwpverify.core.error import (
@@ -19,7 +19,7 @@ from returns.functions import not_
 
 
 class CwpBuilder:
-    def __init__(self, symbol_table: SymbolTable) -> None:
+    def __init__(self, symbol_table: State) -> None:
         self.edges: List[Element] = []
         self.all_items: List[Element] = []
         self.states: List[Element] = []

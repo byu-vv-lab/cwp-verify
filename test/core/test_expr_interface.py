@@ -1,6 +1,6 @@
 # type: ignore
 from bpmncwpverify.core.expr import ExpressionListener
-from bpmncwpverify.core.state import SymbolTable
+from bpmncwpverify.core.state import State
 from bpmncwpverify.core.error import (
     ExpressionComputationCompatabilityError,
     ExpressionNegatorError,
@@ -42,10 +42,10 @@ import pytest
     ],
 )
 def test_given_good_state_when_build_then_success(state, expression, expression_type):
-    sym_table_result = SymbolTable.build(state)
+    sym_table_result = State.build(state)
 
     assert is_successful(sym_table_result)
-    symbol_table: SymbolTable = sym_table_result.unwrap()
+    symbol_table: State = sym_table_result.unwrap()
 
     expr_checker_result = ExpressionListener.type_check(expression, symbol_table)
 
@@ -93,10 +93,10 @@ def test_given_good_state_when_build_then_success(state, expression, expression_
     ],
 )
 def test_given_bad_state_when_build_then_failure(state, expression, error):
-    sym_table_result = SymbolTable.build(state)
+    sym_table_result = State.build(state)
 
     assert is_successful(sym_table_result)
-    symbol_table: SymbolTable = sym_table_result.unwrap()
+    symbol_table: State = sym_table_result.unwrap()
 
     expr_checker_result = ExpressionListener.type_check(expression, symbol_table)
 

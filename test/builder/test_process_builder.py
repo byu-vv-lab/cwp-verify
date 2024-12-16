@@ -2,7 +2,7 @@
 from xml.etree.ElementTree import Element
 from bpmncwpverify.builder.process_builder import ProcessBuilder
 from bpmncwpverify.core.bpmn import Node, SequenceFlow
-from bpmncwpverify.core.state import SymbolTable
+from bpmncwpverify.core.state import State
 from returns.result import Success
 
 
@@ -127,7 +127,7 @@ def test_build_graph_with_expression_checker(mocker):
     flow_1 = mocker.MagicMock(spec=SequenceFlow, element=flow_element, expression="")
     mock_process.__getitem__.side_effect = lambda key: {"flow_1": flow_1}[key.strip()]
 
-    mock_symbol_table = mocker.MagicMock(spec=SymbolTable)
+    mock_symbol_table = mocker.MagicMock(spec=State)
     mock_type_check = mocker.patch(
         "bpmncwpverify.core.expr.ExpressionListener.type_check",
         return_value=Success("bool"),

@@ -1,6 +1,6 @@
 from typing import List, Dict, Union
 from xml.etree.ElementTree import Element
-from bpmncwpverify.core.state import SymbolTable
+from bpmncwpverify.core.state import State
 from returns.result import Result, Failure
 from returns.pipeline import is_successful
 from returns.functions import not_
@@ -297,7 +297,7 @@ class Bpmn:
         return str(promela_visitor)
 
     @staticmethod
-    def from_xml(root: Element, symbol_table: SymbolTable) -> Result["Bpmn", Error]:
+    def from_xml(root: Element, symbol_table: State) -> Result["Bpmn", Error]:
         from bpmncwpverify.builder.bpmn_builder import BpmnBuilder
 
         builder = BpmnBuilder()

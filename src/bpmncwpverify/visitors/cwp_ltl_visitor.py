@@ -1,10 +1,10 @@
 from typing import List
-from bpmncwpverify.core.state import SymbolTable
+from bpmncwpverify.core.state import State
 from bpmncwpverify.core.cwp import CwpVisitor, CwpState, CwpEdge, Cwp
 
 
 class CwpLtlVisitor(CwpVisitor):  # type: ignore
-    def __init__(self, symbol_table: SymbolTable, print_on: bool = False) -> None:
+    def __init__(self, symbol_table: State, print_on: bool = False) -> None:
         self.state_info: List[str] = []
         self.symbol_table = symbol_table
         self.output_str: List[str] = []
