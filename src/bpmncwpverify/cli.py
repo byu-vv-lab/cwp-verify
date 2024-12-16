@@ -144,7 +144,9 @@ class Builder:
             return Success(builder)
 
     @staticmethod
-    def _output(outputs: "Outputs", builder: "Builder") -> Result["Outputs", Error]:
+    def build_promela(
+        outputs: "Outputs", builder: "Builder"
+    ) -> Result["Outputs", Error]:
         assert is_successful(builder.symbol_table)
         assert is_successful(builder.cwp_root)
         assert is_successful(builder.bpmn_root)
@@ -164,7 +166,7 @@ class Builder:
             bind_result(Builder._build_symbol_table),
             bind_result(Builder._build_cwp),
             bind_result(Builder._build_bpmn),
-            bind_result(partial(Builder._output, outputs)),
+            bind_result(partial(Builder.build_promela, outputs)),
         )
 
         return result
