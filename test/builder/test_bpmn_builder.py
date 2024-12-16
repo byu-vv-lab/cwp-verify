@@ -1,5 +1,5 @@
 # type: ignore
-from bpmncwpverify.error import (
+from bpmncwpverify.core.error import (
     BpmnMsgMissingRefError,
     BpmnMsgNodeTypeError,
 )

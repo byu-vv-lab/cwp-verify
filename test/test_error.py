@@ -1,7 +1,7 @@
 # type: ignore
 import pytest
 
-from bpmncwpverify.error import (
+from bpmncwpverify.core.error import (
     Error,
     NotImplementedError,
     StateInitNotInValues,

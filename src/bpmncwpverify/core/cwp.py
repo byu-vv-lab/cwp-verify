@@ -3,7 +3,7 @@ from xml.etree.ElementTree import Element
 import re
 from bpmncwpverify.core.state import SymbolTable
 from returns.result import Result, Failure
-from bpmncwpverify.error import CwpFileStructureError, Error
+from bpmncwpverify.core.error import CwpFileStructureError, Error
 
 
 class Cwp:

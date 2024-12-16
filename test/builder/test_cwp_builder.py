@@ -1,7 +1,7 @@
 # type: ignore
 from bpmncwpverify.builder.cwp_builder import CwpBuilder
 from bpmncwpverify.core.cwp import CwpEdge, CwpState
-from bpmncwpverify.error import CwpNoStartStateError
+from bpmncwpverify.core.error import CwpNoStartStateError
 from returns.result import Success
 import pytest
 from returns.pipeline import is_successful

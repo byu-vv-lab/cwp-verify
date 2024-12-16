@@ -2,7 +2,7 @@
 from xml.etree.ElementTree import Element, SubElement
 
 from bpmncwpverify.core.cwp import Cwp
-from bpmncwpverify.error import (
+from bpmncwpverify.core.error import (
     CwpMultStartStateError,
     CwpNoEndStatesError,
     CwpNoStartStateError,

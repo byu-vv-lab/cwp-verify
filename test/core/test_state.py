@@ -9,7 +9,7 @@ from returns.functions import not_
 from typing import Iterable
 
 from bpmncwpverify.antlr.StateParser import StateParser
-from bpmncwpverify.error import (
+from bpmncwpverify.core.error import (
     Error,
     StateSyntaxError,
     StateInitNotInValues,

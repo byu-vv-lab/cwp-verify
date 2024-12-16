@@ -2,13 +2,14 @@ from typing import List, Dict, Union
 from xml.etree.ElementTree import Element
 from bpmncwpverify.core.state import SymbolTable
 from returns.result import Result, Failure
-from bpmncwpverify.constants import NAMESPACES
 from returns.pipeline import is_successful
 from returns.functions import not_
-from bpmncwpverify.error import (
+from bpmncwpverify.core.error import (
     BpmnStructureError,
     Error,
 )
+
+BPMN_XML_NAMESPACE = {"bpmn": "http://www.omg.org/spec/BPMN/20100524/MODEL"}
 
 
 ###################
@@ -33,14 +34,16 @@ class Node(BpmnElement):
     def __init__(self, element: Element) -> None:
         super().__init__(element)
 
-        message_event_def = element.find("bpmn:messageEventDefinition", NAMESPACES)
+        message_event_def = element.find(
+            "bpmn:messageEventDefinition", BPMN_XML_NAMESPACE
+        )
         self.message_event_definition: str = (
             message_event_def.attrib.get("id", "")
             if message_event_def is not None
             else ""
         )
 
-        timer_event_def = element.find("bpmn:timerEventDefinition", NAMESPACES)
+        timer_event_def = element.find("bpmn:timerEventDefinition", BPMN_XML_NAMESPACE)
         self.message_timer_definition: str = (
             timer_event_def.attrib.get("id", "") if timer_event_def is not None else ""
         )
@@ -298,7 +301,7 @@ class Bpmn:
         from bpmncwpverify.builder.bpmn_builder import BpmnBuilder
 
         builder = BpmnBuilder()
-        processes = root.findall("bpmn:process", NAMESPACES)
+        processes = root.findall("bpmn:process", BPMN_XML_NAMESPACE)
         result: Result["Bpmn", Error] = Failure(Error())
         process_result: Result[Process, Error] = Failure(Error())
         for process_element in processes:
@@ -306,9 +309,9 @@ class Bpmn:
             if not_(is_successful)(process_result):
                 return Failure(process_result.failure())
 
-        collab = root.find("bpmn:collaboration", NAMESPACES)
+        collab = root.find("bpmn:collaboration", BPMN_XML_NAMESPACE)
         if collab is not None:
-            for msg_flow in collab.findall("bpmn:messageFlow", NAMESPACES):
+            for msg_flow in collab.findall("bpmn:messageFlow", BPMN_XML_NAMESPACE):
                 builder.with_message(msg_flow)
         result = builder.build()
         return result

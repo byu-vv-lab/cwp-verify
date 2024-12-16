@@ -1,7 +1,7 @@
 from returns.result import Failure, Result, Success
 from typing import Final, Callable
 
-from bpmncwpverify.error import (
+from bpmncwpverify.core.error import (
     Error,
     TypingAssignCompatabilityError,
     TypingNoTypeError,

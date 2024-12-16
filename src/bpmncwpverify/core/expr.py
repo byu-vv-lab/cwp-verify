@@ -13,7 +13,7 @@ from bpmncwpverify.core.state import (
     antlr_get_terminal_node_impl,
     antlr_get_text,
 )
-from bpmncwpverify.error import (
+from bpmncwpverify.core.error import (
     Error,
     ExceptionError,
     ExpressionComputationCompatabilityError,

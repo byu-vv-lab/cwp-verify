@@ -1,6 +1,5 @@
 from xml.etree.ElementTree import Element
 from typing import Dict, Tuple, Type
-from bpmncwpverify.constants import NAMESPACES
 from bpmncwpverify.core.bpmn import (
     Process,
     Bpmn,
@@ -13,10 +12,11 @@ from bpmncwpverify.core.bpmn import (
     StartEvent,
     SequenceFlow,
     Node,
+    BPMN_XML_NAMESPACE,
 )
 from bpmncwpverify.core.expr import ExpressionListener
 from bpmncwpverify.core.state import SymbolTable
-from bpmncwpverify.error import (
+from bpmncwpverify.core.error import (
     BpmnFlowNoIdError,
     BpmnFlowTypeError,
     BpmnNodeTypeError,
@@ -51,7 +51,9 @@ class ProcessBuilder:
     # Start of helper methods
     ########################
     def _construct_flow_network(self) -> None:
-        for seq_flow in self._process.element.findall("bpmn:sequenceFlow", NAMESPACES):
+        for seq_flow in self._process.element.findall(
+            "bpmn:sequenceFlow", BPMN_XML_NAMESPACE
+        ):
             flow_id = self._get_flow_id(seq_flow)
             flow = self._get_flow(flow_id)
             source_ref, target_ref = self._get_source_and_target_refs(flow)
