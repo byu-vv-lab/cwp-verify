@@ -3,7 +3,7 @@ from xml.etree.ElementTree import Element
 from bpmncwpverify.core.state import SymbolTable
 from bpmncwpverify.visitors.cwp_connectivity_visitor import CwpConnectivityVisitor
 from returns.result import Result, Success, Failure
-from bpmncwpverify.error import (
+from bpmncwpverify.core.error import (
     CwpEdgeNoParentExprError,
     CwpEdgeNoStateError,
     CwpMultStartStateError,

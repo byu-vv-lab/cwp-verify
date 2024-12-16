@@ -12,7 +12,7 @@ from returns.functions import not_
 
 from typing import TextIO, cast
 
-from bpmncwpverify.error import Error, ExceptionError, get_error_message
+from bpmncwpverify.core.error import Error, ExceptionError, get_error_message
 from bpmncwpverify.core.state import SymbolTable
 from bpmncwpverify.core.cwp import Cwp
 from bpmncwpverify.core.bpmn import Bpmn

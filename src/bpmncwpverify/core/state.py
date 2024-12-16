@@ -17,7 +17,7 @@ from bpmncwpverify.antlr.StateLexer import StateLexer
 from bpmncwpverify.antlr.StateParser import StateParser
 from bpmncwpverify.antlr.StateListener import StateListener
 
-from bpmncwpverify.error import (
+from bpmncwpverify.core.error import (
     Error,
     StateInitNotInValues,
     StateMultipleDefinitionError,

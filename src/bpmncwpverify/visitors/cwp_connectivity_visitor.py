@@ -1,6 +1,6 @@
 from typing import Set
 from bpmncwpverify.core.cwp import Cwp, CwpState, CwpVisitor, CwpEdge
-from bpmncwpverify.error import CwpGraphConnError
+from bpmncwpverify.core.error import CwpGraphConnError
 
 
 class CwpConnectivityVisitor(CwpVisitor):  # type: ignore

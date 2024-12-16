@@ -4,7 +4,7 @@ from returns.pipeline import is_successful
 from returns.functions import not_
 
 from bpmncwpverify.cli import _verify
-from bpmncwpverify.error import StateSyntaxError, ExceptionError
+from bpmncwpverify.core.error import StateSyntaxError, ExceptionError
 
 
 def test_givin_bad_state_file_path_when_verify_then_io_error(capsys):

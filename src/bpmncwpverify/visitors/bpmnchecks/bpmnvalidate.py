@@ -1,5 +1,5 @@
 from bpmncwpverify.core.bpmn import Bpmn, Process
-from bpmncwpverify.error import BpmnMsgFlowSamePoolError
+from bpmncwpverify.core.error import BpmnMsgFlowSamePoolError
 from bpmncwpverify.visitors.bpmnchecks.bpmnvalidations import (
     ValidateBpmnIncomingFlows,
     ValidateMsgsVisitor,

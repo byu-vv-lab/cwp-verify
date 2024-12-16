@@ -3,7 +3,7 @@ from bpmncwpverify.core.bpmn import Bpmn, MessageFlow, Node, Process
 from bpmncwpverify.core.state import SymbolTable
 from bpmncwpverify.visitors.bpmnchecks.bpmnvalidate import validate_bpmn
 from returns.result import Result, Success, Failure
-from bpmncwpverify.error import (
+from bpmncwpverify.core.error import (
     BpmnMsgMissingRefError,
     BpmnMsgNodeTypeError,
     Error,

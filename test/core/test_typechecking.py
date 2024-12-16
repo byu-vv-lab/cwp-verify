@@ -3,7 +3,7 @@ from returns.result import Failure, Success
 
 import pytest
 
-from bpmncwpverify.error import TypingNoTypeError, TypingAssignCompatabilityError
+from bpmncwpverify.core.error import TypingNoTypeError, TypingAssignCompatabilityError
 
 from bpmncwpverify.core.typechecking import (
     BIT,

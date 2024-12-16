@@ -13,7 +13,7 @@ from bpmncwpverify.core.bpmn import (
     ExclusiveGatewayNode,
     ParallelGatewayNode,
 )
-from bpmncwpverify.error import (
+from bpmncwpverify.core.error import (
     BpmnFlowIncomingError,
     BpmnGraphConnError,
     BpmnMissingEventsError,

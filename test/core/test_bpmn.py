@@ -1,10 +1,9 @@
 # type: ignore
 from xml.etree.ElementTree import Element, SubElement, tostring
 from defusedxml import ElementTree
-from bpmncwpverify.constants import NAMESPACES
-from bpmncwpverify.core.bpmn import Bpmn
+from bpmncwpverify.core.bpmn import Bpmn, BPMN_XML_NAMESPACE
 from bpmncwpverify.core.state import SymbolTable
-from bpmncwpverify.error import BpmnMissingEventsError
+from bpmncwpverify.core.error import BpmnMissingEventsError
 from returns.result import Failure, Success
 
 
@@ -13,7 +12,7 @@ def create_bpmn_definition():
     root = Element(
         "bpmn:definitions",
         attrib={
-            "xmlns:bpmn": NAMESPACES["bpmn"],
+            "xmlns:bpmn": BPMN_XML_NAMESPACE["bpmn"],
             "id": "Definitions_1",
             "targetNamespace": "http://example.com/schema/bpmn",
         },
