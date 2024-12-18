@@ -1,6 +1,8 @@
 # type: ignore
 import pytest
 
+from returns.maybe import Some, Nothing
+
 from bpmncwpverify.core.error import (
     Error,
     NotImplementedError,
@@ -15,12 +17,24 @@ from bpmncwpverify.core.error import (
 test_inputs: list[tuple[Error, str]] = [
     (NotImplementedError("notImplemented"), "ERROR: not implemented 'notImplemented'"),
     (
-        StateInitNotInValues("a", 0, 1, {"b", "c"}),
+        StateInitNotInValues("a", Some(0), Some(1), {"b", "c"}),
         "STATE ERROR: init value 'a' at line 0:1 not in allowed values ['b', 'c']",
     ),
     (
-        StateMultipleDefinitionError("a", 42, 43, 0, 1),
+        StateInitNotInValues("a", Nothing, Nothing, {"b", "c"}),
+        "STATE ERROR: init value 'a' not in allowed values ['b', 'c']",
+    ),
+    (
+        StateMultipleDefinitionError("a", Some(42), Some(43), Nothing, Nothing),
+        "STATE ERROR: multiple definition of 'a' at line 42:43",
+    ),
+    (
+        StateMultipleDefinitionError("a", Some(42), Some(43), Some(0), Some(1)),
         "STATE ERROR: multiple definition of 'a' at line 42:43, previously defined at line 0:1",
+    ),
+    (
+        StateMultipleDefinitionError("a", Nothing, Nothing, Nothing, Nothing),
+        "STATE ERROR: multiple definition of 'a'",
     ),
     (StateSyntaxError("bad syntax"), "STATE SYNTAX ERROR: bad syntax"),
     (
@@ -31,7 +45,10 @@ test_inputs: list[tuple[Error, str]] = [
 ]
 test_ids: list[str] = [
     "NotImplementedError",
+    "StateInitNotInValuesLineCol",
     "StateInitNotInValues",
+    "StateMultipleDefinitionErrorLineCol",
+    "StateMultipleDefinitionErrorLineColPrevLinePrevCol",
     "StateMultipleDefinitionError",
     "StateSyntaxError",
     "TypeingAssignCompatabilityError",

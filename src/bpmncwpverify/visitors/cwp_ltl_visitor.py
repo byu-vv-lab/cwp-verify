@@ -1,6 +1,7 @@
 from typing import List
 from bpmncwpverify.core.state import State
 from bpmncwpverify.core.cwp import CwpVisitor, CwpState, CwpEdge, Cwp
+from bpmncwpverify.core import typechecking
 
 
 class CwpLtlVisitor(CwpVisitor):  # type: ignore
@@ -37,21 +38,23 @@ class CwpLtlVisitor(CwpVisitor):  # type: ignore
 
     def write_state_variables(self) -> None:
         self.write_line("\n\n//**********VARIABLE DECLARATION************//\n")
-        for name, value in self.symbol_table._consts.items():
-            self.write_line(f"#define {name} {value[1]}")
+        for const_decl in self.symbol_table._consts:
+            self.write_line(f"#define {const_decl.id} {const_decl.init.value}")
             self.write_line("\n")
         self.write_line("\n")
-        for enum in self.symbol_table._enums.values():
+        for enum_decl in self.symbol_table._enums:
             self.write_line(
-                f"mytpe = {{{' '.join(sorted([value for value in enum]))}}}"
+                f"mytpe = {{{' '.join(sorted([value.value for value in enum_decl.values]))}}}"
             )
             self.write_line("\n")
         self.write_line("\n")
-        for name, value in self.symbol_table._vars.items():
-            if len(value) == 3 and value[2]:
-                self.write_line(f"mytype {name} = {value[1]}")
+        for var_decl in self.symbol_table._vars:
+            if var_decl.type_ == typechecking.ENUM:
+                self.write_line(f"mytype {var_decl.id} = {var_decl.init.value}")
             else:
-                self.write_line(f"{value[0]} {name} = {value[1]}")
+                self.write_line(
+                    f"{var_decl.type_} {var_decl.id} = {var_decl.init.value}"
+                )
             self.write_line("\n")
 
         self.write_line("\n")
@@ -60,27 +63,19 @@ class CwpLtlVisitor(CwpVisitor):  # type: ignore
         self.state_info.append(
             "\n\n//**********Variable Range Invariants************//"
         )
-        for enum_name, enum in self.symbol_table._enums.items():
+        for enum_decl in self.symbol_table._enums:
             # if enum.isConstant:
             #     continue
             # cwp = enum.cwp
             invariant = "("
-            for value in enum:
-                if isinstance(value, int) or isinstance(value, str):
-                    invariant += "({enum_name} == {value}) || ".format(
-                        enum_name=enum_name, value=value
-                    )
-                else:
-                    # TODO: see if range is included in new state syntax
-                    pass
-                    # valRange = value
-                    # invariant += "({cwp} >= {min} && {cwp} <= {max}) || ".format(
-                    #     cwp=cwp, min=valRange.min, max=valRange.max
-                    # )
+            for value in enum_decl.values:
+                invariant += "({enum_name} == {value}) || ".format(
+                    enum_name=enum_decl.id, value=value.value
+                )
 
             invariant = invariant[:-4]
             invariant += ")"
-            self.write_line("#define {}Invariant {}".format(enum_name, invariant))
+            self.write_line("#define {}Invariant {}".format(enum_decl.id, invariant))
 
     def write_init_states(self) -> None:
         self.write_line("\n\n//**********STATE VARIABLE DECLARATION************//")
@@ -108,8 +103,8 @@ class CwpLtlVisitor(CwpVisitor):  # type: ignore
         self.write_line("}")
 
     def write_variable_range_assertions(self) -> None:
-        for var_name in self.symbol_table._vars.keys():
-            self.write_line("assert({}Invariant)".format(var_name))
+        for var_name in self.symbol_table._vars:
+            self.write_line("assert({}Invariant)".format(var_name.id))
 
     def write_refresh_edges(self) -> None:
         for edge in self.cwp.edges.values():
@@ -247,8 +242,8 @@ class CwpLtlVisitor(CwpVisitor):  # type: ignore
             self.write_log_state(state)
         for edge in self.cwp.edges.values():
             self.write_log_edge(edge)
-        for var in self.symbol_table._vars.keys():
-            self.write_log_var(var)
+        for var in self.symbol_table._vars:
+            self.write_log_var(var.id)
         if self.print_on:
             self.write_line('printf("******************************\\n")')
         else:

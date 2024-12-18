@@ -137,7 +137,7 @@ class Builder:
     @staticmethod
     def _build_symbol_table(builder: "Builder") -> Result["Builder", Error]:
         assert is_successful(builder.state_str)
-        builder.symbol_table = State.build(builder.state_str.unwrap())
+        builder.symbol_table = State.from_str(builder.state_str.unwrap())
         if not_(is_successful)(builder.symbol_table):
             return Failure(builder.symbol_table.failure())
         else:

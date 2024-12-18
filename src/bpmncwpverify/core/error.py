@@ -3,6 +3,8 @@ import typing
 import builtins
 from xml.etree.ElementTree import Element
 
+from returns.maybe import Maybe, Nothing
+
 
 class Error:
     def __init__(self) -> None:
@@ -298,7 +300,9 @@ class MessageError(Error):
 class StateInitNotInValues(Error):
     __slots__ = ["id", "line", "column", "values"]
 
-    def __init__(self, id: str, line: int, column: int, values: set[str]) -> None:
+    def __init__(
+        self, id: str, line: Maybe[int], column: Maybe[int], values: set[str]
+    ) -> None:
         super().__init__()
         self.id = id
         self.line = line
@@ -320,7 +324,12 @@ class StateMultipleDefinitionError(Error):
     __slots__ = ("id", "line", "column", "prev_line", "prev_column")
 
     def __init__(
-        self, id: str, line: int, column: int, prev_line: int, prev_column: int
+        self,
+        id: str,
+        line: Maybe[int],
+        column: Maybe[int],
+        prev_line: Maybe[int],
+        prev_column: Maybe[int],
     ) -> None:
         super().__init__()
         self.id = id
@@ -474,8 +483,11 @@ def _get_error_message(error: Error) -> str:
             return "CWP ERROR: Graph is not connected."
         case StateInitNotInValues(id=id, line=line, column=column, values=values):
             # Convert to a list since Python sets are not stable
-            return "STATE ERROR: init value '{}' at line {}:{} not in allowed values {}".format(
-                id, line, column, sorted(values)
+            location: str = " "
+            if line != Nothing and column != Nothing:
+                location = f" at line {line.unwrap()}:{column.unwrap()} "
+            return "STATE ERROR: init value '{}'{}not in allowed values {}".format(
+                id, location, sorted(values)
             )
         case StateMultipleDefinitionError(
             id=id,
@@ -484,8 +496,16 @@ def _get_error_message(error: Error) -> str:
             prev_line=prev_line,
             prev_column=prev_column,
         ):
-            return "STATE ERROR: multiple definition of '{}' at line {}:{}, previously defined at line {}:{}".format(
-                id, line, column, prev_line, prev_column
+            location_first: str = ""
+            if line != Nothing and column != Nothing:
+                location_first = f" at line {line.unwrap()}:{column.unwrap()}"
+
+            location_second: str = ""
+            if prev_line != Nothing and prev_column != Nothing:
+                location_second = f", previously defined at line {prev_line.unwrap()}:{prev_column.unwrap()}"
+
+            return "STATE ERROR: multiple definition of '{}'{}{}".format(
+                id, location_first, location_second
             )
         case StateSyntaxError(msg=msg):
             return "STATE SYNTAX ERROR: {}".format(msg)

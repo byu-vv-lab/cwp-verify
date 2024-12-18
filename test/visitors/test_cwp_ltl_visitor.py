@@ -1,6 +1,15 @@
 # type: ignore
+from returns.pipeline import is_successful
+
 from bpmncwpverify.visitors.cwp_ltl_visitor import CwpLtlVisitor
 from bpmncwpverify.core.cwp import Cwp
+from bpmncwpverify.core.state import (
+    AllowedValueDecl,
+    StateBuilder,
+    ConstDecl,
+    EnumDecl,
+    VarDecl,
+)
 import pytest
 
 
@@ -144,15 +153,30 @@ def test_cwp_write_edges_property(mocker):
 
 def test_cwp_write_state_variables(mocker):
     mock_write = mocker.patch.object(CwpLtlVisitor, "write_line")
-    symbol_table = mocker.MagicMock()
-    symbol_table._consts = {"CONST_A": ("CONST_A", 10), "CONST_B": ("CONST_B", 20)}
-    symbol_table._enums = {"EnumType": {"Value1", "Value2", "Value3"}}
-    symbol_table._vars = {
-        "var1": ("int", "initial_value"),
-        "var2": ("int", "initial_value", {"extra_value"}),
-    }
+    state_result = (
+        StateBuilder()
+        .with_const_decl(ConstDecl("CONST_A", "int", AllowedValueDecl("10")))
+        .with_const_decl(ConstDecl("CONST_B", "int", AllowedValueDecl("20")))
+        .with_enum_type_decl(
+            EnumDecl(
+                "EnumType",
+                {
+                    AllowedValueDecl("Value1"),
+                    AllowedValueDecl("Value2"),
+                    AllowedValueDecl("Value3"),
+                },
+            )
+        )
+        .with_var_decl(VarDecl("var1", "int", AllowedValueDecl("42"), list()))
+        .with_var_decl(
+            VarDecl("var2", "int", AllowedValueDecl("42"), [AllowedValueDecl("42")])
+        )
+        .build()
+    )
+    assert is_successful(state_result)
+    state = state_result.unwrap()
 
-    visitor = CwpLtlVisitor(symbol_table)
+    visitor = CwpLtlVisitor(state)
 
     visitor.write_state_variables()
 
@@ -166,9 +190,9 @@ def test_cwp_write_state_variables(mocker):
         mocker.call("mytpe = {Value1 Value2 Value3}"),
         mocker.call("\n"),
         mocker.call("\n"),
-        mocker.call("int var1 = initial_value"),
+        mocker.call("int var1 = 42"),
         mocker.call("\n"),
-        mocker.call("mytype var2 = initial_value"),
+        mocker.call("int var2 = 42"),
         mocker.call("\n"),
         mocker.call("\n"),
     ]
@@ -177,13 +201,34 @@ def test_cwp_write_state_variables(mocker):
 
 def test_cwp_write_variable_range_invariants(mocker):
     mock_write = mocker.patch.object(CwpLtlVisitor, "write_line")
-    symbol_table = mocker.MagicMock()
-    symbol_table._enums = {
-        "TestEnum1": ("Value1", "Value2", "Value3"),
-        "TestEnum2": ("Value1", "Value2", "Value3"),
-    }
+    state_result = (
+        StateBuilder()
+        .with_enum_type_decl(
+            EnumDecl(
+                "TestEnum1",
+                [
+                    AllowedValueDecl("TestEnum1_1"),
+                    AllowedValueDecl("TestEnum1_2"),
+                    AllowedValueDecl("TestEnum1_3"),
+                ],
+            )
+        )
+        .with_enum_type_decl(
+            EnumDecl(
+                "TestEnum2",
+                [
+                    AllowedValueDecl("TestEnum2_1"),
+                    AllowedValueDecl("TestEnum2_2"),
+                    AllowedValueDecl("TestEnum2_3"),
+                ],
+            )
+        )
+        .build()
+    )
+    assert is_successful(state_result)
+    state = state_result.unwrap()
 
-    visitor = CwpLtlVisitor(symbol_table)
+    visitor = CwpLtlVisitor(state)
     visitor.state_info = []
 
     visitor.write_variable_range_invariants()
@@ -194,10 +239,10 @@ def test_cwp_write_variable_range_invariants(mocker):
 
     expected_calls = [
         mocker.call(
-            "#define TestEnum1Invariant ((TestEnum1 == Value1) || (TestEnum1 == Value2) || (TestEnum1 == Value3))"
+            "#define TestEnum1Invariant ((TestEnum1 == TestEnum1_1) || (TestEnum1 == TestEnum1_2) || (TestEnum1 == TestEnum1_3))"
         ),
         mocker.call(
-            "#define TestEnum2Invariant ((TestEnum2 == Value1) || (TestEnum2 == Value2) || (TestEnum2 == Value3))"
+            "#define TestEnum2Invariant ((TestEnum2 == TestEnum2_1) || (TestEnum2 == TestEnum2_2) || (TestEnum2 == TestEnum2_3))"
         ),
     ]
 
@@ -234,14 +279,17 @@ def test_cwp_write_edge_definitions(mocker):
 
 def test_cwp_write_variable_range_assertions(mocker):
     mock_write = mocker.patch.object(CwpLtlVisitor, "write_line")
-    symbol_table = mocker.MagicMock()
-    symbol_table._vars = {
-        "var1": mocker.MagicMock(),
-        "var2": mocker.MagicMock(),
-        "var3": mocker.MagicMock(),
-    }
+    state_result = (
+        StateBuilder()
+        .with_var_decl(VarDecl("var1", "int", AllowedValueDecl("0"), []))
+        .with_var_decl(VarDecl("var2", "int", AllowedValueDecl("0"), []))
+        .with_var_decl(VarDecl("var3", "int", AllowedValueDecl("0"), []))
+        .build()
+    )
+    assert is_successful(state_result)
+    state = state_result.unwrap()
 
-    visitor = CwpLtlVisitor(symbol_table)
+    visitor = CwpLtlVisitor(state)
 
     visitor.write_variable_range_assertions()
 
@@ -472,10 +520,16 @@ def test_write_log_state_inline(mocker, print_on, expected_header, expected_foot
         "state2": mocker.MagicMock(),
     }
     cwp.edges = {"edge1": mocker.MagicMock(), "edge2": mocker.MagicMock()}
-    symbol_table = mocker.MagicMock()
-    symbol_table._vars = {"var1": "var1_value", "var2": "var2_value"}
+    state_result = (
+        StateBuilder()
+        .with_var_decl(VarDecl("var1", "int", AllowedValueDecl("0"), []))
+        .with_var_decl(VarDecl("var2", "int", AllowedValueDecl("0"), []))
+        .build()
+    )
+    assert is_successful(state_result)
+    state = state_result.unwrap()
 
-    visitor = CwpLtlVisitor(symbol_table)
+    visitor = CwpLtlVisitor(state)
     visitor.cwp = cwp
     visitor.print_on = print_on
     visitor.tab = 0
