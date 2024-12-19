@@ -2,7 +2,7 @@
 from xml.etree.ElementTree import Element, SubElement, tostring
 from defusedxml import ElementTree
 from bpmncwpverify.core.bpmn import Bpmn, BPMN_XML_NAMESPACE
-from bpmncwpverify.core.state import State
+from bpmncwpverify.core.state import StateBuilder
 from bpmncwpverify.core.error import BpmnMissingEventsError
 from returns.result import Failure, Success
 
@@ -44,7 +44,7 @@ def add_process_with_elements(root, elements):
 
 
 def test_complete_bpmn_with_no_start_or_end_event():
-    symbol_table = State()
+    symbol_table = StateBuilder().build()
     root = create_bpmn_definition()
     add_process(root)
     task = Element("bpmn:task", attrib={"id": "Task_1", "name": "Test Task"})
@@ -60,7 +60,7 @@ def test_complete_bpmn_with_no_start_or_end_event():
 
 
 def test_complete_bpmn_with_no_end_event():
-    symbol_table = State()
+    symbol_table = StateBuilder().build()
     root = create_bpmn_definition()
     add_process(root)
 
@@ -85,7 +85,7 @@ def test_complete_bpmn_with_no_end_event():
 
 
 def test_complete_bpmn_with_good_process():
-    symbol_table = State()
+    symbol_table = StateBuilder().build()
     root = create_bpmn_definition()
     add_process(root)
 

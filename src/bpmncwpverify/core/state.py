@@ -1,3 +1,5 @@
+import builtins
+
 from antlr4 import CommonTokenStream, InputStream, ParseTreeWalker
 from antlr4.error.ErrorStrategy import ParseCancellationException
 from antlr4.error.ErrorListener import ConsoleErrorListener, ErrorListener
@@ -11,7 +13,7 @@ from returns.pointfree import bind_result
 from returns.functions import not_
 from returns.curry import partial
 
-from typing import Iterable, Any, cast
+from typing import Any, cast, Iterable
 
 from bpmncwpverify.antlr.StateLexer import StateLexer
 from bpmncwpverify.antlr.StateParser import StateParser
@@ -96,212 +98,403 @@ def _parse_state(parser: StateParser) -> Result[StateParser.StateContext, Error]
         return Failure(failure_value)
 
 
+class DeclLoc:
+    __slots__ = ["line", "col"]
+
+    def __init__(self, line: Maybe[int], col: Maybe[int]) -> None:
+        self.line = line
+        self.col = col
+
+
+class AllowedValueDecl(DeclLoc):
+    __slots__ = ["value"]
+
+    def __init__(
+        self, value: str, line: Maybe[int] = Nothing, col: Maybe[int] = Nothing
+    ) -> None:
+        super().__init__(line, col)
+        self.value = value
+
+
+class ConstDecl(DeclLoc):
+    __slots__ = ["id", "type_", "init"]
+
+    def __init__(
+        self,
+        id: str,
+        type_: str,
+        init: AllowedValueDecl,
+        line: Maybe[int] = Nothing,
+        col: Maybe[int] = Nothing,
+    ) -> None:
+        super().__init__(line, col)
+        self.id = id
+        self.type_ = type_
+        self.init = init
+
+
+class EnumDecl(DeclLoc):
+    __slots__ = ["id", "values"]
+
+    def __init__(
+        self,
+        id: str,
+        values: list[AllowedValueDecl],
+        line: Maybe[int] = Nothing,
+        col: Maybe[int] = Nothing,
+    ) -> None:
+        super().__init__(line, col)
+        self.id = id
+        self.values = values
+
+
+class VarDecl(DeclLoc):
+    __slots__ = ["id", "type_", "init", "values", "line", "col"]
+
+    def __init__(
+        self,
+        id: str,
+        type_: str,
+        init: AllowedValueDecl,
+        values: list[AllowedValueDecl],
+        line: Maybe[int] = Nothing,
+        col: Maybe[int] = Nothing,
+    ) -> None:
+        super().__init__(line, col)
+        self.id = id
+        self.type_ = type_
+        self.init = init
+        self.values = values
+
+    @staticmethod
+    def var_decl(
+        id: str,
+        type_: str,
+        init: AllowedValueDecl,
+        values: list[AllowedValueDecl],
+        line: Maybe[int] = Nothing,
+        col: Maybe[int] = Nothing,
+    ) -> Result["VarDecl", Error]:
+        value_ids = {i.value for i in values}
+        if len(values) == 0 or init.value in value_ids:
+            return Success(VarDecl(id, type_, init, values, line, col))
+        else:
+            return Failure(
+                StateInitNotInValues(init.value, init.line, init.col, value_ids)
+            )
+
+
+class TypeWithDeclLoc:
+    __slots__ = ["type_", "decl_loc"]
+
+    def __init__(self, type_: str, decl_loc: DeclLoc) -> None:
+        self.type_ = type_
+        self.decl_loc = decl_loc
+
+
+class StateBuilder:
+    __slots__ = ["_consts", "_enums", "_vars"]
+
+    def __init__(self) -> None:
+        self._consts: list[ConstDecl] = list()
+        self._enums: list[EnumDecl] = list()
+        self._vars: list[VarDecl] = list()
+
+    def with_enum_type_decl(self, enum_decl: EnumDecl) -> "StateBuilder":
+        self._enums.append(enum_decl)
+        return self
+
+    def with_const_decl(self, const_decl: ConstDecl) -> "StateBuilder":
+        self._consts.append(const_decl)
+        return self
+
+    def with_var_decl(self, var_decl: VarDecl) -> "StateBuilder":
+        self._vars.append(var_decl)
+        return self
+
+    def build(self) -> Result["State", Error]:
+        state = State(self._consts, self._enums, self._vars)
+        return State.type_check(state)
+
+
 class State:
     __slots__ = ["_consts", "_enums", "_id2type", "_vars"]
 
     class _Listener(StateListener):  # type: ignore[misc]
-        __slots__ = ["_duplicates", "_first_def", "symbol_table"]
+        __slots__ = ["state_builder", "error"]
 
         def __init__(self) -> None:
             super().__init__()
-            self._duplicates: dict[str, tuple[int, int]] = dict()
-            self._first_def: dict[str, tuple[int, int]] = dict()
-            self.symbol_table: "State" = State()
+            self.state_builder: "StateBuilder" = StateBuilder()
+            self.error: Maybe[Error] = Nothing
 
         @staticmethod
-        def _add_definition(
-            definitions: dict[str, tuple[int, int]], id: str, line: int, column: int
-        ) -> None:
-            if id in definitions:
-                prev_line = definitions[id][0]
-                prev_column = definitions[id][1]
-                error = StateMultipleDefinitionError(
-                    id, line, column, prev_line, prev_column
-                )
-                raise Exception(error)
-            else:
-                definitions[id] = (line, column)
-
-        @staticmethod
-        def _get_id_and_add_definition(
-            definitions: dict[str, tuple[int, int]], id_node: TerminalNodeImpl
-        ) -> str:
+        def _get_id(id_node: TerminalNodeImpl) -> str:
             id: str = antlr_get_text(id_node)
-            symbol: Token = id_node.getSymbol()
-            State._Listener._add_definition(
-                definitions, id, cast(int, symbol.line), cast(int, symbol.column)
-            )
             return id
 
         @staticmethod
+        def _get_value_decl(id_node: TerminalNodeImpl) -> AllowedValueDecl:
+            id: str = antlr_get_text(id_node)
+            symbol: Token = id_node.getSymbol()
+            return AllowedValueDecl(
+                id, Some(cast(int, symbol.line)), Some(cast(int, symbol.column))
+            )
+
+        @staticmethod
         def _get_values(
-            definitions: dict[str, tuple[int, int]],
             ctx: Maybe[StateParser.Id_setContext],
-        ) -> set[str]:
+        ) -> list[AllowedValueDecl]:
             if ctx == Nothing:
-                return set()
-            get_id = State._Listener._get_id_and_add_definition
-            return {
-                get_id(definitions, i)
+                return list()
+            return [
+                State._Listener._get_value_decl(i)
                 for i in antlr_id_set_context_get_children(ctx.unwrap())
-            }
+            ]
 
         def exitEnum_type_decl(self, ctx: StateParser.Enum_type_declContext) -> None:
-            get_id = State._Listener._get_id_and_add_definition
             node = antlr_get_terminal_node_impl(ctx.ID())
-            id: str = get_id(self._first_def, node)
-            values: set[str] = State._Listener._get_values(
-                self._first_def,
+            symbol: Token = node.getSymbol()
+            id: str = State._Listener._get_id(node)
+            id_line = Some(cast(int, symbol.line))
+            id_col = Some(cast(int, symbol.column))
+
+            values: list[AllowedValueDecl] = State._Listener._get_values(
                 antlr_get_id_set_context(ctx.id_set()),
             )
 
-            self.symbol_table._add_enum_type_decl(id, values)
+            enum_decl = EnumDecl(id, values, id_line, id_col)
+            self.state_builder.with_enum_type_decl(enum_decl)
 
         def exitConst_var_decl(self, ctx: StateParser.Const_var_declContext) -> None:
-            get_id = State._Listener._get_id_and_add_definition
             node = antlr_get_terminal_node_impl(ctx.ID(0))
-            id: str = get_id(self._first_def, node)
+            symbol: Token = node.getSymbol()
+            id = State._Listener._get_id(node)
+            id_line = Some(cast(int, symbol.line))
+            id_col = Some(cast(int, symbol.column))
+
             type_: str = antlr_get_type_from_type_context(ctx)
+
             node = antlr_get_terminal_node_impl(ctx.ID(1))
-            init = antlr_get_text(node)
-            self.symbol_table._add_const_decl(id, type_, init)
+            symbol = node.getSymbol()
+            init = AllowedValueDecl(
+                antlr_get_text(node),
+                Some(cast(int, symbol.line)),
+                Some(cast(int, symbol.column)),
+            )
+
+            const_decl = ConstDecl(id, type_, init, id_line, id_col)
+            self.state_builder.with_const_decl(const_decl)
 
         def exitVar_decl(self, ctx: StateParser.Var_declContext) -> None:
-            get_id = State._Listener._get_id_and_add_definition
             node = antlr_get_terminal_node_impl(ctx.ID(0))
-            id: str = get_id(self._first_def, node)
-            type_: str = antlr_get_type_from_type_context(ctx)
-            init_node: TerminalNode = antlr_get_terminal_node_impl(ctx.ID(1))
-            init: str = antlr_get_text(init_node)
+            symbol: Token = node.getSymbol()
+            id: str = State._Listener._get_id(node)
+            id_line = Some(cast(int, symbol.line))
+            id_col = Some(cast(int, symbol.column))
 
-            definitions: dict[str, tuple[int, int]] = dict()
-            values: set[str] = State._Listener._get_values(
-                definitions,
+            type_: str = antlr_get_type_from_type_context(ctx)
+
+            node = antlr_get_terminal_node_impl(ctx.ID(1))
+            symbol = node.getSymbol()
+            init: AllowedValueDecl = AllowedValueDecl(
+                antlr_get_text(node),
+                Some(cast(int, symbol.line)),
+                Some(cast(int, symbol.column)),
+            )
+
+            values: list[AllowedValueDecl] = State._Listener._get_values(
                 antlr_get_id_set_context(ctx.id_set()),
             )
 
-            if len(values) != 0 and init not in values:
-                symbol: Token = init_node.getSymbol()
-                error = StateInitNotInValues(
-                    init, cast(int, symbol.line), cast(int, symbol.column), values
-                )
-                raise Exception(error)
+            var_decl = VarDecl.var_decl(id, type_, init, values, id_line, id_col)
+            if not_(is_successful)(var_decl):
+                self.error = Some(var_decl.failure())
+                raise Exception()
+            self.state_builder.with_var_decl(var_decl.unwrap())
 
-            self.symbol_table._add_var_decl(id, type_, init, values)
-
-    def __init__(self) -> None:
-        self._consts: dict[str, tuple[str, str]] = dict()
-        self._enums: dict[str, set[str]] = dict()
-        self._id2type: dict[str, str] = dict()
-        self._vars: dict[str, tuple[str, str, set[str]]] = dict()
+    def __init__(
+        self, consts: list[ConstDecl], enums: list[EnumDecl], vars: list[VarDecl]
+    ) -> None:
+        self._consts = consts
+        self._enums = enums
+        self._id2type: Maybe[dict[str, TypeWithDeclLoc]] = Nothing
+        self._vars = vars
 
     def __str__(self) -> str:
-        raise NotImplementedError("SymbolTable::__str__")
-
-    def _add_enum_type_decl(self, id: str, values: set[str]) -> None:
-        # requires
-        assert id not in self._id2type and id not in self._enums
-        for i in values:
-            assert i not in self._id2type
-
-        self._enums[id] = values
-        self._id2type[id] = typechecking.ENUM
-
-        for v in values:
-            self._id2type[v] = id
-
-    def _add_const_decl(self, id: str, type: str, init: str) -> None:
-        # requires
-        assert id not in self._id2type and id not in self._consts
-
-        self._consts[id] = (type, init)
-        self._id2type[id] = type
-
-    def _add_var_decl(self, id: str, type: str, init: str, values: set[str]) -> None:
-        # requires
-        assert (
-            id not in self._id2type
-            and id not in self._vars
-            and (len(values) == 0 or init in values)
-        )
-
-        self._vars[id] = (type, init, values)
-        self._id2type[id] = type
+        raise builtins.NotImplementedError("SymbolTable::__str__")
 
     @staticmethod
-    def _build(context: StateParser.StateContext) -> Result["State", Error]:
+    def _build_id_2_type_consts(state: "State") -> Result["State", Error]:
+        # requires
+        assert state._id2type != Nothing
+
+        id2type = state._id2type.unwrap()
+        for const_decl in state._consts:
+            if const_decl.id in id2type:
+                first = (id2type[const_decl.id]).decl_loc
+                return Failure(
+                    StateMultipleDefinitionError(
+                        const_decl.id,
+                        const_decl.line,
+                        const_decl.col,
+                        first.line,
+                        first.col,
+                    )
+                )
+            id2type[const_decl.id] = TypeWithDeclLoc(const_decl.type_, const_decl)
+
+        return Success(state)
+
+    @staticmethod
+    def _build_id_2_type_enums(state: "State") -> Result["State", Error]:
+        # requires
+        assert state._id2type != Nothing
+
+        for i in state._enums:
+            result = state._build_id_2_type_enum(i)
+            if not_(is_successful)(result):
+                return result
+
+        return Success(state)
+
+    @staticmethod
+    def _build_id_2_type_vars(state: "State") -> Result["State", Error]:
+        # requires
+        assert state._id2type != Nothing
+
+        for i in state._vars:
+            result = state._build_id_2_type_var(i)
+            if not_(is_successful)(result):
+                return result
+
+        return Success(state)
+
+    @staticmethod
+    def _from_str(context: StateParser.StateContext) -> Result["State", Error]:
         listener = State._Listener()
         try:
             walker: ParseTreeWalker = cast(ParseTreeWalker, ParseTreeWalker.DEFAULT)
             walker.walk(listener, context)
-            return Success(listener.symbol_table)
-        except Exception as exception:
+            return listener.state_builder.build()
+        except Exception:
             # requires
-            assert len(exception.args) == 1
-            error: Error = exception.args[0]
-            return Failure(error)
+            assert listener.error != Nothing
+            return Failure(listener.error.unwrap())
 
     @staticmethod
     def _type_check_assigns(
-        symbol_table: "State", ltype: str, values: Iterable[str]
+        state: "State", ltype: str, values: Iterable[AllowedValueDecl]
     ) -> Result[tuple[()], Error]:
-        get_type_init = partial(State.get_type, symbol_table)
+        get_type_init = partial(State.get_type, state)
         get_type_assign = partial(typechecking.get_type_assign, ltype)
         for i in values:
             result: Result[str, Error] = flow(
-                i, get_type_init, bind_result(get_type_assign)
+                i.value, get_type_init, bind_result(get_type_assign)
             )
             if not_(is_successful)(result):
                 return Failure(result.failure())
         return Success(())
 
     @staticmethod
-    def _type_check_consts(symbol_table: "State") -> Result["State", Error]:
-        type_check_assigns = partial(State._type_check_assigns, symbol_table)
-        for key in symbol_table._consts:
-            type_, init = symbol_table._consts[key]
-            result = type_check_assigns(type_, [init])
+    def _type_check_consts(state: "State") -> Result["State", Error]:
+        type_check_assigns = partial(State._type_check_assigns, state)
+        for const_decl in state._consts:
+            result = type_check_assigns(const_decl.type_, [const_decl.init])
             if not_(is_successful)(result):
                 return Failure(result.failure())
-        return Success(symbol_table)
+        return Success(state)
 
     @staticmethod
-    def _type_check_vars(symbol_table: "State") -> Result["State", Error]:
-        type_check_assigns = partial(State._type_check_assigns, symbol_table)
-        for key in symbol_table._vars:
-            type_, init, values = symbol_table._vars[key]
-            result = type_check_assigns(type_, {init}.union(values))
+    def _type_check_vars(state: "State") -> Result["State", Error]:
+        type_check_assigns = partial(State._type_check_assigns, state)
+        for var_decl in state._vars:
+            values = var_decl.values + [var_decl.init]
+            result = type_check_assigns(var_decl.type_, values)
             if not_(is_successful)(result):
                 return Failure(result.failure())
-        return Success(symbol_table)
+        return Success(state)
 
     @staticmethod
-    def _type_check(symbol_table: "State") -> Result["State", Error]:
+    def type_check(state: "State") -> Result["State", Error]:
+        state._id2type = Some(dict())
         result: Result["State", Error] = flow(
-            symbol_table,
-            State._type_check_consts,
+            state,
+            State._build_id_2_type_enums,
+            bind_result(State._build_id_2_type_consts),
+            bind_result(State._build_id_2_type_vars),
+            bind_result(State._type_check_consts),
             bind_result(State._type_check_vars),
         )
 
         return result
 
+    def _build_id_2_type_enum(self, enum_decl: EnumDecl) -> Result["State", Error]:
+        # requires
+        assert self._id2type != Nothing
+
+        id2type = self._id2type.unwrap()
+        if enum_decl.id in id2type:
+            first = (id2type[enum_decl.id]).decl_loc
+            return Failure(
+                StateMultipleDefinitionError(
+                    enum_decl.id, enum_decl.line, enum_decl.col, first.line, first.col
+                )
+            )
+        id2type[enum_decl.id] = TypeWithDeclLoc(typechecking.ENUM, enum_decl)
+
+        for v in enum_decl.values:
+            if v.value in id2type:
+                first = id2type[v.value].decl_loc
+                return Failure(
+                    StateMultipleDefinitionError(
+                        v.value, v.line, v.col, first.line, first.col
+                    )
+                )
+            else:
+                id2type[v.value] = TypeWithDeclLoc(enum_decl.id, v)
+
+        return Success(self)
+
+    def _build_id_2_type_var(self, var_decl: VarDecl) -> Result["State", Error]:
+        # requires
+        assert self._id2type != Nothing
+
+        id2type = self._id2type.unwrap()
+        if var_decl.id in id2type:
+            first = (id2type[var_decl.id]).decl_loc
+            return Failure(
+                StateMultipleDefinitionError(
+                    var_decl.id, var_decl.line, var_decl.col, first.line, first.col
+                )
+            )
+        id2type[var_decl.id] = TypeWithDeclLoc(var_decl.type_, var_decl)
+
+        return Success(self)
+
     def get_type(self, id: str) -> Result[str, Error]:
-        if id in self._id2type:
-            return Success(self._id2type[id])
+        # requires
+        assert self._id2type != Nothing
+
+        id2type = self._id2type.unwrap()
+        if id in id2type:
+            return Success(id2type[id].type_)
         result: Result[str, Error] = typechecking.get_type_literal(id)
         return result
 
     def is_defined(self, id: str) -> bool:
+        # requires
+        assert self._id2type != Nothing
+
         defined: bool = is_successful(self.get_type(id))
         return defined
 
     @staticmethod
-    def build(state_def: str) -> Result["State", Error]:
+    def from_str(state_def: str) -> Result["State", Error]:
         result: Result["State", Error] = flow(
             state_def,
             _get_parser,
             bind_result(_parse_state),
-            bind_result(State._build),
-            bind_result(State._type_check),
+            bind_result(State._from_str),
         )
         return result

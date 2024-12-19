@@ -26,7 +26,7 @@ def get_root_mx_root():
 
 
 def build_symbol_table(code):
-    symbol_table = State.build(code)
+    symbol_table = State.from_str(code)
     assert is_successful(symbol_table)
     return symbol_table.unwrap()
 

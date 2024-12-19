@@ -5,6 +5,7 @@ from antlr4.error.ErrorStrategy import ParseCancellationException
 from returns.pipeline import is_successful
 from returns.result import Result
 from returns.functions import not_
+from returns.maybe import Some
 
 from typing import Iterable
 
@@ -121,7 +122,7 @@ class Test_SymbolTable_build:
         # good_input
 
         # when
-        result = State.build(good_input)
+        result = State.from_str(good_input)
 
         # then
         assert is_successful(result)
@@ -131,7 +132,7 @@ class Test_SymbolTable_build:
         # bad_input
 
         # when
-        result = State.build(bad_input)
+        result = State.from_str(bad_input)
 
         # then
         assert not_(is_successful)(result)
@@ -163,7 +164,7 @@ class Test_SymbolTable_build:
         # good, expected
 
         # when
-        result = State.build(good_input)
+        result = State.from_str(good_input)
 
         # then
         assert is_successful(result)
@@ -179,19 +180,19 @@ class Test_SymbolTable_build:
             # Multiple Defnitionns
             (
                 "enum E {e e} var i : E = a {a}",
-                StateMultipleDefinitionError("e", 1, 10, 1, 8),
+                StateMultipleDefinitionError("e", Some(1), Some(10), Some(1), Some(8)),
             ),
             (
                 "enum E {e} enum E {f} var i : E = a {a}",
-                StateMultipleDefinitionError("E", 1, 16, 1, 5),
+                StateMultipleDefinitionError("E", Some(1), Some(16), Some(1), Some(5)),
             ),
             (
                 "enum E {e} const e : E = 0 var i : E = a {a}",
-                StateMultipleDefinitionError("e", 1, 17, 1, 8),
+                StateMultipleDefinitionError("e", Some(1), Some(17), Some(1), Some(8)),
             ),
             (
-                "const e : int = 0 var e : int = 0 {0, 1}",
-                StateMultipleDefinitionError("e", 1, 22, 1, 6),
+                "const e : int = 0 var e : int = 0 {0 1}",
+                StateMultipleDefinitionError("e", Some(1), Some(22), Some(1), Some(6)),
             ),
             # Bad const initializer
             (
@@ -220,7 +221,7 @@ class Test_SymbolTable_build:
                 TypingNoTypeError("a"),
             ),
             (
-                "enum E {e} var c : E = e {e, 0}",
+                "enum E {e} var c : E = e {e 0}",
                 TypingAssignCompatabilityError("E", typechecking.BIT),
             ),
             (
@@ -234,7 +235,7 @@ class Test_SymbolTable_build:
             # Var initial value not included in allowed values
             (
                 "enum E {e f} var c : E = e {f}",
-                StateInitNotInValues("e", 1, 25, {"f"}),
+                StateInitNotInValues("e", Some(1), Some(25), {"f"}),
             ),
         ],
     )
@@ -243,7 +244,7 @@ class Test_SymbolTable_build:
         # bad, expected
 
         # when
-        result = State.build(bad_input)
+        result = State.from_str(bad_input)
 
         # then
         assert not_(is_successful)(result)
