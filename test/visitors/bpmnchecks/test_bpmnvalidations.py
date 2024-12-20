@@ -5,6 +5,7 @@ from bpmncwpverify.core.error import (
     BpmnGraphConnError,
     BpmnMissingEventsError,
     BpmnSeqFlowEndEventError,
+    BpmnFlowStartEventError,
     BpmnSeqFlowNoExprError,
     BpmnTaskFlowError,
 )
@@ -20,6 +21,7 @@ from bpmncwpverify.visitors.bpmnchecks.bpmnvalidations import (
     ProcessConnectivityVisitor,
     ValidateBpmnIncomingFlows,
     ValidateBpmnOutgoingFlows,
+    ValidateStartEventNoInFlows,
     validate_start_end_events,
     ValidateSeqFlowVisitor,
 )
@@ -414,3 +416,28 @@ class TestValidateBpmnOutgoingFlows:
 
         assert isinstance(exc_info.value.args[0], BpmnFlowOutgoingError)
         assert exc_info.value.args[0].node_id == "gateway2"
+
+
+class TestValidateStartEventNoInFlows:
+    def test_start_event_with_no_in_flows(self, mocker):
+        mock_event = mocker.MagicMock(spec=StartEvent)
+        mock_event.id = "start1"
+        mock_event.in_flows = []
+
+        visitor = ValidateStartEventNoInFlows()
+        result = visitor.visit_start_event(mock_event)
+
+        assert result is False
+
+    def test_start_event_with_incoming_flows(self, mocker):
+        mock_event = mocker.MagicMock(spec=StartEvent)
+        mock_event.id = "start1"
+        mock_event.in_flows = ["flow1"]
+
+        visitor = ValidateStartEventNoInFlows()
+
+        with pytest.raises(Exception) as exc_info:
+            visitor.visit_start_event(mock_event)
+
+        assert isinstance(exc_info.value.args[0], BpmnFlowStartEventError)
+        assert exc_info.value.args[0].node_id == "start1"
