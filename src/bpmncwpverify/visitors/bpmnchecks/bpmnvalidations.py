@@ -15,6 +15,7 @@ from bpmncwpverify.core.bpmn import (
 )
 from bpmncwpverify.core.error import (
     BpmnFlowIncomingError,
+    BpmnFlowOutgoingError,
     BpmnGraphConnError,
     BpmnMissingEventsError,
     BpmnMsgEndEventError,
@@ -150,6 +151,28 @@ class ValidateBpmnIncomingFlows(BpmnVisitor):  # type: ignore
 
     def visit_parallel_gateway(self, gateway: ParallelGatewayNode) -> bool:
         return self._check_in_flows(gateway)
+
+
+class ValidateBpmnOutgoingFlows(BpmnVisitor):  # type: ignore
+    def _check_out_flows(self, element: Node) -> bool:
+        if not element.out_flows:
+            raise Exception(BpmnFlowOutgoingError(element.id))
+        return True
+
+    def visit_start_event(self, event: StartEvent) -> bool:
+        return self._check_out_flows(event)
+
+    def visit_intermediate_event(self, event: IntermediateEvent) -> bool:
+        return self._check_out_flows(event)
+
+    def visit_task(self, task: Task) -> bool:
+        return self._check_out_flows(task)
+
+    def visit_exclusive_gateway(self, gateway: ExclusiveGatewayNode) -> bool:
+        return self._check_out_flows(gateway)
+
+    def visit_parallel_gateway(self, gateway: ParallelGatewayNode) -> bool:
+        return self._check_out_flows(gateway)
 
 
 ##########################

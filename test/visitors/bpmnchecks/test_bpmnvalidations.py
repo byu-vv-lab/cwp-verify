@@ -1,6 +1,7 @@
 # type: ignore
 from bpmncwpverify.core.error import (
     BpmnFlowIncomingError,
+    BpmnFlowOutgoingError,
     BpmnGraphConnError,
     BpmnMissingEventsError,
     BpmnSeqFlowEndEventError,
@@ -8,10 +9,17 @@ from bpmncwpverify.core.error import (
     BpmnTaskFlowError,
 )
 import pytest
-from bpmncwpverify.core.bpmn import EndEvent, ExclusiveGatewayNode, StartEvent, Task
+from bpmncwpverify.core.bpmn import (
+    EndEvent,
+    ExclusiveGatewayNode,
+    ParallelGatewayNode,
+    StartEvent,
+    Task,
+)
 from bpmncwpverify.visitors.bpmnchecks.bpmnvalidations import (
     ProcessConnectivityVisitor,
     ValidateBpmnIncomingFlows,
+    ValidateBpmnOutgoingFlows,
     validate_start_end_events,
     ValidateSeqFlowVisitor,
 )
@@ -312,3 +320,97 @@ class TestValidateBpmnIncomingFlows:
 
         assert isinstance(exc_info.value.args[0], BpmnFlowIncomingError)
         assert exc_info.value.args[0].node_id == "gateway1"
+
+
+class TestValidateBpmnOutgoingFlows:
+    def test_visit_start_event_with_outgoing_flows(self, mocker):
+        mock_event = mocker.MagicMock(spec=StartEvent)
+        mock_event.id = "start1"
+        mock_event.out_flows = ["flow1"]
+
+        visitor = ValidateBpmnOutgoingFlows()
+        result = visitor.visit_start_event(mock_event)
+
+        assert result is True
+
+    def test_visit_start_event_without_outgoing_flows(self, mocker):
+        mock_event = mocker.MagicMock(spec=StartEvent)
+        mock_event.id = "start1"
+        mock_event.out_flows = []
+
+        visitor = ValidateBpmnOutgoingFlows()
+
+        with pytest.raises(Exception) as exc_info:
+            visitor.visit_start_event(mock_event)
+
+        assert isinstance(exc_info.value.args[0], BpmnFlowOutgoingError)
+        assert exc_info.value.args[0].node_id == "start1"
+
+    def test_visit_task_with_outgoing_flows(self, mocker):
+        mock_task = mocker.MagicMock(spec=Task)
+        mock_task.id = "task1"
+        mock_task.out_flows = ["flow1"]
+
+        visitor = ValidateBpmnOutgoingFlows()
+        result = visitor.visit_task(mock_task)
+
+        assert result is True
+
+    def test_visit_task_without_outgoing_flows(self, mocker):
+        mock_task = mocker.MagicMock(spec=Task)
+        mock_task.id = "task1"
+        mock_task.out_flows = []
+
+        visitor = ValidateBpmnOutgoingFlows()
+
+        with pytest.raises(Exception) as exc_info:
+            visitor.visit_task(mock_task)
+
+        assert isinstance(exc_info.value.args[0], BpmnFlowOutgoingError)
+        assert exc_info.value.args[0].node_id == "task1"
+
+    def test_visit_exclusive_gateway_with_outgoing_flows(self, mocker):
+        mock_gateway = mocker.MagicMock(spec=ExclusiveGatewayNode)
+        mock_gateway.id = "gateway1"
+        mock_gateway.out_flows = ["flow1"]
+
+        visitor = ValidateBpmnOutgoingFlows()
+        result = visitor.visit_exclusive_gateway(mock_gateway)
+
+        assert result is True
+
+    def test_visit_exclusive_gateway_without_outgoing_flows(self, mocker):
+        mock_gateway = mocker.MagicMock(spec=ExclusiveGatewayNode)
+        mock_gateway.id = "gateway1"
+        mock_gateway.out_flows = []
+
+        visitor = ValidateBpmnOutgoingFlows()
+
+        with pytest.raises(Exception) as exc_info:
+            visitor.visit_exclusive_gateway(mock_gateway)
+
+        assert isinstance(exc_info.value.args[0], BpmnFlowOutgoingError)
+        assert exc_info.value.args[0].node_id == "gateway1"
+
+    def test_visit_parallel_gateway_with_outgoing_flows(self, mocker):
+        mock_gateway = mocker.MagicMock(spec=ParallelGatewayNode)
+        mock_gateway.id = "gateway2"
+        mock_gateway.out_flows = ["flow1", "flow2"]
+
+        visitor = ValidateBpmnOutgoingFlows()
+        result = visitor.visit_parallel_gateway(mock_gateway)
+
+        assert result is True
+
+    def test_visit_parallel_gateway_without_outgoing_flows(self, mocker):
+        mock_gateway = mocker.MagicMock(spec=ParallelGatewayNode)
+        mock_gateway.id = "gateway2"
+        mock_gateway.out_flows = []
+
+        visitor = ValidateBpmnOutgoingFlows()
+
+        with pytest.raises(Exception) as exc_info:
+            visitor.visit_parallel_gateway(mock_gateway)
+
+        assert isinstance(exc_info.value.args[0], BpmnFlowOutgoingError)
+        assert exc_info.value.args[0].node_id == "gateway2"
