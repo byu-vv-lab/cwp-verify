@@ -22,6 +22,7 @@
 
       const inputData = document.getElementById('inputData').files[0];
       const responseContainer = document.getElementById('responseContainer');
+      const lambda_url = 'https://cxvqggpd6swymxnmahwvgfsina0tiokb.lambda-url.us-east-1.on.aws/';
 
       responseContainer.textContent = 'Processing...';
 
@@ -29,7 +30,7 @@
       formData.append('file', inputData);
 
       try {
-        const response = await fetch('https://cxvqggpd6swymxnmahwvgfsina0tiokb.lambda-url.us-east-1.on.aws/', {
+        const response = await fetch(lambda_url, {
           method: 'POST',
           body: formData,
         });
