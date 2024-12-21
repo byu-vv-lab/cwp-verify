@@ -21,7 +21,7 @@ from bpmncwpverify.visitors.bpmnchecks.bpmnvalidations import (
     ProcessConnectivityVisitor,
     ValidateBpmnIncomingFlows,
     ValidateBpmnOutgoingFlows,
-    ValidateStartEventNoInFlows,
+    ValidateStartEventFlows,
     validate_start_end_events,
     ValidateSeqFlowVisitor,
 )
@@ -418,26 +418,29 @@ class TestValidateBpmnOutgoingFlows:
         assert exc_info.value.args[0].node_id == "gateway2"
 
 
-class TestValidateStartEventNoInFlows:
-    def test_start_event_with_no_in_flows(self, mocker):
+class TestValidateStartEventFlows:
+    @pytest.mark.parametrize(
+        "in_flows, out_msgs, should_raise",
+        [
+            ([], [], False),  # No flows
+            (["flow1"], [], True),  # Incoming flows
+            ([], ["flow1"], True),  # Outgoing flows
+            (["flow1"], ["flow2"], True),  # Both flows
+        ],
+    )
+    def test_start_event_flows(self, mocker, in_flows, out_msgs, should_raise):
         mock_event = mocker.MagicMock(spec=StartEvent)
         mock_event.id = "start1"
-        mock_event.in_flows = []
+        mock_event.in_flows = in_flows
+        mock_event.out_msgs = out_msgs
 
-        visitor = ValidateStartEventNoInFlows()
-        result = visitor.visit_start_event(mock_event)
+        visitor = ValidateStartEventFlows()
 
-        assert result is False
-
-    def test_start_event_with_incoming_flows(self, mocker):
-        mock_event = mocker.MagicMock(spec=StartEvent)
-        mock_event.id = "start1"
-        mock_event.in_flows = ["flow1"]
-
-        visitor = ValidateStartEventNoInFlows()
-
-        with pytest.raises(Exception) as exc_info:
-            visitor.visit_start_event(mock_event)
-
-        assert isinstance(exc_info.value.args[0], BpmnFlowStartEventError)
-        assert exc_info.value.args[0].node_id == "start1"
+        if should_raise:
+            with pytest.raises(Exception) as exc_info:
+                visitor.visit_start_event(mock_event)
+            assert isinstance(exc_info.value.args[0], BpmnFlowStartEventError)
+            assert exc_info.value.args[0].node_id == "start1"
+        else:
+            result = visitor.visit_start_event(mock_event)
+            assert result is False
