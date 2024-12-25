@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Call Lambda Service</title>
+</head>
+
+<body>
+  <form id="lambdaForm">
+    <label for="inputData">Upload file:</label>
+    <input type="file" id="inputData" name="inputData" required>
+    <button type="submit">Submit</button>
+  </form>
+
+  <div id="responseContainer" style="margin-top: 20px; font-size: 16px; color: blue;"></div>
+
+  <script>
+    document.getElementById('lambdaForm').addEventListener('submit', async function (event) {
+      event.preventDefault();
+
+      const inputData = document.getElementById('inputData').files[0];
+      const responseContainer = document.getElementById('responseContainer');
+      const lambda_url = 'https://cxvqggpd6swymxnmahwvgfsina0tiokb.lambda-url.us-east-1.on.aws/';
+
+      responseContainer.textContent = 'Processing...';
+
+      const formData = new FormData();
+      formData.append('file', inputData);
+
+      try {
+        const response = await fetch(lambda_url, {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+
+        const result = await response.json();
+
+        responseContainer.textContent = `Lambda Response: ${JSON.stringify(result)}`;
+      } catch (error) {
+        console.error('Error calling Lambda:', error);
+        responseContainer.textContent = `Error: ${error.message}`;
+      }
+    });
+  </script>
+</body>
+
+</html>
