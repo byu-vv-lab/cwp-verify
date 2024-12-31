@@ -456,7 +456,7 @@ def _get_error_message(error: Error) -> str:
         case BpmnFlowOutgoingError(node_id=node_id):
             return f"Flow error: All flow objects other than end events and compensating activities must have an outgoing sequence flow, if the process level includes any start or end events. node: {node_id}"
         case BpmnFlowStartEventError(node_id=node_id):
-            return f"Flow error: A start event cannot have an incoming sequence flow. node: {node_id}"
+            return f"Flow error: A start event cannot have an incoming sequence flow and cannot have an outgoing message flow. node: {node_id}"
         case BpmnFlowTypeError(flow_id=flow_id):
             return f"Flow error: Flow '{flow_id}' is not a sequence flow when it should be."
         case BpmnNodeTypeError(flow_id=flow_id):
