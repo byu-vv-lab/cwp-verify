@@ -50,7 +50,7 @@ class ThrowingErrorListener(ErrorListener):  # type: ignore[misc]
         line: int,
         column: int,
         msg: str,
-        e: Exception,
+        excpt: Exception,
     ) -> None:
         """
         Raises ParseCancellationException when a syntax error is encountered
@@ -74,24 +74,18 @@ def _get_parser(file_contents: str) -> Result[ExprParser, Error]:
     Args:
         file_contents (str): Contents of the file
     """
-    input_stream = InputStream(
-        file_contents
-    )  # Create InputStream object with contents of the file
-    lexer = ExprLexer(
-        input_stream
-    )  # Create ExprLexer object with previously created InputStream object to tokenize file contents
-    stream = CommonTokenStream(
-        lexer
-    )  # Create a CommonTokenStream object with the tokens in ExprLexer object
-    parser = ExprParser(
-        stream
-    )  # Create ExprParser object with previously created CommonTokenStream object
-    parser.removeErrorListener(
-        ConsoleErrorListener.INSTANCE
-    )  # Remove default error listener from ExprParser object  # type: ignore[unused-ignore]
-    parser.addErrorListener(
-        ThrowingErrorListener()
-    )  # Add new error listener with ThrowingErrorListener object  # type: ignore[unused-ignore]
+    # Create InputStream object with contents of the file
+    input_stream = InputStream(file_contents)
+    # Create ExprLexer object with previously created InputStream object to tokenize file contents
+    lexer = ExprLexer(input_stream)
+    # Create a CommonTokenStream object with the tokens in ExprLexer object
+    stream = CommonTokenStream(lexer)
+    # Create ExprParser object with previously created CommonTokenStream object
+    parser = ExprParser(stream)
+    # Remove default error listener from ExprParser object
+    parser.removeErrorListener(ConsoleErrorListener.INSTANCE)  # type: ignore[unused-ignore]
+    # Add new error listener with ThrowingErrorListener object
+    parser.addErrorListener(ThrowingErrorListener())  # type: ignore[unused-ignore]
     return Success(parser)
 
 
@@ -306,12 +300,11 @@ class ExpressionListener(ExprListener):  # type: ignore[misc]
             symbol_table (State): State object that holds variable typing
         """
         build_with_params = partial(ExpressionListener._build, symbol_table)
-        result: Result[str, Error] = (
-            flow(  # flow will allow result of previous code in previous line to pipeline into next function/line of code
-                expression,
-                _get_parser,
-                bind_result(_parse_expressions),
-                bind_result(build_with_params),
-            )
+        # flow will allow result of previous code in previous line to pipeline into next function/line of code
+        result: Result[str, Error] = flow(
+            expression,
+            _get_parser,
+            bind_result(_parse_expressions),
+            bind_result(build_with_params),
         )
         return result
