@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional
 from xml.etree.ElementTree import Element
 import re
 from bpmncwpverify.core.expr import ExpressionListener
@@ -23,7 +23,7 @@ class Cwp:
     def from_xml(root: Element, symbol_table: State) -> Result["Cwp", Error]:
         from bpmncwpverify.builder.cwp_builder import CwpBuilder
 
-        builder = CwpBuilder(symbol_table)
+        builder = CwpBuilder()
 
         if (diagram := root.find("diagram")) is None:
             return Failure(CwpFileStructureError("diagram"))
@@ -39,18 +39,18 @@ class Cwp:
         states: List[Element] = [itm for itm in mx_cells if itm.get("vertex")]
         expression_checker = ExpressionListener(symbol_table)
 
-        for state in states:
-            style = state.get("style")
+        for element in states:
+            style = element.get("style")
             if style and "edgeLabel" not in style:
-                state = CwpState.from_xml(state)
+                state = CwpState.from_xml(element)
                 builder.with_state(state)
 
-        for edge in edges:
-            source_ref = edge.get("source")
-            target_ref = edge.get("target")
+        for element in edges:
+            source_ref = element.get("source")
+            target_ref = element.get("target")
             if not target_ref or not source_ref:
-                raise Exception(CwpEdgeNoStateError(edge))
-            edge = CwpEdge.from_xml(edge, builder.gen_edge_name())
+                raise Exception(CwpEdgeNoStateError(element))
+            edge = CwpEdge.from_xml(element, builder.gen_edge_name())
 
             builder.with_edge(edge, source_ref, target_ref)
 
@@ -61,7 +61,9 @@ class Cwp:
                 expression = itm.get("value")
                 if not (parent and expression):
                     raise Exception(CwpEdgeNoParentExprError(itm))
-                builder.check_expression(expression_checker, expression, parent)
+                builder.check_expression(
+                    expression_checker, expression, parent, symbol_table
+                )
 
         result: Result["Cwp", Error] = builder.build()
         return result

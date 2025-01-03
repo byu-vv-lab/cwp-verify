@@ -1,11 +1,7 @@
-from typing import List
-from xml.etree.ElementTree import Element
 from bpmncwpverify.core.state import State
 from bpmncwpverify.visitors.cwp_connectivity_visitor import CwpConnectivityVisitor
 from returns.result import Result, Success, Failure
 from bpmncwpverify.core.error import (
-    CwpEdgeNoParentExprError,
-    CwpEdgeNoStateError,
     CwpMultStartStateError,
     CwpNoEndStatesError,
     CwpNoParentEdgeError,
@@ -19,13 +15,9 @@ from returns.functions import not_
 
 
 class CwpBuilder:
-    def __init__(self, symbol_table: State) -> None:
-        self.edges: List[Element] = []
-        self.all_items: List[Element] = []
-        self.states: List[Element] = []
+    def __init__(self) -> None:
         self._cur_edge_letter = "A"
         self._cwp = Cwp()
-        self.symbol_table = symbol_table
 
     def gen_edge_name(self) -> str:
         ret = "Edge" + self._cur_edge_letter
@@ -33,7 +25,44 @@ class CwpBuilder:
         return ret
 
     def build(self) -> Result[Cwp, Error]:
-        pass
+        try:
+            end_states = [
+                state
+                for state in self._cwp.states.values()
+                if not state.out_edges and state.in_edges
+            ]
+
+            start_states = [
+                state
+                for state in self._cwp.states.values()
+                if not state.in_edges and state.out_edges
+            ]
+
+            if len(start_states) > 1:
+                raise Exception(
+                    CwpMultStartStateError([state.id for state in start_states])
+                )
+            elif not start_states:
+                raise Exception(CwpNoStartStateError())
+
+            self._cwp.start_state = start_states[0]
+
+            if not end_states:
+                raise Exception(CwpNoEndStatesError())
+
+            self._cwp.states = {
+                id: state
+                for id, state in self._cwp.states.items()
+                if state != self._cwp.start_state
+            }
+
+            # This step ensures connectivity of the graph and sets leaf edges
+            visitor = CwpConnectivityVisitor()
+            self._cwp.accept(visitor)
+
+            return Success(self._cwp)
+        except Exception as e:
+            return Failure(e.args[0])
 
     def with_edge(self, edge: CwpEdge, source_ref: str, target_ref: str) -> None:
         source = self._cwp.states[source_ref]
@@ -46,21 +75,19 @@ class CwpBuilder:
         self._cwp.edges[edge.id] = edge
 
     def check_expression(
-        self, expr_checker: ExpressionListener, expression: str, parent: str
+        self,
+        expr_checker: ExpressionListener,
+        expression: str,
+        parent: str,
+        symbol_table: State,
     ) -> None:
         edge = self._cwp.edges.get(parent)
         if not edge:
             raise Exception(CwpNoParentEdgeError(parent))
         edge.expression = CwpEdge.cleanup_expression(expression)
-        result = expr_checker.type_check(edge.expression, self.symbol_table)
+        result = expr_checker.type_check(edge.expression, symbol_table)
         if not_(is_successful)(result):
             raise Exception(result.failure())
-
-    def with_init_state(self, state: CwpState) -> None:
-        pass
-
-    def with_final_state(self, state: CwpState) -> None:
-        pass
 
     def with_state(self, state: CwpState) -> None:
         self._cwp.states[state.id] = state
