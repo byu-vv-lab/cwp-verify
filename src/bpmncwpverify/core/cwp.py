@@ -94,10 +94,12 @@ class CwpState:
 
         self.name = name.strip()
 
+    @staticmethod
+    def from_xml(element: Element) -> "CwpState":
+        return CwpState(element)
+
 
 class CwpEdge:
-    # TODO: Make sure this static class variable won't modify anything weirdly
-
     def __init__(self, edge: Element, name: str) -> None:
         id = edge.get("id")
         if id is None:
@@ -136,6 +138,10 @@ class CwpEdge:
         expression = re.sub(r"\s+", " ", expression)
 
         return expression.strip()
+
+    @staticmethod
+    def from_xml(element: Element, name: str) -> "CwpEdge":
+        return CwpEdge(element, name)
 
 
 class CwpVisitor:
