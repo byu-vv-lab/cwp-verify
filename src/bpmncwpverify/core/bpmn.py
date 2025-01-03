@@ -1,7 +1,9 @@
-from typing import List, Dict, Union
+from __future__ import annotations
+from typing import List, Dict, Union, cast
 from xml.etree.ElementTree import Element
 from bpmncwpverify.core.state import State
-from returns.result import Result, Failure
+from returns.result import Result
+from abc import abstractmethod
 from returns.pipeline import is_successful
 from returns.functions import not_
 from bpmncwpverify.core.error import (
@@ -16,6 +18,8 @@ BPMN_XML_NAMESPACE = {"bpmn": "http://www.omg.org/spec/BPMN/20100524/MODEL"}
 # Base class for all BPMN elements
 ###################
 class BpmnElement:
+    __slots__ = ["element", "name", "id"]
+
     def __init__(self, element: Element) -> None:
         self.element = element
         id = element.attrib.get("id")
@@ -31,6 +35,15 @@ class BpmnElement:
 # Base class for nodes that can have incoming and outgoing flows
 ###################
 class Node(BpmnElement):
+    __slots__ = [
+        "out_flows",
+        "in_flows",
+        "in_msgs",
+        "out_msgs",
+        "message_event_definition",
+        "message_timer_definition",
+    ]
+
     def __init__(self, element: Element) -> None:
         super().__init__(element)
 
@@ -73,33 +86,39 @@ class Node(BpmnElement):
     def accept(self, visitor: "BpmnVisitor") -> None:
         pass
 
+    @staticmethod
+    @abstractmethod
+    def from_xml(element: Element) -> "Node":
+        pass
+
 
 ###################
 # Event classes
 ###################
 class Event(Node):
-    def __init__(self, element: Element):
-        super().__init__(element)
+    pass
 
 
 class StartEvent(Event):
-    def __init__(self, element: Element):
-        super().__init__(element)
-
     def accept(self, visitor: "BpmnVisitor") -> None:
         result = visitor.visit_start_event(self)
         self.traverse_outflows_if_result(visitor, result)
         visitor.end_visit_start_event(self)
 
+    @staticmethod
+    def from_xml(element: Element) -> "StartEvent":
+        return StartEvent(element)
+
 
 class EndEvent(Event):
-    def __init__(self, element: Element):
-        super().__init__(element)
-
     def accept(self, visitor: "BpmnVisitor") -> None:
         result = visitor.visit_end_event(self)
         self.traverse_outflows_if_result(visitor, result)
         visitor.end_visit_end_event(self)
+
+    @staticmethod
+    def from_xml(element: Element) -> "EndEvent":
+        return EndEvent(element)
 
 
 class IntermediateEvent(Event):
@@ -113,51 +132,41 @@ class IntermediateEvent(Event):
         self.traverse_outflows_if_result(visitor, result)
         visitor.end_visit_intermediate_event(self)
 
+    @staticmethod
+    def from_xml(element: Element) -> "IntermediateEvent":
+        return IntermediateEvent(element)
+
 
 ###################
 # Activity classes
 ###################
-class Activity(Node):
-    def __init__(self, element: Element):
-        super().__init__(element)
-
-
-class Task(Activity):
-    def __init__(self, element: Element):
-        super().__init__(element)
-
+class Task(Node):
     def accept(self, visitor: "BpmnVisitor") -> None:
         result = visitor.visit_task(self)
         self.traverse_outflows_if_result(visitor, result)
         visitor.end_visit_task(self)
 
-
-class SubProcess(Activity):
-    def __init__(self, element: Element):
-        super().__init__(element)
-
-    def accept(self, visitor: "BpmnVisitor") -> None:
-        result = visitor.visit_sub_process(self)
-        self.traverse_outflows_if_result(visitor, result)
-        visitor.end_visit_sub_process(self)
+    @staticmethod
+    def from_xml(element: Element) -> "Task":
+        return Task(element)
 
 
 ###################
 # Gateway classes
 ###################
 class GatewayNode(Node):
-    def __init__(self, element: Element):
-        super().__init__(element)
+    pass
 
 
 class ExclusiveGatewayNode(GatewayNode):
-    def __init__(self, element: Element):
-        super().__init__(element)
-
     def accept(self, visitor: "BpmnVisitor") -> None:
         result = visitor.visit_exclusive_gateway(self)
         self.traverse_outflows_if_result(visitor, result)
         visitor.end_visit_exclusive_gateway(self)
+
+    @staticmethod
+    def from_xml(element: Element) -> "ExclusiveGatewayNode":
+        return ExclusiveGatewayNode(element)
 
 
 class ParallelGatewayNode(GatewayNode):
@@ -175,11 +184,17 @@ class ParallelGatewayNode(GatewayNode):
         if len(self.out_flows) > 1:
             self.is_fork = True
 
+    @staticmethod
+    def from_xml(element: Element) -> "ParallelGatewayNode":
+        return ParallelGatewayNode(element)
+
 
 ###################
 # Flow classes
 ###################
 class Flow(BpmnElement):
+    __slots__ = ["source_node", "target_node", "is_leaf"]
+
     def __init__(
         self,
         element: Element,
@@ -189,8 +204,15 @@ class Flow(BpmnElement):
         self.target_node: Node
         self.is_leaf: bool = False
 
+    @staticmethod
+    @abstractmethod
+    def from_xml(element: Element) -> "Flow":
+        pass
+
 
 class SequenceFlow(Flow):
+    __slots__ = ["expression"]
+
     def __init__(self, element: Element):
         super().__init__(element)
         self.expression: str = ""
@@ -200,10 +222,15 @@ class SequenceFlow(Flow):
             self.target_node.accept(visitor)
         visitor.end_visit_sequence_flow(self)
 
+    @staticmethod
+    def from_xml(element: Element) -> "SequenceFlow":
+        return SequenceFlow(element)
+
 
 class MessageFlow(Flow):
-    def __init__(self, element: Element):
-        super().__init__(element)
+    @staticmethod
+    def from_xml(element: Element) -> "MessageFlow":
+        return MessageFlow(element)
 
 
 ###################
@@ -244,6 +271,33 @@ class Process(BpmnElement):
     def get_start_states(self) -> Dict[str, StartEvent]:
         return self._start_states
 
+    @staticmethod
+    def from_xml(
+        element: Element,
+        symbol_table: State,
+    ) -> Result["Process", Error]:
+        from bpmncwpverify.builder.process_builder import ProcessBuilder
+
+        builder = ProcessBuilder(element, symbol_table)
+
+        for sub_element in element:
+            tag = sub_element.tag.partition("}")[2]
+
+            result = get_element_type(tag)
+
+            class_object = result.from_xml(sub_element)
+            builder.with_element(class_object)
+
+        for seq_flow in element.findall("bpmn:sequenceFlow", BPMN_XML_NAMESPACE):
+            builder.with_process_flow(
+                seq_flow.attrib["id"],
+                seq_flow.attrib["sourceRef"],
+                seq_flow.attrib["targetRef"],
+                seq_flow.attrib.get("name", ""),
+            )
+
+        return cast(Result[Process, Error], builder.build())
+
     def accept(self, visitor: "BpmnVisitor") -> None:
         visitor.visit_process(self)
         for start_event in self.get_start_states().values():
@@ -252,11 +306,34 @@ class Process(BpmnElement):
 
 
 ###################
+# Function that maps tag name to its respective builder function
+###################
+def get_element_type(tag: str) -> Union[type[SequenceFlow], type[Node]]:
+    mapping: Dict[str, Union[type[SequenceFlow], type[Node]]] = {
+        "task": Task,
+        "startEvent": StartEvent,
+        "endEvent": EndEvent,
+        "exclusiveGateway": ExclusiveGatewayNode,
+        "parallelGateway": ParallelGatewayNode,
+        "sendTask": IntermediateEvent,
+        "intermediateCatchEvent": IntermediateEvent,
+        "intermediateThrowEvent": IntermediateEvent,
+        "sequenceFlow": SequenceFlow,
+    }
+
+    result = mapping.get(tag) or (
+        mapping.get("task") if "task" in tag.lower() else None
+    )
+
+    assert result
+
+    return result
+
+
+###################
 # Bpmn class (building graph from xml happens here)
 ###################
 class Bpmn:
-    _MSG_MAPPING = {"messageFlow": MessageFlow}
-
     def __init__(self) -> None:
         self.processes: Dict[str, Process] = {}
         self.id_to_element: Dict[str, BpmnElement] = {}  # Maps ids to elements
@@ -300,21 +377,37 @@ class Bpmn:
     def from_xml(root: Element, symbol_table: State) -> Result["Bpmn", Error]:
         from bpmncwpverify.builder.bpmn_builder import BpmnBuilder
 
-        builder = BpmnBuilder()
+        ##############
+        # Build and add processes
+        ##############
         processes = root.findall("bpmn:process", BPMN_XML_NAMESPACE)
-        result: Result["Bpmn", Error] = Failure(Error())
-        process_result: Result[Process, Error] = Failure(Error())
+        bpmn_builder = BpmnBuilder()
         for process_element in processes:
-            process_result = builder.with_process(process_element, symbol_table)
-            if not_(is_successful)(process_result):
-                return Failure(process_result.failure())
+            process = Process.from_xml(process_element, symbol_table)
+            if not_(is_successful)(process):
+                return cast(Result[Bpmn, Error], process)
+            bpmn_builder.with_process(process.unwrap())
 
+        ##############
+        # Build and add messages
+        ##############
         collab = root.find("bpmn:collaboration", BPMN_XML_NAMESPACE)
         if collab is not None:
+            # TODO: write test for messages in the bpmn diagram
+            bpmn_builder.with_process_elements()
             for msg_flow in collab.findall("bpmn:messageFlow", BPMN_XML_NAMESPACE):
-                builder.with_message(msg_flow)
-        result = builder.build()
-        return result
+                source_ref, target_ref = (
+                    msg_flow.get("sourceRef"),
+                    msg_flow.get("targetRef"),
+                )
+
+                message = MessageFlow.from_xml(msg_flow)
+
+                assert source_ref and target_ref
+
+                bpmn_builder.with_message(message, source_ref, target_ref)
+
+        return cast(Result[Bpmn, Error], bpmn_builder.build())
 
 
 ###################
@@ -343,12 +436,6 @@ class BpmnVisitor:
         return True
 
     def end_visit_task(self, task: Task) -> None:
-        pass
-
-    def visit_sub_process(self, subprocess: SubProcess) -> bool:
-        return True
-
-    def end_visit_sub_process(self, subprocess: SubProcess) -> None:
         pass
 
     def visit_exclusive_gateway(self, gateway: ExclusiveGatewayNode) -> bool:
