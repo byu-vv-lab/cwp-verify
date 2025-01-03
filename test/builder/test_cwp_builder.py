@@ -115,14 +115,11 @@ def test_build(mocker):
 
     mock_cwp = mocker.MagicMock()
     mock_cwp.states = states
+    mock_cwp.edges = edges
 
-    obj = CwpBuilder(mocker.MagicMock())
+    obj = CwpBuilder()
     obj._cwp = mock_cwp
-    obj._cwp.states = states
-    obj._cwp.edges = edges
-    obj._parse_states = mocker.MagicMock()
-    obj._parse_edges = mocker.MagicMock()
-    obj._add_and_check_expressions = mocker.MagicMock()
+    obj.check_expressions = mocker.MagicMock()
     mock_cwp.accept = mocker.MagicMock()
 
     result = obj.build()
@@ -136,9 +133,6 @@ def test_build(mocker):
     assert list(end_states) == [states["state3"]]
 
     mock_cwp.accept.assert_called_once()
-    obj._parse_states.assert_called_once()
-    obj._parse_edges.assert_called_once()
-    obj._add_and_check_expressions.assert_called_once()
 
     new_edge = CwpEdge(mocker.MagicMock(), mocker.MagicMock())
     states["state1"].in_edges = [new_edge]
