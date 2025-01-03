@@ -28,20 +28,24 @@ class Cwp:
         if not (mx_cells := mx_root.findall("mxCell")):
             return Failure(CwpFileStructureError("mxCell"))
 
-        for itm in mx_cells:
-            if itm.get("vertex"):
-                state = CwpState.from_xml(itm)
-                if state:
-                    builder.with_state(state)
-            elif itm.get("edge"):
-                edge = CwpEdge.from_xml(itm, builder.gen_edge_name())
+        all_items: List[Element] = [itm for itm in mx_cells]
+        edges: List[Element] = [itm for itm in mx_cells if itm.get("edge")]
+        states: List[Element] = [itm for itm in mx_cells if itm.get("vertex")]
 
-                source_ref = itm.get("source")
-                target_ref = itm.get("target")
-                if not target_ref or not source_ref:
-                    raise Exception(CwpEdgeNoStateError(itm))
+        for state in states:
+            style = state.get("style")
+            if style and "edgeLabel" not in style:
+                state = CwpState.from_xml(state)
+                builder.with_state(state)
 
-                builder.with_edge(edge, source_ref, target_ref)
+        for edge in edges:
+            source_ref = edge.get("source")
+            target_ref = edge.get("target")
+            if not target_ref or not source_ref:
+                raise Exception(CwpEdgeNoStateError(edge))
+            edge = CwpEdge.from_xml(edge, builder.gen_edge_name())
+
+            builder.with_edge(edge, source_ref, target_ref)
 
         result: Result["Cwp", Error] = builder.build()
         return result
@@ -104,10 +108,8 @@ class CwpState:
         self.name = name.strip()
 
     @staticmethod
-    def from_xml(element: Element) -> Optional["CwpState"]:
-        style = element.get("style")
-        if style and "edgeLabel" not in style:
-            return CwpState(element)
+    def from_xml(element: Element) -> "CwpState":
+        return CwpState(element)
 
 
 class CwpEdge:

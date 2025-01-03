@@ -45,6 +45,9 @@ class CwpBuilder:
         edge.set_dest(dest)
         self._cwp.edges[edge.id] = edge
 
+    def parse_state(self, state):
+        pass
+
     def with_init_state(self, state: CwpState) -> None:
         pass
 
