@@ -35,8 +35,15 @@ class CwpBuilder:
     def build(self) -> Result[Cwp, Error]:
         pass
 
-    def with_edge(self, edge: CwpEdge) -> None:
-        pass
+    def with_edge(self, edge: CwpEdge, source_ref: str, target_ref: str) -> None:
+        source = self._cwp.states[source_ref]
+        source.out_edges.append(edge)
+        edge.set_source(source)
+
+        dest = self._cwp.states[target_ref]
+        dest.in_edges.append(edge)
+        edge.set_dest(dest)
+        self._cwp.edges[edge.id] = edge
 
     def with_init_state(self, state: CwpState) -> None:
         pass
@@ -45,4 +52,4 @@ class CwpBuilder:
         pass
 
     def with_state(self, state: CwpState) -> None:
-        pass
+        self._cwp.states[state.id] = state

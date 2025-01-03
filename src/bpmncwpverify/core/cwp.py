@@ -1,9 +1,9 @@
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 from xml.etree.ElementTree import Element
 import re
 from bpmncwpverify.core.state import State
 from returns.result import Result, Failure
-from bpmncwpverify.core.error import CwpFileStructureError, Error
+from bpmncwpverify.core.error import CwpEdgeNoStateError, CwpFileStructureError, Error
 
 
 class Cwp:
@@ -31,10 +31,17 @@ class Cwp:
         for itm in mx_cells:
             if itm.get("vertex"):
                 state = CwpState.from_xml(itm)
-                builder.with_state(state)
+                if state:
+                    builder.with_state(state)
             elif itm.get("edge"):
                 edge = CwpEdge.from_xml(itm, builder.gen_edge_name())
-                builder.with_edge(edge)
+
+                source_ref = itm.get("source")
+                target_ref = itm.get("target")
+                if not target_ref or not source_ref:
+                    raise Exception(CwpEdgeNoStateError(itm))
+
+                builder.with_edge(edge, source_ref, target_ref)
 
         result: Result["Cwp", Error] = builder.build()
         return result
@@ -97,8 +104,10 @@ class CwpState:
         self.name = name.strip()
 
     @staticmethod
-    def from_xml(element: Element) -> "CwpState":
-        return CwpState(element)
+    def from_xml(element: Element) -> Optional["CwpState"]:
+        style = element.get("style")
+        if style and "edgeLabel" not in style:
+            return CwpState(element)
 
 
 class CwpEdge:
