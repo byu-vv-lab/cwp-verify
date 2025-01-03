@@ -3,7 +3,6 @@ import typing
 import builtins
 from xml.etree.ElementTree import Element
 
-from bpmncwpverify.core.cwp import CwpEdge
 from returns.maybe import Maybe, Nothing
 
 
