@@ -3,6 +3,7 @@ import typing
 import builtins
 from xml.etree.ElementTree import Element
 
+from bpmncwpverify.core.cwp import CwpEdge
 from returns.maybe import Maybe, Nothing
 
 
@@ -284,11 +285,11 @@ class CwpNoEndStatesError(Error):
 
 
 class CwpNoParentEdgeError(Error):
-    __slots__ = ["edge"]
+    __slots__ = ["parent_edge"]
 
-    def __init__(self, edge: Element) -> None:
+    def __init__(self, parent_edge: str) -> None:
         super().__init__()
-        self.edge = edge
+        self.parent_edge = parent_edge
 
 
 class CwpNoStartStateError(Error):
@@ -489,8 +490,8 @@ def _get_error_message(error: Error) -> str:
             return f"CWP ERROR: Edge does not have a source or a target. Edge details: {edge.attrib}."
         case CwpEdgeNoParentExprError(edge=edge):
             return f"CWP ERROR: Expression or parent node not found in edge. Edge details: {edge.attrib}."
-        case CwpNoParentEdgeError(edge=edge):
-            return f"CWP ERROR: Parent edge not found or no parent ID reference. Edge details: {edge.attrib}."
+        case CwpNoParentEdgeError(parent_edge=parent_edge):
+            return f"CWP ERROR: Parent edge not found or no parent ID reference. Edge details: {parent_edge}."
         case CwpMultStartStateError(start_states=start_states):
             return f"CWP ERROR: More than one start state found. Start state IDs: {start_states}."
         case CwpNoStartStateError():

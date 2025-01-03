@@ -1,9 +1,15 @@
 from typing import Dict, List, Optional, Union
 from xml.etree.ElementTree import Element
 import re
+from bpmncwpverify.core.expr import ExpressionListener
 from bpmncwpverify.core.state import State
 from returns.result import Result, Failure
-from bpmncwpverify.core.error import CwpEdgeNoStateError, CwpFileStructureError, Error
+from bpmncwpverify.core.error import (
+    CwpEdgeNoParentExprError,
+    CwpEdgeNoStateError,
+    CwpFileStructureError,
+    Error,
+)
 
 
 class Cwp:
@@ -31,6 +37,7 @@ class Cwp:
         all_items: List[Element] = [itm for itm in mx_cells]
         edges: List[Element] = [itm for itm in mx_cells if itm.get("edge")]
         states: List[Element] = [itm for itm in mx_cells if itm.get("vertex")]
+        expression_checker = ExpressionListener(symbol_table)
 
         for state in states:
             style = state.get("style")
@@ -46,6 +53,15 @@ class Cwp:
             edge = CwpEdge.from_xml(edge, builder.gen_edge_name())
 
             builder.with_edge(edge, source_ref, target_ref)
+
+        for itm in all_items:
+            style = itm.get("style")
+            if style and "edgeLabel" in style:
+                parent = itm.get("parent")
+                expression = itm.get("value")
+                if not (parent and expression):
+                    raise Exception(CwpEdgeNoParentExprError(itm))
+                builder.check_expression(expression_checker, expression, parent)
 
         result: Result["Cwp", Error] = builder.build()
         return result

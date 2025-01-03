@@ -45,8 +45,16 @@ class CwpBuilder:
         edge.set_dest(dest)
         self._cwp.edges[edge.id] = edge
 
-    def parse_state(self, state):
-        pass
+    def check_expression(
+        self, expr_checker: ExpressionListener, expression: str, parent: str
+    ) -> None:
+        edge = self._cwp.edges.get(parent)
+        if not edge:
+            raise Exception(CwpNoParentEdgeError(parent))
+        edge.expression = CwpEdge.cleanup_expression(expression)
+        result = expr_checker.type_check(edge.expression, self.symbol_table)
+        if not_(is_successful)(result):
+            raise Exception(result.failure())
 
     def with_init_state(self, state: CwpState) -> None:
         pass
