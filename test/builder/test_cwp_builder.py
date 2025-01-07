@@ -126,3 +126,25 @@ def test_check_expression_no_parent(mocker):
         )
 
     assert isinstance(exc_info.value.args[0], CwpNoParentEdgeError)
+
+
+def test_with_edge(mocker):
+    builder = CwpBuilder()
+    builder._cwp = Cwp()
+    source = mocker.MagicMock()
+    source.out_edges = []
+    dest = mocker.MagicMock()
+    dest.in_edges = []
+    builder._cwp.states = {"node1": source, "node2": dest}
+
+    mock_edge = mocker.MagicMock()
+    mock_edge.id = "edge1"
+
+    builder.with_edge(mock_edge, "node1", "node2")
+
+    mock_edge.set_source.assert_called_once_with(source)
+    mock_edge.set_dest.assert_called_once_with(dest)
+
+    assert builder._cwp.edges[mock_edge.id] == mock_edge
+    assert len(dest.in_edges) == 1
+    assert len(source.out_edges) == 1
