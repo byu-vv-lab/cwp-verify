@@ -1,15 +1,18 @@
 # type: ignore
 from bpmncwpverify.builder.cwp_builder import CwpBuilder
-from bpmncwpverify.core.cwp import Cwp
+from bpmncwpverify.core.cwp import Cwp, CwpEdge, CwpState
 from bpmncwpverify.core.error import (
     CwpEdgeNoParentExprError,
     CwpEdgeNoStateError,
     CwpNoParentEdgeError,
+    CwpNoStartStateError,
 )
 from returns.result import Success
 import pytest
 
 from xml.etree.ElementTree import Element, SubElement
+from returns.pipeline import is_successful
+from returns.functions import not_
 
 
 @pytest.fixture
@@ -148,3 +151,44 @@ def test_with_edge(mocker):
     assert builder._cwp.edges[mock_edge.id] == mock_edge
     assert len(dest.in_edges) == 1
     assert len(source.out_edges) == 1
+
+
+def test_build(mocker):
+    states: dict[str, CwpState] = {
+        "state1": mocker.MagicMock(spec=CwpState, in_edges=[], out_edges=["edge1"]),
+        "state2": mocker.MagicMock(
+            spec=CwpState, in_edges=["edge1"], out_edges=["edge2"]
+        ),
+        "state3": mocker.MagicMock(spec=CwpState, in_edges=["edge2"], out_edges=[]),
+    }
+    edges = {"edge1": mocker.MagicMock(), "edge2": mocker.MagicMock()}
+
+    mock_cwp = mocker.MagicMock()
+    mock_cwp.states = states
+
+    obj = CwpBuilder()
+    obj._cwp = mock_cwp
+    obj._cwp.states = states
+    obj._cwp.edges = edges
+    mock_cwp.accept = mocker.MagicMock()
+
+    result = obj.build()
+
+    assert isinstance(result, Success)
+    assert result.unwrap() == mock_cwp
+
+    start_state = states["state1"]
+    end_states = [states["state3"]]
+    assert mock_cwp.start_state == start_state
+    assert list(end_states) == [states["state3"]]
+
+    mock_cwp.accept.assert_called_once()
+
+    new_edge = CwpEdge(mocker.MagicMock(), mocker.MagicMock())
+    states["state1"].in_edges = [new_edge]
+    states["state3"].out_edges = [new_edge]
+
+    result = obj.build()
+
+    assert not_(is_successful)(result)
+    assert isinstance(result.failure(), CwpNoStartStateError)

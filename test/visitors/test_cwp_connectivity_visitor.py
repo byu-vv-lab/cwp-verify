@@ -5,7 +5,7 @@ from bpmncwpverify.visitors.cwp_connectivity_visitor import CwpConnectivityVisit
 
 
 def test_cwp_connectivity(mocker):
-    builder = CwpBuilder(mocker.MagicMock())
+    builder = CwpBuilder()
     for i in range(10):
         builder.with_state(
             Element(f"state{i}", attrib={"id": f"state{i}", "style": "test"})
