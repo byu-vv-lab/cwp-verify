@@ -218,7 +218,7 @@ class StateBuilder:
 
 
 class State:
-    __slots__ = ["_consts", "_enums", "_id2type", "_vars"]
+    __slots__ = ["consts", "enums", "_id2type", "vars"]
 
     class _Listener(StateListener):  # type: ignore[misc]
         __slots__ = ["state_builder", "error"]
@@ -316,10 +316,10 @@ class State:
     def __init__(
         self, consts: list[ConstDecl], enums: list[EnumDecl], vars: list[VarDecl]
     ) -> None:
-        self._consts = consts
-        self._enums = enums
+        self.consts = consts
+        self.enums = enums
         self._id2type: Maybe[dict[str, TypeWithDeclLoc]] = Nothing
-        self._vars = vars
+        self.vars = vars
 
     def __str__(self) -> str:
         raise builtins.NotImplementedError("SymbolTable::__str__")
@@ -330,7 +330,7 @@ class State:
         assert state._id2type != Nothing
 
         id2type = state._id2type.unwrap()
-        for const_decl in state._consts:
+        for const_decl in state.consts:
             if const_decl.id in id2type:
                 first = (id2type[const_decl.id]).decl_loc
                 return Failure(
@@ -351,7 +351,7 @@ class State:
         # requires
         assert state._id2type != Nothing
 
-        for i in state._enums:
+        for i in state.enums:
             result = state._build_id_2_type_enum(i)
             if not_(is_successful)(result):
                 return result
@@ -363,7 +363,7 @@ class State:
         # requires
         assert state._id2type != Nothing
 
-        for i in state._vars:
+        for i in state.vars:
             result = state._build_id_2_type_var(i)
             if not_(is_successful)(result):
                 return result
@@ -399,7 +399,7 @@ class State:
     @staticmethod
     def _type_check_consts(state: "State") -> Result["State", Error]:
         type_check_assigns = partial(State._type_check_assigns, state)
-        for const_decl in state._consts:
+        for const_decl in state.consts:
             result = type_check_assigns(const_decl.type_, [const_decl.init])
             if not_(is_successful)(result):
                 return Failure(result.failure())
@@ -408,7 +408,7 @@ class State:
     @staticmethod
     def _type_check_vars(state: "State") -> Result["State", Error]:
         type_check_assigns = partial(State._type_check_assigns, state)
-        for var_decl in state._vars:
+        for var_decl in state.vars:
             values = var_decl.values + [var_decl.init]
             result = type_check_assigns(var_decl.type_, values)
             if not_(is_successful)(result):
