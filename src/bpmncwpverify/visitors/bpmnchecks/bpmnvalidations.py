@@ -22,6 +22,7 @@ from bpmncwpverify.core.error import (
     BpmnMsgEndEventError,
     BpmnMsgGatewayError,
     BpmnMsgSrcError,
+    BpmnMsgStartEventError,
     BpmnMsgTargetError,
     BpmnSeqFlowEndEventError,
     BpmnSeqFlowNoExprError,
@@ -182,6 +183,8 @@ class ValidateStartEventFlows(BpmnVisitor):  # type: ignore
             raise Exception(BpmnFlowStartEventError(event.id))
         if event.out_msgs:
             raise Exception(BpmnFlowStartEventError(event.id))
+        if event.in_msgs and not event.message_event_definition:
+            raise Exception(BpmnMsgStartEventError(event.id))
         return False
 
 
