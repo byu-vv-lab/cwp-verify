@@ -115,15 +115,24 @@ class PromelaGenVisitor(BpmnVisitor):  # type: ignore
         """
         guard = PromelaGenVisitor.StringManager()
         guard.write_str(
-            "("
-            + "||".join(
+            "||".join(
                 [f"hasToken({node})" for node in self._get_consume_locations(element)]
-            )
-            + ")",
+            ),
             NL_NONE,
             IndentAction.NIL,
         )
         return guard
+
+    def _build_atomic_block(self, element: Node) -> StringManager:
+        """
+        This function builds an atomic block to execute the element's behavior,
+        consume the token and move the token forward.
+        """
+        atomic_block = PromelaGenVisitor.StringManager()
+        atomic_block.write_str(":: atomic { (", NL_NONE, IndentAction.NIL)
+        guard = self._build_guard(element)
+        atomic_block.write_str(str(guard) + ") ->", NL_SINGLE, IndentAction.INC)
+        return atomic_block
 
     def __repr__(self) -> str:
         return f"{self.defs}{self.init_proc_contents}{self.promela}"
@@ -135,9 +144,9 @@ class PromelaGenVisitor(BpmnVisitor):  # type: ignore
         self.promela.write_str(f"putToken({event.name})", NL_SINGLE, IndentAction.NIL)
         self.promela.write_str("do", NL_SINGLE, IndentAction.NIL)
 
-        guard = self._build_guard(event)
+        atomic_block = self._build_atomic_block(event)
 
-        self.promela.write_str(str(guard), NL_SINGLE, IndentAction.NIL)
+        self.promela.write_str(str(atomic_block), NL_SINGLE, IndentAction.NIL)
         return True
 
     def visit_end_event(self, event: EndEvent) -> bool:
