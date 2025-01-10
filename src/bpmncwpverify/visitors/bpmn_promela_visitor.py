@@ -67,14 +67,28 @@ class PromelaGenVisitor(BpmnVisitor):  # type: ignore
         self.init_proc_contents = PromelaGenVisitor.StringManager()
         self.promela = PromelaGenVisitor.StringManager()
 
-    def _get_location(self, element: Node, flow_or_msg: Optional[Flow] = None) -> str:
-        if flow_or_msg:
-            return element.name + "_FROM_" + flow_or_msg.source_node.name  # type: ignore
-        else:
-            if isinstance(element, Task):
-                return element.name + "_END"  # type: ignore
-            else:
-                return element.name  # type: ignore
+    def _generate_location_label(
+        self, element: Node, flow_or_message: Optional[Flow] = None
+    ) -> str:
+        if flow_or_message:
+            return f"{element.name}_FROM_{flow_or_message.source_node.name}"
+        if isinstance(element, Task):
+            return f"{element.name}_END"
+        return element.name  # type: ignore
+
+    def _get_consume_locations(self, element: Node) -> List[str]:
+        consume_locations: List[str] = []
+        for flow in element.in_flows + element.in_msgs:
+            consume_locations.append(self._generate_location_label(element, flow))
+
+        return consume_locations
+
+    def _get_put_locations(self, element: Node) -> List[str]:
+        put_locations: List[str] = []
+        for flow in element.out_flows + element.out_msgs:
+            put_locations.append(self._generate_location_label(flow.target_node, flow))
+
+        return put_locations
 
     def __repr__(self) -> str:
         return f"{self.defs}{self.init_proc_contents}{self.promela}"
@@ -92,7 +106,7 @@ class PromelaGenVisitor(BpmnVisitor):  # type: ignore
             self.promela.write_str(
                 "&&".join(
                     [
-                        f"hasToken({self._get_location(event, loc)})"
+                        f"hasToken({self._generate_location_label(event, loc)})"
                         for loc in event.in_msgs
                     ]
                 )
