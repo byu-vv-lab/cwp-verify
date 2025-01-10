@@ -65,15 +65,22 @@ class PromelaGenVisitor(BpmnVisitor):  # type: ignore
             if indent_action == IndentAction.DEC:
                 self._dec_indent()
 
-            def needs_tab(previous_item: Optional[str]) -> bool:
+            def needs_tab(idx: int, items: List[str]) -> bool:
                 """Helper function to determine if tabulation is necessary."""
-                return not previous_item or previous_item[-1] == "\n"
+                # Check if it's the first item and if the last content line ends with a newline
+                if idx == 0:
+                    return bool(self.contents and self.contents[-1].endswith("\n"))
+                # Check the previous item for a newline
+                return items[idx - 1].endswith("\n")
 
+            # Normalize the input into a list for consistent handling
             items = [new_str] if isinstance(new_str, str) else new_str.contents
-            for _, item in enumerate(items):
-                tab_required = needs_tab(self.contents[-1] if self.contents else None)
+
+            for idx, item in enumerate(items):
+                tab_required = needs_tab(idx, items)
+                newline_suffix = self._newline(nl) if isinstance(new_str, str) else ""
                 self.contents.append(
-                    f"{self._tab() if tab_required else ''}{item}{self._newline(nl) if isinstance(new_str, str) else ''}"
+                    f"{self._tab() if tab_required else ''}{item}{newline_suffix}"
                 )
 
             if indent_action == IndentAction.INC:
@@ -151,7 +158,8 @@ class PromelaGenVisitor(BpmnVisitor):  # type: ignore
         atomic_block = PromelaGenVisitor.StringManager()
         atomic_block.write_str(":: atomic { (", NL_NONE, IndentAction.NIL)
         guard = self._build_guard(element)
-        atomic_block.write_str(str(guard) + ") ->", NL_SINGLE, IndentAction.INC)
+        atomic_block.write_str(guard, NL_NONE, IndentAction.NIL)
+        atomic_block.write_str(") ->", NL_SINGLE, IndentAction.INC)
         return atomic_block
 
     def __repr__(self) -> str:
