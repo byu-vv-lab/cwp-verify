@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Union
 from enum import Enum
 from bpmncwpverify.core.bpmn import (
     Flow,
@@ -52,10 +52,30 @@ class PromelaGenVisitor(BpmnVisitor):  # type: ignore
             assert self.indent > 0
             self.indent -= 1
 
-        def write_str(self, new_str: str, nl: int, indent_action: IndentAction) -> None:
+        def write_str(
+            self,
+            new_str: Union[str, "PromelaGenVisitor.StringManager"],
+            nl: int,
+            indent_action: IndentAction,
+        ) -> None:
+            """
+            Appends a string or the contents of a StringManager object to the internal contents list
+            with specified newline and indentation behavior.
+            """
             if indent_action == IndentAction.DEC:
                 self._dec_indent()
-            self.contents.append(f"{self._tab()}{new_str}{self._newline(nl)}")
+
+            def needs_tab(previous_item: Optional[str]) -> bool:
+                """Helper function to determine if tabulation is necessary."""
+                return not previous_item or previous_item[-1] == "\n"
+
+            items = [new_str] if isinstance(new_str, str) else new_str.contents
+            for _, item in enumerate(items):
+                tab_required = needs_tab(self.contents[-1] if self.contents else None)
+                self.contents.append(
+                    f"{self._tab() if tab_required else ''}{item}{self._newline(nl) if isinstance(new_str, str) else ''}"
+                )
+
             if indent_action == IndentAction.INC:
                 self._inc_indent()
 
@@ -146,7 +166,7 @@ class PromelaGenVisitor(BpmnVisitor):  # type: ignore
 
         atomic_block = self._build_atomic_block(event)
 
-        self.promela.write_str(str(atomic_block), NL_SINGLE, IndentAction.NIL)
+        self.promela.write_str(atomic_block, NL_SINGLE, IndentAction.NIL)
         return True
 
     def visit_end_event(self, event: EndEvent) -> bool:
