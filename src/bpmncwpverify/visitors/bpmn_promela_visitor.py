@@ -77,6 +77,8 @@ class PromelaGenVisitor(BpmnVisitor):  # type: ignore
         return element.name  # type: ignore
 
     def _get_consume_locations(self, element: Node) -> List[str]:
+        if not (element.in_flows or element.in_msgs):
+            return [self._generate_location_label(element)]
         consume_locations: List[str] = []
         for flow in element.in_flows + element.in_msgs:
             consume_locations.append(self._generate_location_label(element, flow))
@@ -90,6 +92,19 @@ class PromelaGenVisitor(BpmnVisitor):  # type: ignore
 
         return put_locations
 
+    def _build_guard(self, element: Node) -> StringManager:
+        guard = PromelaGenVisitor.StringManager()
+        guard.write_str(
+            "("
+            + "||".join(
+                [f"hasToken({node})" for node in self._get_consume_locations(element)]
+            )
+            + ")",
+            NL_NONE,
+            IndentAction.NIL,
+        )
+        return guard
+
     def __repr__(self) -> str:
         return f"{self.defs}{self.init_proc_contents}{self.promela}"
 
@@ -100,20 +115,7 @@ class PromelaGenVisitor(BpmnVisitor):  # type: ignore
         self.promela.write_str(f"putToken({event.name})", NL_SINGLE, IndentAction.NIL)
         self.promela.write_str("do", NL_SINGLE, IndentAction.NIL)
 
-        guard = PromelaGenVisitor.StringManager()
-        guard.write_str(f"(hasToken{event.name})", NL_NONE, IndentAction.NIL)
-        if event.in_msgs:
-            self.promela.write_str(
-                "&&".join(
-                    [
-                        f"hasToken({self._generate_location_label(event, loc)})"
-                        for loc in event.in_msgs
-                    ]
-                )
-                + " )",
-                NL_SINGLE,
-                IndentAction.NIL,
-            )
+        guard = self._build_guard(event)
 
         self.promela.write_str(str(guard), NL_SINGLE, IndentAction.NIL)
         return True
