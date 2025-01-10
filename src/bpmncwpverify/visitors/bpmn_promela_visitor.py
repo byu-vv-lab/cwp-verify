@@ -1,6 +1,8 @@
-from typing import List
+from typing import List, Optional
 from enum import Enum
 from bpmncwpverify.core.bpmn import (
+    Flow,
+    Node,
     StartEvent,
     EndEvent,
     IntermediateEvent,
@@ -65,6 +67,15 @@ class PromelaGenVisitor(BpmnVisitor):  # type: ignore
         self.init_proc_contents = PromelaGenVisitor.StringManager()
         self.promela = PromelaGenVisitor.StringManager()
 
+    def _get_location(self, element: Node, flow_or_msg: Optional[Flow] = None) -> str:
+        if flow_or_msg:
+            return element.name + "_FROM_" + flow_or_msg.source_node.name  # type: ignore
+        else:
+            if isinstance(element, Task):
+                return element.name + "_END"  # type: ignore
+            else:
+                return element.name  # type: ignore
+
     def __repr__(self) -> str:
         return f"{self.defs}{self.init_proc_contents}{self.promela}"
 
@@ -72,8 +83,25 @@ class PromelaGenVisitor(BpmnVisitor):  # type: ignore
     # Visitor Methods
     ####################
     def visit_start_event(self, event: StartEvent) -> bool:
-        self.promela.write_str("putToken({event.name})", NL_SINGLE, IndentAction.NIL)
+        self.promela.write_str(f"putToken({event.name})", NL_SINGLE, IndentAction.NIL)
         self.promela.write_str("do", NL_SINGLE, IndentAction.NIL)
+
+        guard = PromelaGenVisitor.StringManager()
+        guard.write_str(f"(hasToken{event.name})", NL_NONE, IndentAction.NIL)
+        if event.in_msgs:
+            self.promela.write_str(
+                "&&".join(
+                    [
+                        f"hasToken({self._get_location(event, loc)})"
+                        for loc in event.in_msgs
+                    ]
+                )
+                + " )",
+                NL_SINGLE,
+                IndentAction.NIL,
+            )
+
+        self.promela.write_str(str(guard), NL_SINGLE, IndentAction.NIL)
         return True
 
     def visit_end_event(self, event: EndEvent) -> bool:
@@ -108,7 +136,7 @@ class PromelaGenVisitor(BpmnVisitor):  # type: ignore
         return True
 
     def end_visit_process(self, process: Process) -> None:
-        pass
+        self.promela.write_str("}", NL_SINGLE, IndentAction.DEC)
 
     def visit_bpmn(self, bpmn: Bpmn) -> bool:
         self.defs.write_str(HELPER_FUNCS_STR, NL_DOUBLE, IndentAction.INC)
