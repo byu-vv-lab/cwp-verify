@@ -1,5 +1,10 @@
 import pytest
-from bpmncwpverify.visitors.bpmn_promela_visitor import PromelaGenVisitor
+from bpmncwpverify.visitors.bpmn_promela_visitor import (
+    IndentAction,
+    PromelaGenVisitor,
+    NL_NONE,
+    NL_SINGLE,
+)
 
 
 @pytest.fixture
@@ -14,22 +19,20 @@ def promela_visitor():
 
 def test_string_manager_initial_state(string_manager):
     assert string_manager.contents == []
-    assert string_manager.indent == 0
+    assert string_manager.indent == NL_NONE
 
 
 def test_string_manager_write_str(string_manager):
-    string_manager.write_str("test", 1)
+    string_manager.write_str("test", NL_SINGLE, IndentAction.NIL)
     assert repr(string_manager) == "test\n"
 
 
 def test_string_manager_indent(string_manager):
     string_manager._inc_indent()
-    string_manager.write_str("indented", 1)
-    assert repr(string_manager) == "\tindented\n"
+    assert string_manager.indent == NL_SINGLE
 
     string_manager._dec_indent()
-    string_manager.write_str("not indented", 1)
-    assert repr(string_manager) == "\tindented\nnot indented\n"
+    assert string_manager.indent == NL_NONE
 
 
 def test_string_manager_assertion_error_on_negative_indent(string_manager):

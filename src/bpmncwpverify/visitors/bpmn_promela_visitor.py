@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Union
 from enum import Enum
 from bpmncwpverify.core.bpmn import (
     StartEvent,
@@ -52,10 +52,37 @@ class PromelaGenVisitor(BpmnVisitor):  # type: ignore
 
         def write_str(
             self,
-            new_str: str,
+            new_str: Union[str, "PromelaGenVisitor.StringManager"],
             nl: int,
+            indent_action: IndentAction,
         ) -> None:
-            self.contents.append(f"{self._tab()}{new_str}{self._newline(nl)}")
+            """
+            Appends a string or the contents of a StringManager object to the internal contents list
+            with specified newline and indentation behavior.
+            """
+            if indent_action == IndentAction.DEC:
+                self._dec_indent()
+
+            def needs_tab(idx: int, items: List[str]) -> bool:
+                """Helper function to determine if tabulation is necessary."""
+                # Check if it's the first item and if the last content line ends with a newline
+                if idx == 0:
+                    return bool(self.contents and self.contents[-1].endswith("\n"))
+                # Check the previous item for a newline
+                return items[idx - 1].endswith("\n")
+
+            # Normalize the input into a list for consistent handling
+            items = [new_str] if isinstance(new_str, str) else new_str.contents
+
+            for idx, item in enumerate(items):
+                tab_required = needs_tab(idx, items)
+                newline_suffix = self._newline(nl) if isinstance(new_str, str) else ""
+                self.contents.append(
+                    f"{self._tab() if tab_required else ''}{item}{newline_suffix}"
+                )
+
+            if indent_action == IndentAction.INC:
+                self._inc_indent()
 
         def __repr__(self) -> str:
             return "".join(self.contents)
