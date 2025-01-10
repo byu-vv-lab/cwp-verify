@@ -17,6 +17,9 @@ from bpmncwpverify.core.bpmn import (
 # Constants
 ##############
 HELPER_FUNCS_STR = "\n\n#define hasToken(place) (place != 0)\n\n#define putToken(place) place = 1\n\n#define consumeToken(place) place = 0"
+NL_NONE = 0
+NL_SINGLE = 1
+NL_DOUBLE = 2
 
 
 ##############
@@ -69,6 +72,8 @@ class PromelaGenVisitor(BpmnVisitor):  # type: ignore
     # Visitor Methods
     ####################
     def visit_start_event(self, event: StartEvent) -> bool:
+        self.promela.write_str("putToken({event.name})", NL_SINGLE, IndentAction.NIL)
+        self.promela.write_str("do", NL_SINGLE, IndentAction.NIL)
         return True
 
     def visit_end_event(self, event: EndEvent) -> bool:
@@ -93,17 +98,22 @@ class PromelaGenVisitor(BpmnVisitor):  # type: ignore
         return True
 
     def visit_process(self, process: Process) -> bool:
-        self.init_proc_contents.write_str(f"run {process.name}()", 1, IndentAction.NIL)
-        self.promela.write_str(f"proctype {process.name}() {{", 1, IndentAction.INC)
+        self.init_proc_contents.write_str(
+            f"run {process.name}()", NL_SINGLE, IndentAction.NIL
+        )
+        self.promela.write_str(
+            f"proctype {process.name}() {{", NL_SINGLE, IndentAction.INC
+        )
+        self.promela.write_str("pid me = _pid", NL_SINGLE, IndentAction.NIL)
         return True
 
     def end_visit_process(self, process: Process) -> None:
         pass
 
     def visit_bpmn(self, bpmn: Bpmn) -> bool:
-        self.defs.write_str(HELPER_FUNCS_STR, 2, IndentAction.INC)
-        self.init_proc_contents.write_str("init {", 1, IndentAction.INC)
+        self.defs.write_str(HELPER_FUNCS_STR, NL_DOUBLE, IndentAction.INC)
+        self.init_proc_contents.write_str("init {", NL_SINGLE, IndentAction.INC)
         return True
 
     def end_visit_bpmn(self, bpmn: Bpmn) -> None:
-        self.init_proc_contents.write_str("}", 2, IndentAction.DEC)
+        self.init_proc_contents.write_str("}", NL_DOUBLE, IndentAction.DEC)
