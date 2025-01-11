@@ -53,13 +53,20 @@ class PromelaGenVisitor(BpmnVisitor):  # type: ignore
         def write_str(
             self,
             new_str: Union[str, "PromelaGenVisitor.StringManager"],
-            nl: int,
-            indent_action: IndentAction,
+            nl: int = NL_NONE,
+            indent_action: IndentAction = IndentAction.NIL,
         ) -> None:
             """
             Appends a string or the contents of a StringManager object to the internal contents list
             with specified newline and indentation behavior.
             """
+            # Validate input for StringManager instance usage
+            if isinstance(new_str, PromelaGenVisitor.StringManager):
+                if nl != NL_NONE or indent_action != IndentAction.NIL:
+                    raise ValueError(
+                        "When passing a StringManager, nl must be NL_NONE and indent_action must be IndentAction.NIL"
+                    )
+
             if indent_action == IndentAction.DEC:
                 self._dec_indent()
 
