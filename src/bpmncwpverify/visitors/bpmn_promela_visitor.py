@@ -121,6 +121,8 @@ class PromelaGenVisitor(BpmnVisitor):  # type: ignore
         If there are no incoming flows, the node itself is returned as a label.
         Example: ['Node2_FROM_Start', 'Node2_FROM_Node1']
         """
+        if not (element.in_flows or element.in_msgs):
+            return [self._generate_location_label(element)]
         consume_locations: List[str] = [
             self._generate_location_label(element, flow)
             for flow in element.in_flows + element.in_msgs
@@ -149,9 +151,7 @@ class PromelaGenVisitor(BpmnVisitor):  # type: ignore
         guard.write_str(
             "||".join(
                 [f"hasToken({node})" for node in self._get_consume_locations(element)]
-            ),
-            NL_NONE,
-            IndentAction.NIL,
+            )
         )
         return guard
 
@@ -161,11 +161,23 @@ class PromelaGenVisitor(BpmnVisitor):  # type: ignore
         consume the token and move the token forward.
         """
         atomic_block = PromelaGenVisitor.StringManager()
-        atomic_block.write_str(":: atomic { (", NL_NONE, IndentAction.NIL)
+        atomic_block.write_str(":: atomic { (")
+
         guard = self._build_guard(element)
-        atomic_block.write_str(guard, NL_NONE, IndentAction.NIL)
+
+        atomic_block.write_str(guard)
         atomic_block.write_str(") ->", NL_SINGLE, IndentAction.INC)
-        # TODO FINISH FUNCTION
+        atomic_block.write_str("d_step {", NL_SINGLE, IndentAction.INC)
+
+        for location in self._get_consume_locations(element):
+            atomic_block.write_str(f"consumeToken({location})", NL_SINGLE)
+
+        for location in self._get_put_locations(element):
+            atomic_block.write_str(f"putToken({location})", NL_SINGLE)
+
+        atomic_block.write_str("}", NL_SINGLE, IndentAction.DEC)
+        atomic_block.write_str("}", NL_SINGLE, IndentAction.DEC)
+
         return atomic_block
 
     def __repr__(self) -> str:
