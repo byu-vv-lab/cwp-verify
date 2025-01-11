@@ -175,6 +175,12 @@ class PromelaGenVisitor(BpmnVisitor):  # type: ignore
     # Visitor Methods
     ####################
     def visit_start_event(self, event: StartEvent) -> bool:
+        self.promela.write_str(f"putToken({event.name})", NL_SINGLE, IndentAction.NIL)
+        self.promela.write_str("do", NL_SINGLE, IndentAction.NIL)
+
+        atomic_block = self._build_atomic_block(event)
+
+        self.promela.write_str(atomic_block, NL_NONE, IndentAction.NIL)
         return True
 
     def visit_end_event(self, event: EndEvent) -> bool:
@@ -199,13 +205,22 @@ class PromelaGenVisitor(BpmnVisitor):  # type: ignore
         return True
 
     def visit_process(self, process: Process) -> bool:
+        self.init_proc_contents.write_str(
+            f"run {process.name}()", NL_SINGLE, IndentAction.NIL
+        )
+        self.promela.write_str(
+            f"proctype {process.name}() {{", NL_SINGLE, IndentAction.INC
+        )
+        self.promela.write_str("pid me = _pid", NL_SINGLE, IndentAction.NIL)
         return True
 
     def end_visit_process(self, process: Process) -> None:
-        pass
+        self.promela.write_str("}", NL_SINGLE, IndentAction.DEC)
 
     def visit_bpmn(self, bpmn: Bpmn) -> bool:
+        self.defs.write_str(HELPER_FUNCS_STR, NL_DOUBLE, IndentAction.INC)
+        self.init_proc_contents.write_str("init {", NL_SINGLE, IndentAction.INC)
         return True
 
     def end_visit_bpmn(self, bpmn: Bpmn) -> None:
-        pass
+        self.init_proc_contents.write_str("}", NL_DOUBLE, IndentAction.DEC)
