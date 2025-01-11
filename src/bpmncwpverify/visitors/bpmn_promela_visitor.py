@@ -1,6 +1,8 @@
-from typing import List, Union
+from typing import List, Optional, Union
 from enum import Enum
 from bpmncwpverify.core.bpmn import (
+    Flow,
+    Node,
     StartEvent,
     EndEvent,
     IntermediateEvent,
@@ -98,6 +100,74 @@ class PromelaGenVisitor(BpmnVisitor):  # type: ignore
         self.defs = PromelaGenVisitor.StringManager()
         self.init_proc_contents = PromelaGenVisitor.StringManager()
         self.promela = PromelaGenVisitor.StringManager()
+
+    def _generate_location_label(
+        self, element: Node, flow_or_message: Optional[Flow] = None
+    ) -> str:
+        """
+        Generates a unique label for a node, indicating the source of flow.
+        If multiple flows lead into the node, the label specifies the source element
+        (e.g., 'Node1_FROM_Start'). If the node is a Task, the label ends with '_END'.
+        """
+        if flow_or_message:
+            return f"{element.name}_FROM_{flow_or_message.source_node.name}"
+        if isinstance(element, Task):
+            return f"{element.name}_END"
+        return element.name  # type: ignore
+
+    def _get_consume_locations(self, element: Node) -> List[str]:
+        """
+        Returns a list of labels representing all incoming flows to a node.
+        If there are no incoming flows, the node itself is returned as a label.
+        Example: ['Node2_FROM_Start', 'Node2_FROM_Node1']
+        """
+        if not (element.in_flows or element.in_msgs):
+            return [self._generate_location_label(element)]
+        consume_locations: List[str] = [
+            self._generate_location_label(element, flow)
+            for flow in element.in_flows + element.in_msgs
+        ]
+        return consume_locations
+
+    def _get_put_locations(self, element: Node) -> List[str]:
+        """
+        Returns a list of labels representing all outgoing flows from a node.
+        Each label indicates the target node and the current node as the source.
+        Example: ['Node2_FROM_Node1']
+        """
+        put_locations: List[str] = [
+            self._generate_location_label(flow.target_node, flow)
+            for flow in element.out_flows + element.out_msgs
+        ]
+        return put_locations
+
+    def _build_guard(self, element: Node) -> StringManager:
+        """
+        Constructs a guard condition for an atomic block in a process.
+        The guard checks whether a token exists at the current node, based on incoming flows.
+        Example: (hasToken(Node2_FROM_Start) || hasToken(Node2_FROM_Node1))
+        """
+        guard = PromelaGenVisitor.StringManager()
+        guard.write_str(
+            "||".join(
+                [f"hasToken({node})" for node in self._get_consume_locations(element)]
+            ),
+            NL_NONE,
+            IndentAction.NIL,
+        )
+        return guard
+
+    def _build_atomic_block(self, element: Node) -> StringManager:
+        """
+        This function builds an atomic block to execute the element's behavior,
+        consume the token and move the token forward.
+        """
+        atomic_block = PromelaGenVisitor.StringManager()
+        atomic_block.write_str(":: atomic { (", NL_NONE, IndentAction.NIL)
+        guard = self._build_guard(element)
+        atomic_block.write_str(guard, NL_NONE, IndentAction.NIL)
+        atomic_block.write_str(") ->", NL_SINGLE, IndentAction.INC)
+        return atomic_block
 
     def __repr__(self) -> str:
         return f"{self.defs}{self.init_proc_contents}{self.promela}"
