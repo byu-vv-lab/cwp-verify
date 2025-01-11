@@ -1,3 +1,4 @@
+from bpmncwpverify.core.bpmn import Task
 import pytest
 from bpmncwpverify.visitors.bpmn_promela_visitor import (
     IndentAction,
@@ -122,28 +123,37 @@ def test_string_manager_assertion_error_on_negative_indent(string_manager_factor
         manager1._dec_indent()
 
 
+############################
+# PromelaGenVisitor tests
+############################
+
+
 def test_promela_gen_visitor_initial_state(promela_visitor):
+    assert isinstance(promela_visitor.defs, PromelaGenVisitor.StringManager)
+    assert isinstance(
+        promela_visitor.init_proc_contents, PromelaGenVisitor.StringManager
+    )
+    assert isinstance(promela_visitor.promela, PromelaGenVisitor.StringManager)
     assert repr(promela_visitor) == ""
 
 
-def test_promela_gen_visitor_visits(promela_visitor, mocker):
-    mock_event = mocker.Mock()
-    assert promela_visitor.visit_start_event(mock_event) is True
-    assert promela_visitor.visit_end_event(mock_event) is True
-    assert promela_visitor.visit_intermediate_event(mock_event) is True
-    assert promela_visitor.visit_task(mock_event) is True
-    assert promela_visitor.visit_exclusive_gateway(mock_event) is True
-    assert promela_visitor.visit_parallel_gateway(mock_event) is True
-    assert promela_visitor.visit_message_flow(mock_event) is True
-    assert promela_visitor.visit_process(mock_event) is True
-    assert promela_visitor.visit_bpmn(mock_event) is True
+def test_generate_location_label(promela_visitor, mocker):
+    node = mocker.Mock(spec=Task)
+    node.name = "TEST"
+    flow_or_message = mocker.Mock()
+    flow_or_message.source_node.name = "SRC"
 
+    ret_val = promela_visitor._generate_location_label(node, flow_or_message)
 
-def test_promela_gen_visitor_end_visits(promela_visitor, mocker):
-    mock_process = mocker.Mock()
-    mock_bpmn = mocker.Mock()
+    assert ret_val == "TEST_FROM_SRC"
 
-    promela_visitor.end_visit_process(mock_process)
-    promela_visitor.end_visit_bpmn(mock_bpmn)
+    ret_val = promela_visitor._generate_location_label(node)
 
-    assert repr(promela_visitor) == ""
+    assert ret_val == "TEST_END"
+
+    node_no_spec = mocker.Mock()
+    node_no_spec.name = "TEST"
+
+    ret_val = promela_visitor._generate_location_label(node_no_spec)
+
+    assert ret_val == "TEST"
