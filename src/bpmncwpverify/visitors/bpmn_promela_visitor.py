@@ -165,6 +165,7 @@ class PromelaGenVisitor(BpmnVisitor):  # type: ignore
         guard = self._build_guard(element)
         atomic_block.write_str(guard, NL_NONE, IndentAction.NIL)
         atomic_block.write_str(") ->", NL_SINGLE, IndentAction.INC)
+        # TODO FINISH FUNCTION
         return atomic_block
 
     def __repr__(self) -> str:
