@@ -217,3 +217,29 @@ def test_get_put_locations(promela_visitor, mocker):
         "NODE2_FROM_NODE1",
         "NODE3_FROM_NODE1",
     ]
+
+
+def test_build_guard(promela_visitor, mocker):
+    node1 = mocker.Mock()
+    node1.name = "NODE1"
+
+    node2 = mocker.Mock()
+    node2.name = "NODE2"
+
+    node3 = mocker.Mock()
+    node3.name = "NODE3"
+
+    flow1 = mocker.Mock()
+    flow1.source_node = node2
+    flow1.target_node = node1
+
+    flow2 = mocker.Mock()
+    flow2.source_node = node3
+    flow2.target_node = node1
+
+    node1.in_flows = [flow1, flow2]
+    node1.in_msgs = []
+
+    guard = promela_visitor._build_guard(node1)
+
+    assert str(guard) == "hasToken(NODE1_FROM_NODE2)||hasToken(NODE1_FROM_NODE3)"
