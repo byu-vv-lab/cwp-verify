@@ -157,3 +157,63 @@ def test_generate_location_label(promela_visitor, mocker):
     ret_val = promela_visitor._generate_location_label(node_no_spec)
 
     assert ret_val == "TEST"
+
+
+def test_get_consume_locations(promela_visitor, mocker):
+    node1 = mocker.Mock()
+    node1.in_flows = []
+    node1.in_msgs = []
+    node1.name = "NODE1"
+
+    node2 = mocker.Mock()
+    node2.name = "NODE2"
+
+    node3 = mocker.Mock()
+    node3.name = "NODE3"
+
+    assert promela_visitor._get_consume_locations(node1) == []
+
+    flow1 = mocker.Mock()
+    flow1.source_node = node1
+
+    flow2 = mocker.Mock()
+    flow2.source_node = node3
+
+    node2.in_flows = [flow1]
+    node2.in_msgs = [flow2]
+
+    assert promela_visitor._get_consume_locations(node2) == [
+        "NODE2_FROM_NODE1",
+        "NODE2_FROM_NODE3",
+    ]
+
+
+def test_get_put_locations(promela_visitor, mocker):
+    node1 = mocker.Mock()
+    node1.out_flows = []
+    node1.out_msgs = []
+    node1.name = "NODE1"
+
+    node2 = mocker.Mock()
+    node2.name = "NODE2"
+
+    node3 = mocker.Mock()
+    node3.name = "NODE3"
+
+    assert promela_visitor._get_put_locations(node1) == []
+
+    flow1 = mocker.Mock()
+    flow1.source_node = node1
+    flow1.target_node = node2
+
+    flow2 = mocker.Mock()
+    flow2.source_node = node1
+    flow2.target_node = node3
+
+    node1.out_flows = [flow1]
+    node1.out_msgs = [flow2]
+
+    assert promela_visitor._get_put_locations(node1) == [
+        "NODE2_FROM_NODE1",
+        "NODE3_FROM_NODE1",
+    ]

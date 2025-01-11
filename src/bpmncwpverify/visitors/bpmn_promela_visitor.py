@@ -121,8 +121,6 @@ class PromelaGenVisitor(BpmnVisitor):  # type: ignore
         If there are no incoming flows, the node itself is returned as a label.
         Example: ['Node2_FROM_Start', 'Node2_FROM_Node1']
         """
-        if not (element.in_flows or element.in_msgs):
-            return [self._generate_location_label(element)]
         consume_locations: List[str] = [
             self._generate_location_label(element, flow)
             for flow in element.in_flows + element.in_msgs
