@@ -171,7 +171,7 @@ def test_get_consume_locations(promela_visitor, mocker):
     node3 = mocker.Mock()
     node3.name = "NODE3"
 
-    assert promela_visitor._get_consume_locations(node1) == []
+    assert promela_visitor._get_consume_locations(node1) == ["NODE1"]
 
     flow1 = mocker.Mock()
     flow1.source_node = node1
@@ -243,3 +243,40 @@ def test_build_guard(promela_visitor, mocker):
     guard = promela_visitor._build_guard(node1)
 
     assert str(guard) == "hasToken(NODE1_FROM_NODE2)||hasToken(NODE1_FROM_NODE3)"
+
+
+def test_build_atomic_block(promela_visitor, mocker):
+    node1 = mocker.Mock()
+    node1.name = "NODE1"
+
+    node2 = mocker.Mock()
+    node2.name = "NODE2"
+
+    node3 = mocker.Mock()
+    node3.name = "NODE3"
+
+    node4 = mocker.Mock()
+    node4.name = "NODE4"
+
+    flow1 = mocker.Mock()
+    flow1.source_node = node2
+    flow1.target_node = node1
+
+    flow2 = mocker.Mock()
+    flow2.source_node = node3
+    flow2.target_node = node1
+
+    flow3 = mocker.Mock()
+    flow3.source_node = node1
+    flow3.target_node = node4
+
+    node1.in_flows = [flow1, flow2]
+    node1.in_msgs = []
+
+    node1.out_flows = [flow3]
+    node1.out_msgs = []
+
+    atomic_block = promela_visitor._build_atomic_block(node1)
+
+    expected_output = ":: atomic { (hasToken(NODE1_FROM_NODE2)||hasToken(NODE1_FROM_NODE3)) ->\n\td_step {\n\t\tconsumeToken(NODE1_FROM_NODE2)\n\t\tconsumeToken(NODE1_FROM_NODE3)\n\t\tputToken(NODE4_FROM_NODE1)\n\t}\n}\n"
+    assert str(atomic_block) == expected_output
