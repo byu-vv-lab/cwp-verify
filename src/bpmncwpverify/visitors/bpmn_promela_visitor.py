@@ -168,6 +168,7 @@ class PromelaGenVisitor(BpmnVisitor):  # type: ignore
 
         atomic_block.write_str(guard)
         atomic_block.write_str(") ->", NL_SINGLE, IndentAction.INC)
+        atomic_block.write_str(f"{element.name}_BehaviorModel()", NL_SINGLE)
         atomic_block.write_str("d_step {", NL_SINGLE, IndentAction.INC)
 
         for location in self._get_consume_locations(element):
@@ -201,23 +202,35 @@ class PromelaGenVisitor(BpmnVisitor):  # type: ignore
 
         atomic_block = self._build_atomic_block(event)
 
-        self.promela.write_str(atomic_block, NL_NONE, IndentAction.NIL)
+        self.promela.write_str(atomic_block)
         return True
 
     def visit_end_event(self, event: EndEvent) -> bool:
         self._gen_behavior_model(event)
+        atomic_block = self._build_atomic_block(event)
+
+        self.promela.write_str(atomic_block)
         return True
 
     def visit_intermediate_event(self, event: IntermediateEvent) -> bool:
         self._gen_behavior_model(event)
+        atomic_block = self._build_atomic_block(event)
+
+        self.promela.write_str(atomic_block)
         return True
 
     def visit_task(self, task: Task) -> bool:
         self._gen_behavior_model(task)
+        atomic_block = self._build_atomic_block(task)
+
+        self.promela.write_str(atomic_block)
         return True
 
     def visit_exclusive_gateway(self, gateway: ExclusiveGatewayNode) -> bool:
         self._gen_behavior_model(gateway)
+        atomic_block = self._build_atomic_block(gateway)
+
+        self.promela.write_str(atomic_block)
         return True
 
     def end_visit_exclusive_gateway(self, gateway: ExclusiveGatewayNode) -> None:
@@ -225,6 +238,9 @@ class PromelaGenVisitor(BpmnVisitor):  # type: ignore
 
     def visit_parallel_gateway(self, gateway: ParallelGatewayNode) -> bool:
         self._gen_behavior_model(gateway)
+        atomic_block = self._build_atomic_block(gateway)
+
+        self.promela.write_str(atomic_block)
         return True
 
     def visit_message_flow(self, flow: MessageFlow) -> bool:
