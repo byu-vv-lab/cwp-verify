@@ -49,6 +49,8 @@ def test_from_xml_success(mocker):
     mocker.patch("bpmncwpverify.core.expr.ExpressionListener")
     mock_result = mocker.Mock(spec=Success)
 
+    mock_builder.return_value.with_state.return_value = mock_builder.return_value
+    mock_builder.return_value.with_edge.return_value = mock_builder.return_value
     mock_builder.return_value.build.return_value = mock_result
 
     root = Element("root")
