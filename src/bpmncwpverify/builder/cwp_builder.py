@@ -64,7 +64,9 @@ class CwpBuilder:
         except Exception as e:
             return Failure(e.args[0])
 
-    def with_edge(self, edge: CwpEdge, source_ref: str, target_ref: str) -> None:
+    def with_edge(
+        self, edge: CwpEdge, source_ref: str, target_ref: str
+    ) -> "CwpBuilder":
         source = self._cwp.states[source_ref]
         source.out_edges.append(edge)
         edge.set_source(source)
@@ -73,6 +75,7 @@ class CwpBuilder:
         dest.in_edges.append(edge)
         edge.set_dest(dest)
         self._cwp.edges[edge.id] = edge
+        return self
 
     def check_expression(
         self,
@@ -89,5 +92,6 @@ class CwpBuilder:
         if not_(is_successful)(result):
             raise Exception(result.failure())
 
-    def with_state(self, state: CwpState) -> None:
+    def with_state(self, state: CwpState) -> "CwpBuilder":
         self._cwp.states[state.id] = state
+        return self

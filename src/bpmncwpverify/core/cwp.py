@@ -43,7 +43,7 @@ class Cwp:
             style = element.get("style")
             if style and "edgeLabel" not in style:
                 state = CwpState.from_xml(element)
-                builder.with_state(state)
+                builder = builder.with_state(state)
 
         for element in edges:
             source_ref = element.get("source")
@@ -52,7 +52,7 @@ class Cwp:
                 raise Exception(CwpEdgeNoStateError(element))
             edge = CwpEdge.from_xml(element, builder.gen_edge_name())
 
-            builder.with_edge(edge, source_ref, target_ref)
+            builder = builder.with_edge(edge, source_ref, target_ref)
 
         for itm in all_items:
             style = itm.get("style")
