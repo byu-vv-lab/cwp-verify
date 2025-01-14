@@ -199,6 +199,14 @@ class BpmnMsgSrcError(Error):
         self.node_id = node_id
 
 
+class BpmnMsgStartEventError(Error):
+    __slots__ = ["node_id"]
+
+    def __init__(self, node_id: str) -> None:
+        super().__init__()
+        self.node_id = node_id
+
+
 class BpmnMsgTargetError(Error):
     __slots__ = ["obj_type", "node_id"]
 
@@ -471,6 +479,8 @@ def _get_error_message(error: Error) -> str:
             return f"Message flow target error while visiting {obj_type}. A message flow can only go to a Message start or intermediate event; Receive, User, or Service task; Subprocess; or black box pool. Node ID: {node_id}."
         case BpmnMsgSrcError(obj_type=obj_type, node_id=node_id):
             return f"Message flow source error while visiting {obj_type}. A message flow can only come from specific sources. Node ID: {node_id}."
+        case BpmnMsgStartEventError(node_id=node_id):
+            return f"Message flow error: A start event with incoming message flow must have a Message trigger. node: {node_id}"
         case BpmnMsgEndEventError(event_id=event_id):
             return f"Message flow error: End events cannot have incoming messages. Event ID: {event_id}."
         case BpmnMsgGatewayError(gateway_type=gateway_type, gateway_id=gateway_id):

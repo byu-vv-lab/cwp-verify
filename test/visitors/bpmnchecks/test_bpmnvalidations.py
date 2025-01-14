@@ -4,6 +4,7 @@ from bpmncwpverify.core.error import (
     BpmnFlowOutgoingError,
     BpmnGraphConnError,
     BpmnMissingEventsError,
+    BpmnMsgStartEventError,
     BpmnSeqFlowEndEventError,
     BpmnFlowStartEventError,
     BpmnSeqFlowNoExprError,
@@ -420,26 +421,59 @@ class TestValidateBpmnOutgoingFlows:
 
 class TestValidateStartEventFlows:
     @pytest.mark.parametrize(
-        "in_flows, out_msgs, should_raise",
+        "in_flows, out_msgs, in_msgs, message_event_definition, should_raise, expected_exception",
         [
-            ([], [], False),  # No flows
-            (["flow1"], [], True),  # Incoming flows
-            ([], ["flow1"], True),  # Outgoing flows
-            (["flow1"], ["flow2"], True),  # Both flows
+            ([], [], [], None, False, None),  # No flows or messages
+            (["flow1"], [], [], None, True, BpmnFlowStartEventError),  # Incoming flows
+            (
+                [],
+                ["msg1"],
+                [],
+                None,
+                True,
+                BpmnFlowStartEventError,
+            ),  # Outgoing messages
+            (
+                [],
+                [],
+                ["msg1"],
+                None,
+                True,
+                BpmnMsgStartEventError,
+            ),  # Incoming messages without definition
+            (
+                [],
+                [],
+                ["msg1"],
+                "messageDef",
+                False,
+                None,
+            ),  # Incoming messages with definition
         ],
     )
-    def test_start_event_flows(self, mocker, in_flows, out_msgs, should_raise):
+    def test_start_event_flows_and_messages(
+        self,
+        mocker,
+        in_flows,
+        out_msgs,
+        in_msgs,
+        message_event_definition,
+        should_raise,
+        expected_exception,
+    ):
         mock_event = mocker.MagicMock(spec=StartEvent)
         mock_event.id = "start1"
         mock_event.in_flows = in_flows
         mock_event.out_msgs = out_msgs
+        mock_event.in_msgs = in_msgs
+        mock_event.message_event_definition = message_event_definition
 
         visitor = ValidateStartEventFlows()
 
         if should_raise:
             with pytest.raises(Exception) as exc_info:
                 visitor.visit_start_event(mock_event)
-            assert isinstance(exc_info.value.args[0], BpmnFlowStartEventError)
+            assert isinstance(exc_info.value.args[0], expected_exception)
             assert exc_info.value.args[0].node_id == "start1"
         else:
             result = visitor.visit_start_event(mock_event)
