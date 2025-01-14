@@ -1,29 +1,36 @@
 # type: ignore
 from xml.etree.ElementTree import Element
 from bpmncwpverify.builder.cwp_builder import CwpBuilder
+from bpmncwpverify.core.cwp import CwpEdge, CwpState
 from bpmncwpverify.visitors.cwp_connectivity_visitor import CwpConnectivityVisitor
 
 
-def test_cwp_connectivity(mocker):
-    builder = CwpBuilder(mocker.MagicMock())
+def test_cwp_connectivity():
+    builder = CwpBuilder()
     for i in range(10):
         builder.with_state(
-            Element(f"state{i}", attrib={"id": f"state{i}", "style": "test"})
+            CwpState(Element(f"state{i}", attrib={"id": f"state{i}", "style": "test"}))
         )
+    cur_let = "A"
     for i in range(9):
         builder.with_edge(
-            Element(
-                f"edge{i}",
-                attrib={
-                    "id": f"edge{i}",
-                    "target": f"state{i + 1}",
-                    "source": f"state{i}",
-                },
-            )
+            CwpEdge(
+                Element(
+                    f"edge{i}",
+                    attrib={
+                        "id": f"edge{i}",
+                    },
+                ),
+                chr(ord(cur_let) + i),
+            ),
+            f"state{i}",
+            f"state{i + 1}",
         )
 
     builder.with_edge(
-        Element("edge9", attrib={"id": "edge9", "target": "state1", "source": "state8"})
+        CwpEdge(Element("edge9", attrib={"id": "edge9"}), "Z"),
+        "state8",
+        "state1",
     )
     cwp = builder.build().unwrap()
     visitor = CwpConnectivityVisitor()

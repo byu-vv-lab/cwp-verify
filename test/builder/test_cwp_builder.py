@@ -1,19 +1,23 @@
 # type: ignore
 from bpmncwpverify.builder.cwp_builder import CwpBuilder
-from bpmncwpverify.core.cwp import CwpEdge, CwpState
-from bpmncwpverify.core.error import CwpNoStartStateError
+from bpmncwpverify.core.cwp import Cwp, CwpEdge, CwpState
+from bpmncwpverify.core.error import (
+    CwpEdgeNoParentExprError,
+    CwpEdgeNoStateError,
+    CwpNoParentEdgeError,
+    CwpNoStartStateError,
+)
 from returns.result import Success
 import pytest
+
+from xml.etree.ElementTree import Element, SubElement
 from returns.pipeline import is_successful
 from returns.functions import not_
 
-from xml.etree.ElementTree import Element
-
 
 @pytest.fixture
-def builder(mocker):
-    symbol_table = mocker.MagicMock()
-    return CwpBuilder(symbol_table)
+def builder():
+    return CwpBuilder()
 
 
 def create_mock_state(mocker, state_id, out_edges=None, in_edges=None):
@@ -33,74 +37,122 @@ def create_mock_edge(mocker, name, dest=None):
 
 
 def test_gen_edge_name(builder):
-    assert builder._gen_edge_name() == "EdgeA"
-    assert builder._gen_edge_name() == "EdgeB"
-    assert builder._gen_edge_name() == "EdgeC"
+    assert builder.gen_edge_name() == "EdgeA"
+    assert builder.gen_edge_name() == "EdgeB"
+    assert builder.gen_edge_name() == "EdgeC"
 
 
-def test_parse_states(builder):
-    mx_states = [
-        Element("mxCell", attrib={"id": "state1", "style": "someStyle"}),
-        Element("mxCell", attrib={"id": "state2", "style": "anotherStyle"}),
-        Element("mxCell", attrib={"id": "edge1", "style": "edgeLabel"}),
-    ]
+def test_from_xml_success(mocker):
+    mock_builder = mocker.patch("bpmncwpverify.builder.cwp_builder.CwpBuilder")
+    mocker.patch("bpmncwpverify.core.cwp.CwpState")
+    mocker.patch("bpmncwpverify.core.cwp.CwpEdge")
+    mocker.patch("bpmncwpverify.core.expr.ExpressionListener")
+    mock_result = mocker.Mock(spec=Success)
 
-    builder._parse_states(mx_states)
-    assert "state1" in builder._cwp.states
-    assert "state2" in builder._cwp.states
-    assert "edge1" not in builder._cwp.states
+    mock_builder.return_value.with_state.return_value = mock_builder.return_value
+    mock_builder.return_value.with_edge.return_value = mock_builder.return_value
+    mock_builder.return_value.build.return_value = mock_result
 
+    root = Element("root")
+    diagram = SubElement(root, "diagram")
+    mx_graph_model = SubElement(diagram, "mxGraphModel")
+    mx_root = SubElement(mx_graph_model, "root")
 
-def test_parse_edges(mocker, builder):
-    mock_set_source = mocker.patch.object(CwpEdge, "set_source")
-    mock_set_dest = mocker.patch.object(CwpEdge, "set_dest")
+    state = SubElement(mx_root, "mxCell", vertex="1", style="stateStyle")
+    state.set("id", "state1")
 
-    source_state = mocker.MagicMock()
-    dest_state = mocker.MagicMock()
-    source_state.out_edges = []
-    dest_state.in_edges = []
-    builder._cwp.states = {
-        "sourceState": source_state,
-        "destState": dest_state,
-    }
+    edge = SubElement(mx_root, "mxCell", edge="1", source="state1", target="state2")
+    edge.set("id", "edge1")
 
-    mx_edge = mocker.MagicMock(spec=Element)
-    mx_edge.get.side_effect = lambda x: {
-        "source": "sourceState",
-        "target": "destState",
-        "id": "123",
-    }.get(x)
-    mx_edges = [mx_edge]
+    SubElement(mx_root, "mxCell", style="edgeLabel", value="x > 0", parent="state1")
 
-    builder._parse_edges(mx_edges)
+    result = Cwp.from_xml(root, mocker.Mock())
 
-    mock_set_source.assert_called_once_with(source_state)
-    mock_set_dest.assert_called_once_with(dest_state)
+    assert isinstance(result, Success)
+    mock_builder.return_value.with_state.assert_called()
+    mock_builder.return_value.with_edge.assert_called()
+    mock_builder.return_value.check_expression.assert_called()
+    mock_builder.return_value.build.assert_called_once()
 
 
-def test_add_and_check_expressions(mocker, builder):
+def test_from_xml_edge_missing_source_target(mocker):
+    root = Element("root")
+    diagram = SubElement(root, "diagram")
+    mx_graph_model = SubElement(diagram, "mxGraphModel")
+    mx_root = SubElement(mx_graph_model, "root")
+
+    SubElement(mx_root, "mxCell", edge="1")
+    symbol_table = mocker.MagicMock()
+
+    with pytest.raises(Exception) as exc_info:
+        Cwp.from_xml(root, symbol_table)
+
+    assert isinstance(exc_info.value.args[0], CwpEdgeNoStateError)
+
+
+def test_from_xml_missing_parent_or_expression(mocker):
+    root = Element("root")
+    diagram = SubElement(root, "diagram")
+    mx_graph_model = SubElement(diagram, "mxGraphModel")
+    mx_root = SubElement(mx_graph_model, "root")
+
+    SubElement(mx_root, "mxCell", style="edgeLabel")
+    symbol_table = mocker.MagicMock()
+
+    with pytest.raises(Exception) as exc_info:
+        Cwp.from_xml(root, symbol_table)
+
+    assert isinstance(exc_info.value.args[0], CwpEdgeNoParentExprError)
+
+
+def test_check_expression(mocker):
     mock_expr_checker = mocker.MagicMock()
-    mock_expr_checker.build.return_value = Success("bool")
-    edge = create_mock_edge(mocker, "edge1")
-    builder._cwp.edges = {"edge1": edge}
+    mock_expr_checker.type_check.return_value = Success(None)
 
-    all_items = [
-        Element(
-            "mxCell",
-            attrib={
-                "id": "expr1",
-                "parent": "edge1",
-                "value": "someExpr",
-                "style": "edgeLabel",
-            },
+    symbol_table = mocker.MagicMock()
+
+    builder = CwpBuilder()
+    builder._cwp = Cwp()
+    builder._cwp.edges = {"edge": mocker.MagicMock(), "parent": mocker.MagicMock()}
+
+    expression = "expression"
+
+    builder.check_expression(mock_expr_checker, expression, "parent", symbol_table)
+
+
+def test_check_expression_no_parent(mocker):
+    builder = CwpBuilder()
+    builder._cwp = Cwp()
+    builder._cwp.edges = {"edge": mocker.MagicMock()}
+
+    with pytest.raises(Exception) as exc_info:
+        builder.check_expression(
+            mocker.Mock(), mocker.Mock(), mocker.Mock(), mocker.Mock()
         )
-    ]
 
-    builder._add_and_check_expressions(all_items, mock_expr_checker)
-    mock_expr_checker.type_check.assert_called_once_with(
-        "someExpr", builder.symbol_table
-    )
-    assert edge.parent_id == "expr1"
+    assert isinstance(exc_info.value.args[0], CwpNoParentEdgeError)
+
+
+def test_with_edge(mocker):
+    builder = CwpBuilder()
+    builder._cwp = Cwp()
+    source = mocker.MagicMock()
+    source.out_edges = []
+    dest = mocker.MagicMock()
+    dest.in_edges = []
+    builder._cwp.states = {"node1": source, "node2": dest}
+
+    mock_edge = mocker.MagicMock()
+    mock_edge.id = "edge1"
+
+    builder.with_edge(mock_edge, "node1", "node2")
+
+    mock_edge.set_source.assert_called_once_with(source)
+    mock_edge.set_dest.assert_called_once_with(dest)
+
+    assert builder._cwp.edges[mock_edge.id] == mock_edge
+    assert len(dest.in_edges) == 1
+    assert len(source.out_edges) == 1
 
 
 def test_build(mocker):
@@ -116,13 +168,10 @@ def test_build(mocker):
     mock_cwp = mocker.MagicMock()
     mock_cwp.states = states
 
-    obj = CwpBuilder(mocker.MagicMock())
+    obj = CwpBuilder()
     obj._cwp = mock_cwp
     obj._cwp.states = states
     obj._cwp.edges = edges
-    obj._parse_states = mocker.MagicMock()
-    obj._parse_edges = mocker.MagicMock()
-    obj._add_and_check_expressions = mocker.MagicMock()
     mock_cwp.accept = mocker.MagicMock()
 
     result = obj.build()
@@ -136,9 +185,6 @@ def test_build(mocker):
     assert list(end_states) == [states["state3"]]
 
     mock_cwp.accept.assert_called_once()
-    obj._parse_states.assert_called_once()
-    obj._parse_edges.assert_called_once()
-    obj._add_and_check_expressions.assert_called_once()
 
     new_edge = CwpEdge(mocker.MagicMock(), mocker.MagicMock())
     states["state1"].in_edges = [new_edge]
