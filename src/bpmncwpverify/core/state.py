@@ -1,23 +1,16 @@
 import builtins
 
 from antlr4 import CommonTokenStream, InputStream, ParseTreeWalker
-from antlr4.error.ErrorStrategy import ParseCancellationException
 from antlr4.error.ErrorListener import ConsoleErrorListener, ErrorListener
-from antlr4.tree.Tree import TerminalNode, TerminalNodeImpl
+from antlr4.error.ErrorStrategy import ParseCancellationException
 from antlr4.Token import Token
-
-from returns.maybe import Maybe, Nothing, Some
-from returns.result import Failure, Result, Success
-from returns.pipeline import flow, is_successful
-from returns.pointfree import bind_result
-from returns.functions import not_
-from returns.curry import partial
-
-from typing import Any, cast, Iterable
+from antlr4.tree.Tree import TerminalNode, TerminalNodeImpl
 
 from bpmncwpverify.antlr.StateLexer import StateLexer
-from bpmncwpverify.antlr.StateParser import StateParser
 from bpmncwpverify.antlr.StateListener import StateListener
+from bpmncwpverify.antlr.StateParser import StateParser
+
+from bpmncwpverify.core import typechecking
 
 from bpmncwpverify.core.error import (
     Error,
@@ -26,7 +19,14 @@ from bpmncwpverify.core.error import (
     StateSyntaxError,
 )
 
-from bpmncwpverify.core import typechecking
+from returns.curry import partial
+from returns.functions import not_
+from returns.maybe import Maybe, Nothing, Some
+from returns.pipeline import flow, is_successful
+from returns.pointfree import bind_result
+from returns.result import Failure, Result, Success
+
+from typing import Any, cast, Iterable
 
 
 def antlr_id_set_context_get_children(
