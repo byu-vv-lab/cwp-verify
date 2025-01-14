@@ -18,12 +18,13 @@ class BpmnBuilder:
         except Exception as e:
             return Failure(ExceptionError(str(e)))
 
-    def with_process(self, process: Process) -> None:
+    def with_process(self, process: Process) -> "BpmnBuilder":
         self._bpmn.processes[process.id] = process
+        return self
 
     def with_message(
         self, message: MessageFlow, source_ref: str, target_ref: str
-    ) -> None:
+    ) -> "BpmnBuilder":
         self._bpmn.add_inter_process_msg(message)
         self._bpmn.store_element(message)
 
@@ -37,8 +38,9 @@ class BpmnBuilder:
         message.target_node, message.source_node = to_node, from_node
         from_node.add_out_msg(message)
         to_node.add_in_msg(message)
+        return self
 
-    def with_process_elements(self) -> None:
+    def with_process_elements(self) -> "BpmnBuilder":
         """
         Ensures that all elements from every process are accessible at the BPMN level.
         This allows inter-process elements to be linked via message flows.
@@ -48,3 +50,4 @@ class BpmnBuilder:
                 process.get_flows().values()
             ):
                 self._bpmn.store_element(item)
+        return self

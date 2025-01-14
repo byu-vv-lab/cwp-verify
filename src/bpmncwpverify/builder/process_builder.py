@@ -25,8 +25,9 @@ class ProcessBuilder:
         self._process = Process(element)
         self._symbol_table = symbol_table
 
-    def with_element(self, element: Union[SequenceFlow, Node]) -> None:
+    def with_element(self, element: Union[SequenceFlow, Node]) -> "ProcessBuilder":
         self._process[element.id] = element
+        return self
 
     def with_process_flow(
         self,
@@ -34,7 +35,7 @@ class ProcessBuilder:
         source_ref: str,
         target_ref: str,
         expression: Union[str, None],
-    ) -> None:
+    ) -> "ProcessBuilder":
         flow = self._process[flow_id]
         source_node = self._process[source_ref]
         target_node = self._process[target_ref]
@@ -54,6 +55,7 @@ class ProcessBuilder:
 
         source_node.add_out_flow(flow)
         target_node.add_in_flow(flow)
+        return self
 
     def build(self) -> Result[Process, BpmnStructureError]:
         try:

@@ -286,10 +286,10 @@ class Process(BpmnElement):
             result = get_element_type(tag)
 
             class_object = result.from_xml(sub_element)
-            builder.with_element(class_object)
+            builder = builder.with_element(class_object)
 
         for seq_flow in element.findall("bpmn:sequenceFlow", BPMN_XML_NAMESPACE):
-            builder.with_process_flow(
+            builder = builder.with_process_flow(
                 seq_flow.attrib["id"],
                 seq_flow.attrib["sourceRef"],
                 seq_flow.attrib["targetRef"],
@@ -386,7 +386,7 @@ class Bpmn:
             process = Process.from_xml(process_element, symbol_table)
             if not_(is_successful)(process):
                 return cast(Result[Bpmn, Error], process)
-            bpmn_builder.with_process(process.unwrap())
+            bpmn_builder = bpmn_builder.with_process(process.unwrap())
 
         ##############
         # Build and add messages
@@ -394,7 +394,7 @@ class Bpmn:
         collab = root.find("bpmn:collaboration", BPMN_XML_NAMESPACE)
         if collab is not None:
             # TODO: write test for messages in the bpmn diagram
-            bpmn_builder.with_process_elements()
+            bpmn_builder = bpmn_builder.with_process_elements()
             for msg_flow in collab.findall("bpmn:messageFlow", BPMN_XML_NAMESPACE):
                 source_ref, target_ref = (
                     msg_flow.get("sourceRef"),
@@ -405,7 +405,9 @@ class Bpmn:
 
                 assert source_ref and target_ref
 
-                bpmn_builder.with_message(message, source_ref, target_ref)
+                bpmn_builder = bpmn_builder.with_message(
+                    message, source_ref, target_ref
+                )
 
         return cast(Result[Bpmn, Error], bpmn_builder.build())
 
