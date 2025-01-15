@@ -8,7 +8,6 @@ from bpmncwpverify.core.bpmn import (
     EndEvent,
     IntermediateEvent,
     Task,
-    SubProcess,
     ExclusiveGatewayNode,
     ParallelGatewayNode,
 )
@@ -32,10 +31,6 @@ class SetFlowLeafs(BpmnVisitor):  # type: ignore
 
     def visit_task(self, task: Task) -> bool:
         self.visited.add(task)
-        return True
-
-    def visit_sub_process(self, subprocess: SubProcess) -> bool:
-        self.visited.add(subprocess)
         return True
 
     def visit_exclusive_gateway(self, gateway: ExclusiveGatewayNode) -> bool:

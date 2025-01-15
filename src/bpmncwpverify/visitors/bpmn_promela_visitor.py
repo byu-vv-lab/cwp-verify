@@ -13,7 +13,6 @@ from bpmncwpverify.core.bpmn import (
     Bpmn,
     BpmnElement,
     Node,
-    Activity,
     Flow,
 )
 
@@ -82,7 +81,7 @@ class PromelaGenVisitor(BpmnVisitor):  # type: ignore
         if flow_or_msg:
             return element.name + "_FROM_" + flow_or_msg.source_node.name  # type: ignore
         else:
-            if isinstance(element, Activity):
+            if isinstance(element, Task):
                 return element.name + "_END"  # type: ignore
             else:
                 return element.name  # type: ignore
@@ -95,7 +94,7 @@ class PromelaGenVisitor(BpmnVisitor):  # type: ignore
                 self.flow_places.append(self.get_location(element, flow))
             for msg in element.in_msgs:
                 self.flow_places.append(self.get_location(element, msg))
-        if isinstance(element, Activity):
+        if isinstance(element, Task):
             self.flow_places.append(self.get_location(element))
 
     def create_option(

@@ -1,5 +1,5 @@
 # type: ignore
-from bpmncwpverify.core.bpmn import Activity, SequenceFlow, MessageFlow
+from bpmncwpverify.core.bpmn import SequenceFlow, MessageFlow, Task
 from bpmncwpverify.visitors.bpmn_promela_visitor import PromelaGenVisitor
 import pytest
 
@@ -64,15 +64,15 @@ def test_gen_excl_gw_has_option_macro(mocker):
     "element_name, element_type, flow_source_name, expected_result",
     [
         ("TestElement", None, "SourceNode", "TestElement_FROM_SourceNode"),
-        ("TestActivity", "Activity", None, "TestActivity_END"),
+        ("TestTask", "Task", None, "TestTask_END"),
         ("TestElement", None, None, "TestElement"),
     ],
 )
 def test_get_location(
     mocker, element_name, element_type, flow_source_name, expected_result
 ):
-    if element_type == "Activity":
-        element = mocker.MagicMock(spec=Activity)
+    if element_type == "Task":
+        element = mocker.MagicMock(spec=Task)
     else:
         element = mocker.MagicMock()
     element.name = element_name
@@ -137,12 +137,12 @@ def test_gen_places_with_activity(mocker, promela_gen_visitor):
     mock_promela_visitor = promela_gen_visitor
     mock_promela_visitor.flow_places = []
 
-    mock_activity_element = mocker.MagicMock(spec=Activity)
+    mock_activity_element = mocker.MagicMock(spec=Task)
     mock_activity_element.in_flows = []
     mock_activity_element.in_msgs = []
 
     mock_get_location = mocker.patch.object(
-        mock_promela_visitor, "get_location", return_value="Activity_Location"
+        mock_promela_visitor, "get_location", return_value="Task_Location"
     )
 
     mock_promela_visitor.gen_places(mock_activity_element)
@@ -150,8 +150,8 @@ def test_gen_places_with_activity(mocker, promela_gen_visitor):
     assert mock_get_location.call_count == 2
     mock_get_location.assert_called_with(mock_activity_element)
     assert mock_promela_visitor.flow_places == [
-        "Activity_Location",
-        "Activity_Location",
+        "Task_Location",
+        "Task_Location",
     ]
 
 
