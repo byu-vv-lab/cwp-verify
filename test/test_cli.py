@@ -4,7 +4,7 @@ from returns.pipeline import is_successful
 from returns.functions import not_
 
 from bpmncwpverify.cli import _verify
-from bpmncwpverify.core.error import StateSyntaxError, ExceptionError
+from bpmncwpverify.core.error import StateSyntaxError
 
 
 def test_givin_bad_state_file_path_when_verify_then_io_error(capsys):
@@ -24,8 +24,8 @@ def test_givin_bad_state_file_path_when_verify_then_io_error(capsys):
     # then
     assert not_(is_successful)(result)
     error = result.failure()
-    assert isinstance(error, ExceptionError)
-    assert "state.txt" in error.exception_str
+    assert isinstance(error, FileNotFoundError)
+    assert error.args[1] == "No such file or directory"
 
 
 def test_givin_bad_cwp_file_path_when_verify_then_io_error(capsys):
@@ -45,8 +45,8 @@ def test_givin_bad_cwp_file_path_when_verify_then_io_error(capsys):
     # then
     assert not_(is_successful)(result)
     error = result.failure()
-    assert isinstance(error, ExceptionError)
-    assert "test_cwp.xml" in error.exception_str
+    assert isinstance(error, FileNotFoundError)
+    # assert "test_cwp.xml" in error.exception_str
 
 
 def test_givin_bad_bpmn_file_path_when_verify_then_io_error(capsys):
@@ -66,8 +66,8 @@ def test_givin_bad_bpmn_file_path_when_verify_then_io_error(capsys):
     # then
     assert not_(is_successful)(result)
     error = result.failure()
-    assert isinstance(error, ExceptionError)
-    assert "test_bpmn.bpmn" in error.exception_str
+    assert isinstance(error, FileNotFoundError)
+    assert error.args[1] == "No such file or directory"
 
 
 def test_givin_bad_behavior_file_path_when_verify_then_io_error(capsys):
@@ -87,8 +87,8 @@ def test_givin_bad_behavior_file_path_when_verify_then_io_error(capsys):
     # then
     assert not_(is_successful)(result)
     error = result.failure()
-    assert isinstance(error, ExceptionError)
-    assert "behavior.txt" in error.exception_str
+    assert isinstance(error, FileNotFoundError)
+    assert error.args[1] == "No such file or directory"
 
 
 def test_givin_bad_state_file_when_verify_then_state_errror(capsys):

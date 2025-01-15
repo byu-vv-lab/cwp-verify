@@ -3,7 +3,6 @@ from bpmncwpverify.visitors.bpmnchecks.bpmnvalidate import validate_bpmn
 from returns.result import Result, Success, Failure
 from bpmncwpverify.core.error import (
     Error,
-    ExceptionError,
 )
 
 
@@ -16,7 +15,7 @@ class BpmnBuilder:
             validate_bpmn(self._bpmn)
             return Success(self._bpmn)
         except Exception as e:
-            return Failure(ExceptionError(str(e)))
+            return Failure(e.args[0])
 
     def with_process(self, process: Process) -> "BpmnBuilder":
         self._bpmn.processes[process.id] = process

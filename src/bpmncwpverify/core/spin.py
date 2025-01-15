@@ -9,7 +9,7 @@ from returns.result import Result, Success, Failure
 from returns.functions import not_
 
 
-from bpmncwpverify.core.error import Error, ExceptionError
+from bpmncwpverify.core.error import Error
 from bpmncwpverify.core.state import State
 from bpmncwpverify.core.cwp import Cwp
 from bpmncwpverify.core.bpmn import Bpmn
@@ -124,7 +124,7 @@ class Builder:
             return builder_result
         if not_(is_successful)(behavior_str):
             error = unsafe_perform_io(behavior_str.failure())
-            return Failure(ExceptionError(str(error)))
+            return Failure(error)
 
         bpmn = Success(unsafe_perform_io(behavior_str.unwrap()))
         builder = builder_result.unwrap()
@@ -139,7 +139,7 @@ class Builder:
             return builder_result
         if not_(is_successful)(bpmn_root):
             error = unsafe_perform_io(bpmn_root.failure())
-            return Failure(ExceptionError(str(error)))
+            return Failure(error)
 
         bpmn = Success(unsafe_perform_io(bpmn_root.unwrap()))
         builder = builder_result.unwrap()
@@ -154,7 +154,7 @@ class Builder:
             return builder_result
         if not_(is_successful)(cwp_root):
             error = unsafe_perform_io(cwp_root.failure())
-            return Failure(ExceptionError(str(error)))
+            return Failure(error)
 
         cwp = Success(unsafe_perform_io(cwp_root.unwrap()))
         builder = builder_result.unwrap()
@@ -168,7 +168,7 @@ class Builder:
             return builder_result
         if not_(is_successful)(state_str):
             error = unsafe_perform_io(state_str.failure())
-            return Failure(ExceptionError(str(error)))
+            return Failure(error)
 
         builder = builder_result.unwrap()
         state = Success(unsafe_perform_io(state_str.unwrap()))
