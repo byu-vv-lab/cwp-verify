@@ -1,11 +1,7 @@
 from __future__ import annotations
 from typing import Union
 from xml.etree.ElementTree import Element
-from bpmncwpverify.core.bpmn import (
-    Node,
-    Process,
-    SequenceFlow,
-)
+import bpmncwpverify.core.bpmn as bpmn
 from bpmncwpverify.core.error import (
     BpmnStructureError,
 )
@@ -22,10 +18,12 @@ class ProcessBuilder:
     __slots__ = ["_process", "_symbol_table"]
 
     def __init__(self, element: Element, symbol_table: State) -> None:
-        self._process = Process(element)
+        self._process = bpmn.Process(element)
         self._symbol_table = symbol_table
 
-    def with_element(self, element: Union[SequenceFlow, Node]) -> "ProcessBuilder":
+    def with_element(
+        self, element: Union["bpmn.SequenceFlow", "bpmn.Node"]
+    ) -> "ProcessBuilder":
         self._process[element.id] = element
         return self
 
@@ -40,9 +38,9 @@ class ProcessBuilder:
         source_node = self._process[source_ref]
         target_node = self._process[target_ref]
 
-        assert isinstance(flow, SequenceFlow)
-        assert isinstance(source_node, Node)
-        assert isinstance(target_node, Node)
+        assert isinstance(flow, bpmn.SequenceFlow)
+        assert isinstance(source_node, bpmn.Node)
+        assert isinstance(target_node, bpmn.Node)
 
         if expression:
             result = ExpressionListener.type_check(expression, self._symbol_table)
@@ -57,7 +55,7 @@ class ProcessBuilder:
         target_node.add_in_flow(flow)
         return self
 
-    def build(self) -> Result[Process, BpmnStructureError]:
+    def build(self) -> Result["bpmn.Process", BpmnStructureError]:
         try:
             validate_process(self._process)
             return Success(self._process)

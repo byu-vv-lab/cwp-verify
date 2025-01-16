@@ -10,6 +10,10 @@ from bpmncwpverify.core.error import (
     CwpFileStructureError,
     Error,
 )
+import bpmncwpverify.builder.cwp_builder as cwp_builder
+import bpmncwpverify.visitors.cwp_graph_visitor as cwp_graph_visitor
+import bpmncwpverify.visitors.cwpvisitor as cwpvisitor
+import bpmncwpverify.visitors.cwp_ltl_visitor as clv
 
 
 class Cwp:
@@ -21,9 +25,7 @@ class Cwp:
 
     @staticmethod
     def from_xml(root: Element, symbol_table: State) -> Result["Cwp", Error]:
-        from bpmncwpverify.builder.cwp_builder import CwpBuilder
-
-        builder = CwpBuilder()
+        builder = cwp_builder.CwpBuilder()
 
         if (diagram := root.find("diagram")) is None:
             return Failure(CwpFileStructureError("diagram"))
@@ -68,25 +70,21 @@ class Cwp:
         result: Result["Cwp", Error] = builder.build()
         return result
 
-    def accept(self, visitor: "CwpVisitor") -> None:
+    def accept(self, visitor: "cwpvisitor.CwpVisitor") -> None:
         result = visitor.visit_cwp(self)
         if result:
             self.start_state.accept(visitor)
         visitor.end_visit_cwp(self)
 
     def generate_graph_viz(self) -> None:
-        from bpmncwpverify.visitors.cwp_graph_visitor import CwpGraphVizVisitor
-
-        graph_viz_visitor = CwpGraphVizVisitor()
+        graph_viz_visitor = cwp_graph_visitor.CwpGraphVizVisitor()
 
         self.accept(graph_viz_visitor)
 
         graph_viz_visitor.dot.render("graphs/cwp_graph.gv", format="png")  # type: ignore[unused-ignore]
 
     def generate_ltl(self, symbol_table: State) -> str:
-        from bpmncwpverify.visitors.cwp_ltl_visitor import CwpLtlVisitor
-
-        ltl_visitor = CwpLtlVisitor(symbol_table)
+        ltl_visitor = clv.CwpLtlVisitor(symbol_table)
 
         self.accept(ltl_visitor)
 
@@ -109,7 +107,7 @@ class CwpState:
         self.in_edges: List[CwpEdge] = []
         self.cleanup_name(name)
 
-    def accept(self, visitor: "CwpVisitor") -> None:
+    def accept(self, visitor: "cwpvisitor.CwpVisitor") -> None:
         result = visitor.visit_state(self)
         if result:
             for edge in self.out_edges:
@@ -150,7 +148,7 @@ class CwpEdge:
     def set_dest(self, state: CwpState) -> None:
         self.dest = state
 
-    def accept(self, visitor: "CwpVisitor") -> None:
+    def accept(self, visitor: "cwpvisitor.CwpVisitor") -> None:
         if visitor.visit_edge(self) and not self.is_leaf:
             self.dest.accept(visitor)
         visitor.end_visit_edge(self)
@@ -173,23 +171,3 @@ class CwpEdge:
     @staticmethod
     def from_xml(element: Element, name: str) -> "CwpEdge":
         return CwpEdge(element, name)
-
-
-class CwpVisitor:
-    def visit_state(self, state: CwpState) -> bool:
-        return True
-
-    def end_visit_state(self, state: CwpState) -> None:
-        pass
-
-    def visit_edge(self, edge: CwpEdge) -> bool:
-        return True
-
-    def end_visit_edge(self, edge: CwpEdge) -> None:
-        pass
-
-    def visit_cwp(self, model: Cwp) -> bool:
-        return True
-
-    def end_visit_cwp(self, model: Cwp) -> None:
-        pass

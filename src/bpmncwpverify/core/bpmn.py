@@ -10,6 +10,11 @@ from bpmncwpverify.core.error import (
     BpmnStructureError,
     Error,
 )
+import bpmncwpverify.visitors.bpmnvisitor as bpmnvisitor
+import bpmncwpverify.builder.process_builder as pb
+import bpmncwpverify.builder.bpmn_builder as bb
+import bpmncwpverify.visitors.bpmn_graph_visitor as gv
+import bpmncwpverify.visitors.bpmn_promela_visitor as bpv
 
 BPMN_XML_NAMESPACE = {"bpmn": "http://www.omg.org/spec/BPMN/20100524/MODEL"}
 
@@ -78,12 +83,14 @@ class Node(BpmnElement):
     def add_in_msg(self, flow: "MessageFlow") -> None:
         self.in_msgs.append(flow)
 
-    def traverse_outflows_if_result(self, visitor: "BpmnVisitor", result: bool) -> None:
+    def traverse_outflows_if_result(
+        self, visitor: "bpmnvisitor.BpmnVisitor", result: bool
+    ) -> None:
         if result:
             for flow in self.out_flows:
                 flow.accept(visitor)
 
-    def accept(self, visitor: "BpmnVisitor") -> None:
+    def accept(self, visitor: "bpmnvisitor.BpmnVisitor") -> None:
         pass
 
     @staticmethod
@@ -100,7 +107,7 @@ class Event(Node):
 
 
 class StartEvent(Event):
-    def accept(self, visitor: "BpmnVisitor") -> None:
+    def accept(self, visitor: "bpmnvisitor.BpmnVisitor") -> None:
         result = visitor.visit_start_event(self)
         self.traverse_outflows_if_result(visitor, result)
         visitor.end_visit_start_event(self)
@@ -111,7 +118,7 @@ class StartEvent(Event):
 
 
 class EndEvent(Event):
-    def accept(self, visitor: "BpmnVisitor") -> None:
+    def accept(self, visitor: "bpmnvisitor.BpmnVisitor") -> None:
         result = visitor.visit_end_event(self)
         self.traverse_outflows_if_result(visitor, result)
         visitor.end_visit_end_event(self)
@@ -127,7 +134,7 @@ class IntermediateEvent(Event):
         tag = element.tag.partition("}")[2]
         self.type = "catch" if "Catch" in tag else "throw" if "Throw" in tag else "send"
 
-    def accept(self, visitor: "BpmnVisitor") -> None:
+    def accept(self, visitor: "bpmnvisitor.BpmnVisitor") -> None:
         result = visitor.visit_intermediate_event(self)
         self.traverse_outflows_if_result(visitor, result)
         visitor.end_visit_intermediate_event(self)
@@ -141,7 +148,7 @@ class IntermediateEvent(Event):
 # Activity classes
 ###################
 class Task(Node):
-    def accept(self, visitor: "BpmnVisitor") -> None:
+    def accept(self, visitor: "bpmnvisitor.BpmnVisitor") -> None:
         result = visitor.visit_task(self)
         self.traverse_outflows_if_result(visitor, result)
         visitor.end_visit_task(self)
@@ -159,7 +166,7 @@ class GatewayNode(Node):
 
 
 class ExclusiveGatewayNode(GatewayNode):
-    def accept(self, visitor: "BpmnVisitor") -> None:
+    def accept(self, visitor: "bpmnvisitor.BpmnVisitor") -> None:
         result = visitor.visit_exclusive_gateway(self)
         self.traverse_outflows_if_result(visitor, result)
         visitor.end_visit_exclusive_gateway(self)
@@ -174,7 +181,7 @@ class ParallelGatewayNode(GatewayNode):
         super().__init__(element)
         self.is_fork = is_fork
 
-    def accept(self, visitor: "BpmnVisitor") -> None:
+    def accept(self, visitor: "bpmnvisitor.BpmnVisitor") -> None:
         result = visitor.visit_parallel_gateway(self)
         self.traverse_outflows_if_result(visitor, result)
         visitor.end_visit_parallel_gateway(self)
@@ -217,7 +224,7 @@ class SequenceFlow(Flow):
         super().__init__(element)
         self.expression: str = ""
 
-    def accept(self, visitor: "BpmnVisitor") -> None:
+    def accept(self, visitor: "bpmnvisitor.BpmnVisitor") -> None:
         if visitor.visit_sequence_flow(self) and not self.is_leaf:
             self.target_node.accept(visitor)
         visitor.end_visit_sequence_flow(self)
@@ -276,9 +283,7 @@ class Process(BpmnElement):
         element: Element,
         symbol_table: State,
     ) -> Result["Process", Error]:
-        from bpmncwpverify.builder.process_builder import ProcessBuilder
-
-        builder = ProcessBuilder(element, symbol_table)
+        builder = pb.ProcessBuilder(element, symbol_table)
 
         for sub_element in element:
             tag = sub_element.tag.partition("}")[2]
@@ -298,7 +303,7 @@ class Process(BpmnElement):
 
         return cast(Result[Process, Error], builder.build())
 
-    def accept(self, visitor: "BpmnVisitor") -> None:
+    def accept(self, visitor: "bpmnvisitor.BpmnVisitor") -> None:
         visitor.visit_process(self)
         for start_event in self.get_start_states().values():
             start_event.accept(visitor)
@@ -348,26 +353,22 @@ class Bpmn:
     def add_inter_process_msg(self, msg: MessageFlow) -> None:
         self.inter_process_msgs[msg.id] = msg
 
-    def accept(self, visitor: "BpmnVisitor") -> None:
+    def accept(self, visitor: "bpmnvisitor.BpmnVisitor") -> None:
         visitor.visit_bpmn(self)
         for process in self.processes.values():
             process.accept(visitor)
         visitor.end_visit_bpmn(self)
 
     def generate_graph_viz(self) -> None:
-        from bpmncwpverify.visitors.bpmn_graph_visitor import GraphVizVisitor
-
         for process in range(len(self.processes)):
-            graph_viz_visitor = GraphVizVisitor(process + 1)
+            graph_viz_visitor = gv.GraphVizVisitor(process + 1)
 
             self.accept(graph_viz_visitor)
 
             graph_viz_visitor.dot.render("graphs/bpmn_graph.gv", format="png")  # type: ignore[unused-ignore]
 
     def generate_promela(self) -> str:
-        from bpmncwpverify.visitors.bpmn_promela_visitor import PromelaGenVisitor
-
-        promela_visitor = PromelaGenVisitor()
+        promela_visitor = bpv.PromelaGenVisitor()
 
         self.accept(promela_visitor)
 
@@ -375,13 +376,11 @@ class Bpmn:
 
     @staticmethod
     def from_xml(root: Element, symbol_table: State) -> Result["Bpmn", Error]:
-        from bpmncwpverify.builder.bpmn_builder import BpmnBuilder
-
         ##############
         # Build and add processes
         ##############
         processes = root.findall("bpmn:process", BPMN_XML_NAMESPACE)
-        bpmn_builder = BpmnBuilder()
+        bpmn_builder = bb.BpmnBuilder()
         for process_element in processes:
             process = Process.from_xml(process_element, symbol_table)
             if not_(is_successful)(process):
@@ -410,68 +409,3 @@ class Bpmn:
                 )
 
         return cast(Result[Bpmn, Error], bpmn_builder.build())
-
-
-###################
-# Bpmn Visitor interface
-###################
-class BpmnVisitor:
-    def visit_start_event(self, event: StartEvent) -> bool:
-        return True
-
-    def end_visit_start_event(self, event: StartEvent) -> None:
-        pass
-
-    def visit_end_event(self, event: EndEvent) -> bool:
-        return True
-
-    def end_visit_end_event(self, event: EndEvent) -> None:
-        pass
-
-    def visit_intermediate_event(self, event: IntermediateEvent) -> bool:
-        return True
-
-    def end_visit_intermediate_event(self, event: IntermediateEvent) -> None:
-        pass
-
-    def visit_task(self, task: Task) -> bool:
-        return True
-
-    def end_visit_task(self, task: Task) -> None:
-        pass
-
-    def visit_exclusive_gateway(self, gateway: ExclusiveGatewayNode) -> bool:
-        return True
-
-    def end_visit_exclusive_gateway(self, gateway: ExclusiveGatewayNode) -> None:
-        pass
-
-    def visit_parallel_gateway(self, gateway: ParallelGatewayNode) -> bool:
-        return True
-
-    def end_visit_parallel_gateway(self, gateway: ParallelGatewayNode) -> None:
-        pass
-
-    def visit_sequence_flow(self, flow: SequenceFlow) -> bool:
-        return True
-
-    def end_visit_sequence_flow(self, flow: SequenceFlow) -> None:
-        pass
-
-    def visit_message_flow(self, flow: MessageFlow) -> bool:
-        return True
-
-    def end_visit_message_flow(self, flow: MessageFlow) -> None:
-        pass
-
-    def visit_process(self, process: Process) -> bool:
-        return True
-
-    def end_visit_process(self, process: Process) -> None:
-        pass
-
-    def visit_bpmn(self, bpmn: Bpmn) -> bool:
-        return True
-
-    def end_visit_bpmn(self, bpmn: Bpmn) -> None:
-        pass

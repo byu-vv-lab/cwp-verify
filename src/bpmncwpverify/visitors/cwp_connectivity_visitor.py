@@ -1,24 +1,25 @@
 from typing import Set
-from bpmncwpverify.core.cwp import Cwp, CwpState, CwpVisitor, CwpEdge
+import bpmncwpverify.core.cwp as cwp
+import bpmncwpverify.visitors.cwpvisitor as cwpvisitor
 from bpmncwpverify.core.error import CwpGraphConnError
 
 
-class CwpConnectivityVisitor(CwpVisitor):  # type: ignore
+class CwpConnectivityVisitor(cwpvisitor.CwpVisitor):  # type: ignore
     def __init__(self) -> None:
-        self.visited: Set[CwpState] = set()
+        self.visited: Set[cwp.CwpState] = set()
 
-    def visit_state(self, state: CwpState) -> bool:
+    def visit_state(self, state: "cwp.CwpState") -> bool:
         self.visited.add(state)
         return True
 
-    def visit_edge(self, edge: CwpEdge) -> bool:
+    def visit_edge(self, edge: "cwp.CwpEdge") -> bool:
         # This determines if an edge is a leaf node
         if edge.dest in self.visited:
             edge.is_leaf = True
             return False
         return True
 
-    def end_visit_cwp(self, model: Cwp) -> None:
+    def end_visit_cwp(self, model: "cwp.Cwp") -> None:
         # This checks to see if any part of the graph is not connected
         if self.visited != set(model.states.values()) | {model.start_state}:
             raise Exception(CwpGraphConnError())

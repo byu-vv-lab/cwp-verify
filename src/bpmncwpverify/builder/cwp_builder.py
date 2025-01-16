@@ -8,7 +8,7 @@ from bpmncwpverify.core.error import (
     CwpNoStartStateError,
     Error,
 )
-from bpmncwpverify.core.cwp import Cwp, CwpEdge, CwpState
+import bpmncwpverify.core.cwp as cwp
 from bpmncwpverify.core.expr import ExpressionListener
 from returns.pipeline import is_successful
 from returns.functions import not_
@@ -17,14 +17,14 @@ from returns.functions import not_
 class CwpBuilder:
     def __init__(self) -> None:
         self._cur_edge_letter = "A"
-        self._cwp = Cwp()
+        self._cwp = cwp.Cwp()
 
     def gen_edge_name(self) -> str:
         ret = "Edge" + self._cur_edge_letter
         self._cur_edge_letter = chr(ord(self._cur_edge_letter) + 1)
         return ret
 
-    def build(self) -> Result[Cwp, Error]:
+    def build(self) -> Result["cwp.Cwp", Error]:
         try:
             end_states = [
                 state
@@ -65,7 +65,7 @@ class CwpBuilder:
             return Failure(e.args[0])
 
     def with_edge(
-        self, edge: CwpEdge, source_ref: str, target_ref: str
+        self, edge: "cwp.CwpEdge", source_ref: str, target_ref: str
     ) -> "CwpBuilder":
         source = self._cwp.states[source_ref]
         source.out_edges.append(edge)
@@ -87,11 +87,11 @@ class CwpBuilder:
         edge = self._cwp.edges.get(parent)
         if not edge:
             raise Exception(CwpNoParentEdgeError(parent))
-        edge.expression = CwpEdge.cleanup_expression(expression)
+        edge.expression = cwp.CwpEdge.cleanup_expression(expression)
         result = expr_checker.type_check(edge.expression, symbol_table)
         if not_(is_successful)(result):
             raise Exception(result.failure())
 
-    def with_state(self, state: CwpState) -> "CwpBuilder":
+    def with_state(self, state: "cwp.CwpState") -> "CwpBuilder":
         self._cwp.states[state.id] = state
         return self
