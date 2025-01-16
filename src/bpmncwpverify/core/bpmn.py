@@ -12,6 +12,8 @@ from bpmncwpverify.core.error import (
 )
 import bpmncwpverify.visitors.bpmnvisitor as bpmnvisitor
 import bpmncwpverify.builder.process_builder as pb
+import bpmncwpverify.builder.bpmn_builder as bb
+import bpmncwpverify.visitors.bpmn_graph_visitor as gv
 
 BPMN_XML_NAMESPACE = {"bpmn": "http://www.omg.org/spec/BPMN/20100524/MODEL"}
 
@@ -357,10 +359,8 @@ class Bpmn:
         visitor.end_visit_bpmn(self)
 
     def generate_graph_viz(self) -> None:
-        from bpmncwpverify.visitors.bpmn_graph_visitor import GraphVizVisitor
-
         for process in range(len(self.processes)):
-            graph_viz_visitor = GraphVizVisitor(process + 1)
+            graph_viz_visitor = gv.GraphVizVisitor(process + 1)
 
             self.accept(graph_viz_visitor)
 
@@ -377,13 +377,11 @@ class Bpmn:
 
     @staticmethod
     def from_xml(root: Element, symbol_table: State) -> Result["Bpmn", Error]:
-        from bpmncwpverify.builder.bpmn_builder import BpmnBuilder
-
         ##############
         # Build and add processes
         ##############
         processes = root.findall("bpmn:process", BPMN_XML_NAMESPACE)
-        bpmn_builder = BpmnBuilder()
+        bpmn_builder = bb.BpmnBuilder()
         for process_element in processes:
             process = Process.from_xml(process_element, symbol_table)
             if not_(is_successful)(process):
