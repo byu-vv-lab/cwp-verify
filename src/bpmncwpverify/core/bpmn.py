@@ -14,6 +14,7 @@ import bpmncwpverify.visitors.bpmnvisitor as bpmnvisitor
 import bpmncwpverify.builder.process_builder as pb
 import bpmncwpverify.builder.bpmn_builder as bb
 import bpmncwpverify.visitors.bpmn_graph_visitor as gv
+import bpmncwpverify.visitors.bpmn_promela_visitor as bpv
 
 BPMN_XML_NAMESPACE = {"bpmn": "http://www.omg.org/spec/BPMN/20100524/MODEL"}
 
@@ -367,9 +368,7 @@ class Bpmn:
             graph_viz_visitor.dot.render("graphs/bpmn_graph.gv", format="png")  # type: ignore[unused-ignore]
 
     def generate_promela(self) -> str:
-        from bpmncwpverify.visitors.bpmn_promela_visitor import PromelaGenVisitor
-
-        promela_visitor = PromelaGenVisitor()
+        promela_visitor = bpv.PromelaGenVisitor()
 
         self.accept(promela_visitor)
 

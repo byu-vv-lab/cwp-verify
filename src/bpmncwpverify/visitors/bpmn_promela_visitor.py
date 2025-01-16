@@ -1,21 +1,8 @@
 from typing import List, Optional
 
-from bpmncwpverify.core.bpmn import (
-    StartEvent,
-    EndEvent,
-    IntermediateEvent,
-    Task,
-    MessageFlow,
-    ParallelGatewayNode,
-    ExclusiveGatewayNode,
-    Process,
-    Bpmn,
-    BpmnElement,
-    Node,
-    Flow,
-)
+import bpmncwpverify.core.bpmn as bpmn
 
-from bpmncwpverify.visitors.bpmnvisitor import BpmnVisitor
+import bpmncwpverify.visitors.bpmnvisitor as bpmnvisitor
 
 ##############
 # Constants
@@ -24,7 +11,7 @@ HELPER_FUNCS = "#define hasToken(place) (place != 0)\n\n#define putToken(place) 
 ##############
 
 
-class PromelaGenVisitor(BpmnVisitor):  # type: ignore
+class PromelaGenVisitor(bpmnvisitor.BpmnVisitor):  # type: ignore
     def __init__(self) -> None:
         self.init_text = ""
         self.places_text = ""
@@ -53,7 +40,9 @@ class PromelaGenVisitor(BpmnVisitor):  # type: ignore
             + "\n\n"
         )
 
-    def gen_excl_gw_has_option_macro(self, gateway: ExclusiveGatewayNode) -> None:
+    def gen_excl_gw_has_option_macro(
+        self, gateway: "bpmn.ExclusiveGatewayNode"
+    ) -> None:
         macro = "#define {}_hasOption \\\n".format(gateway.name)
         conditions = [str(flow.name) for flow in gateway.out_flows]
         macro += "(\\\n\t"
@@ -77,17 +66,17 @@ class PromelaGenVisitor(BpmnVisitor):  # type: ignore
         self.workflow_text += "".join(("\n" + text.lstrip()).splitlines(True))
 
     def get_location(
-        self, element: BpmnElement, flow_or_msg: Optional[Flow] = None
+        self, element: "bpmn.BpmnElement", flow_or_msg: Optional["bpmn.Flow"] = None
     ) -> str:
         if flow_or_msg:
             return element.name + "_FROM_" + flow_or_msg.source_node.name  # type: ignore
         else:
-            if isinstance(element, Task):
+            if isinstance(element, bpmn.Task):
                 return element.name + "_END"  # type: ignore
             else:
                 return element.name  # type: ignore
 
-    def gen_places(self, element: Node) -> None:
+    def gen_places(self, element: "bpmn.Node") -> None:
         if not element.in_flows and not element.in_msgs:
             self.flow_places.append(self.get_location(element))
         else:
@@ -95,7 +84,7 @@ class PromelaGenVisitor(BpmnVisitor):  # type: ignore
                 self.flow_places.append(self.get_location(element, flow))
             for msg in element.in_msgs:
                 self.flow_places.append(self.get_location(element, msg))
-        if isinstance(element, Task):
+        if isinstance(element, bpmn.Task):
             self.flow_places.append(self.get_location(element))
 
     def create_option(
@@ -143,7 +132,7 @@ class PromelaGenVisitor(BpmnVisitor):  # type: ignore
         return ret
 
     def gen_activation_option(
-        self, element: Node, start_guard: str = "", option_type: str = ""
+        self, element: "bpmn.Node", start_guard: str = "", option_type: str = ""
     ) -> None:
         guard: str = "("
         consume_locations: List[str] = []
@@ -250,8 +239,8 @@ class PromelaGenVisitor(BpmnVisitor):  # type: ignore
     ####################
     # Visitor Methods
     ####################
-    def visit_node(self, element: Node, is_task: bool = False) -> None:
-        update_state = isinstance(element, Task)
+    def visit_node(self, element: "bpmn.Node", is_task: bool = False) -> None:
+        update_state = isinstance(element, bpmn.Task)
         self.behavior_model_text += self.gen_behavior_model(
             self.get_location(element), update_state=update_state
         )
@@ -263,7 +252,7 @@ class PromelaGenVisitor(BpmnVisitor):  # type: ignore
             self.gen_activation_option(element, option_type="Task")
             self.gen_activation_option(element, option_type="Task-END")
 
-    def visit_start_event(self, event: StartEvent) -> bool:
+    def visit_start_event(self, event: "bpmn.StartEvent") -> bool:
         if event.in_msgs:
             self.visit_node(event)
         else:
@@ -272,19 +261,19 @@ class PromelaGenVisitor(BpmnVisitor):  # type: ignore
             self.gen_activation_option(event, start_guard=guard)
         return True
 
-    def visit_end_event(self, event: EndEvent) -> bool:
+    def visit_end_event(self, event: "bpmn.EndEvent") -> bool:
         self.visit_node(event)
         return False
 
-    def visit_intermediate_event(self, event: IntermediateEvent) -> bool:
+    def visit_intermediate_event(self, event: "bpmn.IntermediateEvent") -> bool:
         self.visit_node(event)
         return True
 
-    def visit_task(self, task: Task) -> bool:
+    def visit_task(self, task: "bpmn.Task") -> bool:
         self.visit_node(task, is_task=True)
         return True
 
-    def visit_exclusive_gateway(self, gateway: ExclusiveGatewayNode) -> bool:
+    def visit_exclusive_gateway(self, gateway: "bpmn.ExclusiveGatewayNode") -> bool:
         self.gen_activation_option(gateway)
         if len(gateway.out_flows) == 1:
             self.gen_activation_option(gateway, option_type="XOR-JOIN")
@@ -293,20 +282,20 @@ class PromelaGenVisitor(BpmnVisitor):  # type: ignore
             self.gen_activation_option(gateway, option_type="XOR")
         return True
 
-    def end_visit_exclusive_gateway(self, gateway: ExclusiveGatewayNode) -> None:
+    def end_visit_exclusive_gateway(self, gateway: "bpmn.ExclusiveGatewayNode") -> None:
         pass
 
-    def visit_parallel_gateway(self, gateway: ParallelGatewayNode) -> bool:
+    def visit_parallel_gateway(self, gateway: "bpmn.ParallelGatewayNode") -> bool:
         self.gen_places(gateway)
         option_type = "Parallel-fork" if gateway.is_fork else "Parallel-join"
         self.gen_activation_option(gateway, option_type=option_type)
         return True
 
-    def visit_message_flow(self, flow: MessageFlow) -> bool:
+    def visit_message_flow(self, flow: "bpmn.MessageFlow") -> bool:
         self.flow_places.append(flow.name)
         return True
 
-    def visit_process(self, process: Process) -> bool:
+    def visit_process(self, process: "bpmn.Process") -> bool:
         self.write_workflow_lines("proctype {x}() {{".format(x=process.id))
         self.workflow_indent += 1
         self.write_workflow_lines("pid me = _pid")
@@ -315,12 +304,12 @@ class PromelaGenVisitor(BpmnVisitor):  # type: ignore
         self.write_workflow_lines("do")
         return True
 
-    def end_visit_process(self, process: Process) -> None:
+    def end_visit_process(self, process: "bpmn.Process") -> None:
         self.write_workflow_lines("od")
         self.workflow_indent -= 1
         self.write_workflow_lines("}")
 
-    def visit_bpmn(self, bpmn: Bpmn) -> bool:
+    def visit_bpmn(self, bpmn: "bpmn.Bpmn") -> bool:
         init_lines = "init {\n\tatomic{\n\t\tupdateState()\n"
         for process in bpmn.processes.values():
             init_lines += "\t\trun {}()\n".format(process.name)
@@ -328,6 +317,6 @@ class PromelaGenVisitor(BpmnVisitor):  # type: ignore
         self.write_init_lines(init_lines)
         return True
 
-    def end_visit_bpmn(self, bpmn: Bpmn) -> None:
+    def end_visit_bpmn(self, bpmn: "bpmn.Bpmn") -> None:
         for place in self.flow_places:
             self.write_places_lines("bit {x} = 0".format(x=str(place)))
