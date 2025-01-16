@@ -1,7 +1,7 @@
 # type: ignore
 import pytest
 from xml.etree.ElementTree import Element
-from bpmncwpverify.builder.bpmn_builder import BpmnBuilder
+import bpmncwpverify.builder.bpmn_builder as bpmnbuilder
 from bpmncwpverify.core.bpmn import Node
 
 
@@ -16,7 +16,7 @@ def test_add_message_valid_input(mocker):
         "target_id": mock_target_node,
     }[x]
 
-    builder = BpmnBuilder()
+    builder = bpmnbuilder.BpmnBuilder()
     builder._bpmn = mock_bpmn
 
     builder.with_message(mock_msg_flow, "source_id", "target_id")
@@ -31,7 +31,7 @@ def test_add_message_missing_refs(mocker):
     mock_bpmn = mocker.MagicMock()
     mock_msg_flow = mocker.MagicMock(spec=Element)
 
-    builder = BpmnBuilder()
+    builder = bpmnbuilder.BpmnBuilder()
     builder._bpmn = mock_bpmn
 
     with pytest.raises(Exception) as exc_info:
@@ -48,7 +48,7 @@ def test_add_message_invalid_nodes(mocker):
         "target_id": "invalid_node",
     }[x]
 
-    builder = BpmnBuilder()
+    builder = bpmnbuilder.BpmnBuilder()
     builder._bpmn = mock_bpmn
 
     with pytest.raises(Exception) as exc_info:

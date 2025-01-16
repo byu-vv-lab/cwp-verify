@@ -1,4 +1,4 @@
-from bpmncwpverify.core.bpmn import Bpmn, MessageFlow, Node, Process
+import bpmncwpverify.core.bpmn as bpmn
 from bpmncwpverify.visitors.bpmnchecks.bpmnvalidate import validate_bpmn
 from returns.result import Result, Success, Failure
 from bpmncwpverify.core.error import (
@@ -9,21 +9,21 @@ from bpmncwpverify.core.error import (
 
 class BpmnBuilder:
     def __init__(self) -> None:
-        self._bpmn = Bpmn()
+        self._bpmn = bpmn.Bpmn()
 
-    def build(self) -> Result[Bpmn, Error]:
+    def build(self) -> Result["bpmn.Bpmn", Error]:
         try:
             validate_bpmn(self._bpmn)
             return Success(self._bpmn)
         except Exception as e:
             return Failure(ExceptionError(str(e)))
 
-    def with_process(self, process: Process) -> "BpmnBuilder":
+    def with_process(self, process: "bpmn.Process") -> "BpmnBuilder":
         self._bpmn.processes[process.id] = process
         return self
 
     def with_message(
-        self, message: MessageFlow, source_ref: str, target_ref: str
+        self, message: "bpmn.MessageFlow", source_ref: str, target_ref: str
     ) -> "BpmnBuilder":
         self._bpmn.add_inter_process_msg(message)
         self._bpmn.store_element(message)
@@ -33,7 +33,7 @@ class BpmnBuilder:
             self._bpmn.get_element_from_id_mapping(target_ref),
         )
 
-        assert isinstance(from_node, Node) and isinstance(to_node, Node)
+        assert isinstance(from_node, bpmn.Node) and isinstance(to_node, bpmn.Node)
 
         message.target_node, message.source_node = to_node, from_node
         from_node.add_out_msg(message)
