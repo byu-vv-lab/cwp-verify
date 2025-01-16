@@ -1,17 +1,18 @@
 from typing import List
 from bpmncwpverify.core.state import State
-from bpmncwpverify.core.cwp import CwpVisitor, CwpState, CwpEdge, Cwp
+import bpmncwpverify.visitors.cwpvisitor as cwpvisitor
+import bpmncwpverify.core.cwp as cwp
 from bpmncwpverify.core import typechecking
 
 
-class CwpLtlVisitor(CwpVisitor):  # type: ignore
+class CwpLtlVisitor(cwpvisitor.CwpVisitor):  # type: ignore
     def __init__(self, symbol_table: State, print_on: bool = False) -> None:
         self.state_info: List[str] = []
         self.symbol_table = symbol_table
         self.output_str: List[str] = []
         self.print_on: bool = print_on
         self.property_list: List[str] = []
-        self.cwp: Cwp
+        self.cwp: cwp.Cwp
         self.debug: bool = False
         self.tab = 0
 
@@ -178,7 +179,7 @@ class CwpLtlVisitor(CwpVisitor):  # type: ignore
             )
         self.write_line("ltl fairPathExists {(always (! fair))}")
 
-    def write_state_properties(self, state: CwpState) -> None:
+    def write_state_properties(self, state: "cwp.CwpState") -> None:
         self.write_line(
             "//**********{} STATE PROPERTIES************//".format(state.name)
         )
@@ -188,7 +189,7 @@ class CwpLtlVisitor(CwpVisitor):  # type: ignore
         self.write_line("")
         self.write_line("")
 
-    def write_exists_property(self, state: CwpState) -> None:
+    def write_exists_property(self, state: "cwp.CwpState") -> None:
         self.property_list.append("{}Exists".format(state.name))
         self.write_line(
             "ltl {name}Exists {{(fair implies (always (! {name})))}}".format(
@@ -196,7 +197,7 @@ class CwpLtlVisitor(CwpVisitor):  # type: ignore
             )
         )
 
-    def write_mutex_property(self, state: CwpState) -> None:
+    def write_mutex_property(self, state: "cwp.CwpState") -> None:
         self.property_list.append("{}Mutex".format(state.name))
         self.write_line("ltl {}Mutex {{".format(state.name))
         self.tab += 1
@@ -261,7 +262,7 @@ class CwpLtlVisitor(CwpVisitor):  # type: ignore
             self.write_line("skip")
             self.write_line("skip")
 
-    def write_log_state(self, state: CwpState) -> None:
+    def write_log_state(self, state: "cwp.CwpState") -> None:
         self.write_line("if")
         self.write_line(":: ({}) -> ".format(state.name))
         self.tab += 1
@@ -275,7 +276,7 @@ class CwpLtlVisitor(CwpVisitor):  # type: ignore
         self.write_line(":: else -> skip")
         self.write_line("fi")
 
-    def write_log_edge(self, edge: CwpEdge) -> None:
+    def write_log_edge(self, edge: "cwp.CwpEdge") -> None:
         if self.print_on:
             self.write_line(
                 'printf("**EDGE {id}({parent_id}) = %d\\n", {name})'.format(
@@ -285,7 +286,7 @@ class CwpLtlVisitor(CwpVisitor):  # type: ignore
         else:
             self.write_line("skip")
 
-    def write_edges_property(self, state: CwpState) -> None:
+    def write_edges_property(self, state: "cwp.CwpState") -> None:
         self.property_list.append("{}Edges".format(state.name))
         outStates = [edge.dest for edge in state.out_edges]
         self.write_line("ltl {}Edges {{".format(state.name))
@@ -323,7 +324,7 @@ class CwpLtlVisitor(CwpVisitor):  # type: ignore
         self.output_str.append(line)
         self.output_str.append("\n")
 
-    def visit_cwp(self, model: Cwp) -> bool:
+    def visit_cwp(self, model: "cwp.Cwp") -> bool:
         self.cwp = model
         self.generate_all()
         return True
