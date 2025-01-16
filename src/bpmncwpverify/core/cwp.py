@@ -13,6 +13,7 @@ from bpmncwpverify.core.error import (
 import bpmncwpverify.builder.cwp_builder as cwp_builder
 import bpmncwpverify.visitors.cwp_graph_visitor as cwp_graph_visitor
 import bpmncwpverify.visitors.cwpvisitor as cwpvisitor
+import bpmncwpverify.visitors.cwp_ltl_visitor as clv
 
 
 class Cwp:
@@ -83,9 +84,7 @@ class Cwp:
         graph_viz_visitor.dot.render("graphs/cwp_graph.gv", format="png")  # type: ignore[unused-ignore]
 
     def generate_ltl(self, symbol_table: State) -> str:
-        from bpmncwpverify.visitors.cwp_ltl_visitor import CwpLtlVisitor
-
-        ltl_visitor = CwpLtlVisitor(symbol_table)
+        ltl_visitor = clv.CwpLtlVisitor(symbol_table)
 
         self.accept(ltl_visitor)
 
