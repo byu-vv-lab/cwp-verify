@@ -161,7 +161,7 @@ class ValidateBpmnOutgoingFlows(bpmnvisitor.BpmnVisitor):  # type: ignore
         return self._check_out_flows(gateway)
 
 
-class ValidateStartEventFlows:
+class ValidateStartEventFlows(bpmnvisitor.BpmnVisitor):  # type: ignore
     def visit_start_event(self, event: "bpmn.StartEvent") -> bool:
         if event.in_flows:
             raise Exception(BpmnFlowStartEventError(event.id))

@@ -8,13 +8,14 @@ from bpmncwpverify.core.bpmn import (
     MessageFlow,
     ParallelGatewayNode,
     ExclusiveGatewayNode,
-    BpmnVisitor,
     Process,
     Bpmn,
     BpmnElement,
     Node,
     Flow,
 )
+
+from bpmncwpverify.visitors.bpmnvisitor import BpmnVisitor
 
 ##############
 # Constants
