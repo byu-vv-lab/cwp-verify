@@ -1,7 +1,8 @@
 # type: ignore
 from xml.etree.ElementTree import Element, SubElement, tostring
 from defusedxml import ElementTree
-from bpmncwpverify.core.bpmn import Bpmn, BPMN_XML_NAMESPACE
+from bpmncwpverify.core.bpmn import BPMN_XML_NAMESPACE
+from bpmncwpverify.core.bpmnmethods import from_xml
 from bpmncwpverify.core.state import StateBuilder
 from bpmncwpverify.core.error import BpmnMissingEventsError
 from returns.result import Failure, Success
@@ -52,7 +53,7 @@ def test_complete_bpmn_with_no_start_or_end_event():
 
     bpmn = tostring(root, encoding="unicode")
     parsed_root = ElementTree.fromstring(bpmn)
-    result = Bpmn.from_xml(parsed_root, symbol_table)
+    result = from_xml(parsed_root, symbol_table)
 
     assert isinstance(result, Failure)
     exception = result.failure()
@@ -77,7 +78,7 @@ def test_complete_bpmn_with_no_end_event():
 
     bpmn = tostring(root, encoding="unicode")
     parsed_root = ElementTree.fromstring(bpmn)
-    result = Bpmn.from_xml(parsed_root, symbol_table)
+    result = from_xml(parsed_root, symbol_table)
 
     assert isinstance(result, Failure)
     exception = result.failure()
@@ -102,6 +103,6 @@ def test_complete_bpmn_with_good_process():
 
     bpmn = tostring(root, encoding="unicode")
     parsed_root = ElementTree.fromstring(bpmn)
-    result = Bpmn.from_xml(parsed_root, symbol_table)
+    result = from_xml(parsed_root, symbol_table)
 
     assert isinstance(result, Success)

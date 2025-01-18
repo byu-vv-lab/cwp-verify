@@ -13,6 +13,7 @@ from bpmncwpverify.core.error import Error, ExceptionError
 from bpmncwpverify.core.state import State
 from bpmncwpverify.core.cwp import Cwp
 from bpmncwpverify.core.bpmn import Bpmn
+from bpmncwpverify.core.bpmnmethods import from_xml
 
 
 class Builder:
@@ -38,7 +39,7 @@ class Builder:
     @staticmethod
     def _build_bpmn(builder: "Builder") -> Result["Builder", Error]:
         assert is_successful(builder.symbol_table) and is_successful(builder.bpmn_root)
-        builder.bpmn = Bpmn.from_xml(
+        builder.bpmn = from_xml(
             builder.bpmn_root.unwrap(), builder.symbol_table.unwrap()
         )
         if not_(is_successful)(builder.bpmn):
