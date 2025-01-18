@@ -1,4 +1,3 @@
-from __future__ import annotations
 from typing import Union
 from xml.etree.ElementTree import Element
 from bpmncwpverify.core.bpmn import (

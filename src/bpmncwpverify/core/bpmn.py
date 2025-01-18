@@ -1,12 +1,8 @@
-from __future__ import annotations
-from typing import List, Dict, Union, cast
+from typing import List, Dict, Union
 from xml.etree.ElementTree import Element
-from bpmncwpverify.core.state import State
-from returns.result import Result
 from abc import abstractmethod
 from bpmncwpverify.core.error import (
     BpmnStructureError,
-    Error,
 )
 
 BPMN_XML_NAMESPACE = {"bpmn": "http://www.omg.org/spec/BPMN/20100524/MODEL"}
@@ -268,33 +264,6 @@ class Process(BpmnElement):
 
     def get_start_states(self) -> Dict[str, StartEvent]:
         return self._start_states
-
-    @staticmethod
-    def from_xml(
-        element: Element,
-        symbol_table: State,
-    ) -> Result["Process", Error]:
-        from bpmncwpverify.builder.process_builder import ProcessBuilder
-
-        builder = ProcessBuilder(element, symbol_table)
-
-        for sub_element in element:
-            tag = sub_element.tag.partition("}")[2]
-
-            result = get_element_type(tag)
-
-            class_object = result.from_xml(sub_element)
-            builder = builder.with_element(class_object)
-
-        for seq_flow in element.findall("bpmn:sequenceFlow", BPMN_XML_NAMESPACE):
-            builder = builder.with_process_flow(
-                seq_flow.attrib["id"],
-                seq_flow.attrib["sourceRef"],
-                seq_flow.attrib["targetRef"],
-                seq_flow.attrib.get("name", ""),
-            )
-
-        return cast(Result[Process, Error], builder.build())
 
     def accept(self, visitor: "BpmnVisitor") -> None:
         visitor.visit_process(self)

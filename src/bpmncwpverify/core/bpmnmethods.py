@@ -10,10 +10,10 @@ from bpmncwpverify.core.error import (
 from bpmncwpverify.core.bpmn import (
     Bpmn,
     BPMN_XML_NAMESPACE,
-    Process,
     MessageFlow,
 )
 from bpmncwpverify.builder.bpmn_builder import BpmnBuilder
+from bpmncwpverify.core.processmethods import from_xml as process_from_xml
 
 
 def from_xml(root: Element, symbol_table: State) -> Result["Bpmn", Error]:
@@ -23,7 +23,7 @@ def from_xml(root: Element, symbol_table: State) -> Result["Bpmn", Error]:
     processes = root.findall("bpmn:process", BPMN_XML_NAMESPACE)
     bpmn_builder = BpmnBuilder()
     for process_element in processes:
-        process = Process.from_xml(process_element, symbol_table)
+        process = process_from_xml(process_element, symbol_table)
         if not_(is_successful)(process):
             return cast(Result[Bpmn, Error], process)
         bpmn_builder = bpmn_builder.with_process(process.unwrap())
