@@ -13,6 +13,7 @@ import pytest
 from xml.etree.ElementTree import Element, SubElement
 from returns.pipeline import is_successful
 from returns.functions import not_
+from bpmncwpverify.core.cwpmethods import from_xml
 
 
 @pytest.fixture
@@ -66,7 +67,7 @@ def test_from_xml_success(mocker):
 
     SubElement(mx_root, "mxCell", style="edgeLabel", value="x > 0", parent="state1")
 
-    result = Cwp.from_xml(root, mocker.Mock())
+    result = from_xml(root, mocker.Mock())
 
     assert isinstance(result, Success)
     mock_builder.return_value.with_state.assert_called()

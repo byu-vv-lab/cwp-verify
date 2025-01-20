@@ -1,15 +1,6 @@
 from typing import Dict, List, Optional
 from xml.etree.ElementTree import Element
 import re
-from bpmncwpverify.core.expr import ExpressionListener
-from bpmncwpverify.core.state import State
-from returns.result import Result, Failure
-from bpmncwpverify.core.error import (
-    CwpEdgeNoParentExprError,
-    CwpEdgeNoStateError,
-    CwpFileStructureError,
-    Error,
-)
 
 
 class Cwp:
@@ -19,80 +10,11 @@ class Cwp:
         self.start_state: CwpState
         self.end_states: List[CwpState] = []
 
-    @staticmethod
-    def from_xml(root: Element, symbol_table: State) -> Result["Cwp", Error]:
-        from bpmncwpverify.builder.cwp_builder import CwpBuilder
-
-        builder = CwpBuilder()
-
-        if (diagram := root.find("diagram")) is None:
-            return Failure(CwpFileStructureError("diagram"))
-        if (mx_graph_model := diagram.find("mxGraphModel")) is None:
-            return Failure(CwpFileStructureError("mxGraphModel"))
-        if (mx_root := mx_graph_model.find("root")) is None:
-            return Failure(CwpFileStructureError("root"))
-        if not (mx_cells := mx_root.findall("mxCell")):
-            return Failure(CwpFileStructureError("mxCell"))
-
-        all_items: List[Element] = [itm for itm in mx_cells]
-        edges: List[Element] = [itm for itm in mx_cells if itm.get("edge")]
-        states: List[Element] = [itm for itm in mx_cells if itm.get("vertex")]
-        expression_checker = ExpressionListener(symbol_table)
-
-        for element in states:
-            style = element.get("style")
-            if style and "edgeLabel" not in style:
-                state = CwpState.from_xml(element)
-                builder = builder.with_state(state)
-
-        for element in edges:
-            source_ref = element.get("source")
-            target_ref = element.get("target")
-            if not target_ref or not source_ref:
-                raise Exception(CwpEdgeNoStateError(element))
-            edge = CwpEdge.from_xml(element, builder.gen_edge_name())
-
-            builder = builder.with_edge(edge, source_ref, target_ref)
-
-        for itm in all_items:
-            style = itm.get("style")
-            if style and "edgeLabel" in style:
-                parent = itm.get("parent")
-                expression = itm.get("value")
-                if not (parent and expression):
-                    raise Exception(CwpEdgeNoParentExprError(itm))
-                builder.check_expression(
-                    expression_checker, expression, parent, symbol_table
-                )
-
-        result: Result["Cwp", Error] = builder.build()
-        return result
-
     def accept(self, visitor: "CwpVisitor") -> None:
         result = visitor.visit_cwp(self)
         if result:
             self.start_state.accept(visitor)
         visitor.end_visit_cwp(self)
-
-    def generate_graph_viz(self) -> None:
-        from bpmncwpverify.visitors.cwp_graph_visitor import CwpGraphVizVisitor
-
-        graph_viz_visitor = CwpGraphVizVisitor()
-
-        self.accept(graph_viz_visitor)
-
-        graph_viz_visitor.dot.render("graphs/cwp_graph.gv", format="png")  # type: ignore[unused-ignore]
-
-    def generate_ltl(self, symbol_table: State) -> str:
-        from bpmncwpverify.visitors.cwp_ltl_visitor import CwpLtlVisitor
-
-        ltl_visitor = CwpLtlVisitor(symbol_table)
-
-        self.accept(ltl_visitor)
-
-        output_str = ltl_visitor.output_str
-
-        return "".join(output_str)
 
 
 class CwpState:

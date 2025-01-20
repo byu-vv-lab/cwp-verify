@@ -13,7 +13,8 @@ from bpmncwpverify.core.error import Error, ExceptionError
 from bpmncwpverify.core.state import State
 from bpmncwpverify.core.cwp import Cwp
 from bpmncwpverify.core.bpmn import Bpmn
-from bpmncwpverify.core.bpmnmethods import from_xml, generate_promela
+from bpmncwpverify.core.bpmnmethods import from_xml as bpmn_from_xml, generate_promela
+from bpmncwpverify.core.cwpmethods import from_xml as cwp_from_xml, generate_ltl
 
 
 class Builder:
@@ -39,7 +40,7 @@ class Builder:
     @staticmethod
     def _build_bpmn(builder: "Builder") -> Result["Builder", Error]:
         assert is_successful(builder.symbol_table) and is_successful(builder.bpmn_root)
-        builder.bpmn = from_xml(
+        builder.bpmn = bpmn_from_xml(
             builder.bpmn_root.unwrap(), builder.symbol_table.unwrap()
         )
         if not_(is_successful)(builder.bpmn):
@@ -51,7 +52,7 @@ class Builder:
     def _build_cwp(builder: "Builder") -> Result["Builder", Error]:
         assert is_successful(builder.symbol_table)
         assert is_successful(builder.cwp_root)
-        builder.cwp = Cwp.from_xml(
+        builder.cwp = cwp_from_xml(
             builder.cwp_root.unwrap(), builder.symbol_table.unwrap()
         )
         if not_(is_successful)(builder.cwp):
@@ -77,7 +78,7 @@ class Builder:
         assert is_successful(builder.bpmn_root)
         assert is_successful(builder.behavior_str)
 
-        ltl = (builder.cwp).unwrap().generate_ltl((builder.symbol_table).unwrap())
+        ltl = generate_ltl((builder.cwp).unwrap(), (builder.symbol_table).unwrap())
         behavior = (builder.behavior_str).unwrap()
         workflow = generate_promela((builder.bpmn).unwrap())
 
