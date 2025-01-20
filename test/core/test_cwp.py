@@ -1,7 +1,6 @@
 # type: ignore
 from xml.etree.ElementTree import Element, SubElement
 
-from bpmncwpverify.core.cwp import Cwp
 from bpmncwpverify.core.error import (
     CwpMultStartStateError,
     CwpNoEndStatesError,
@@ -11,6 +10,7 @@ from bpmncwpverify.core.error import (
 from returns.functions import not_
 from bpmncwpverify.core.state import State
 from returns.pipeline import is_successful
+from bpmncwpverify.core.cwpmethods import from_xml
 
 
 def get_root_mx_root():
@@ -36,7 +36,7 @@ def add_mx_cell(mx_root, **attributes):
 
 
 def setup_cwp_and_assert(xml_root, symbol_table, success=True, failure_message=Error):
-    cwp = Cwp.from_xml(xml_root, symbol_table)
+    cwp = from_xml(xml_root, symbol_table)
     if success:
         assert is_successful(cwp)
         return cwp.unwrap()
