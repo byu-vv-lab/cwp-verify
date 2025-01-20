@@ -321,16 +321,6 @@ class Bpmn:
             process.accept(visitor)
         visitor.end_visit_bpmn(self)
 
-    def generate_graph_viz(self) -> None:
-        from bpmncwpverify.visitors.bpmn_graph_visitor import GraphVizVisitor
-
-        for process in range(len(self.processes)):
-            graph_viz_visitor = GraphVizVisitor(process + 1)
-
-            self.accept(graph_viz_visitor)
-
-            graph_viz_visitor.dot.render("graphs/bpmn_graph.gv", format="png")  # type: ignore[unused-ignore]
-
 
 ###################
 # Bpmn Visitor interface

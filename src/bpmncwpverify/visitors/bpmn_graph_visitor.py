@@ -4,7 +4,6 @@ from bpmncwpverify.core.bpmn import (
     EndEvent,
     IntermediateEvent,
     Task,
-    SubProcess,
     SequenceFlow,
     MessageFlow,
     ParallelGatewayNode,
@@ -40,10 +39,6 @@ class GraphVizVisitor(BpmnVisitor):  # type: ignore[misc]
 
     def visit_task(self, task: Task) -> bool:
         dot_node(self.dot, task.id, task.name)
-        return True
-
-    def visit_sub_process(self, subprocess: SubProcess) -> bool:
-        dot_node(self.dot, subprocess.id, subprocess.name)
         return True
 
     def visit_exclusive_gateway(self, gateway: ExclusiveGatewayNode) -> bool:

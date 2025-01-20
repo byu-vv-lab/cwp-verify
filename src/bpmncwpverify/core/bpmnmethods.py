@@ -15,6 +15,7 @@ from bpmncwpverify.core.bpmn import (
 from bpmncwpverify.builder.bpmn_builder import BpmnBuilder
 from bpmncwpverify.core.processmethods import from_xml as process_from_xml
 from bpmncwpverify.visitors.bpmn_promela_visitor import PromelaGenVisitor
+from bpmncwpverify.visitors.bpmn_graph_visitor import GraphVizVisitor
 
 
 def generate_promela(bpmn: Bpmn) -> str:
@@ -57,3 +58,12 @@ def from_xml(root: Element, symbol_table: State) -> Result["Bpmn", Error]:
             bpmn_builder = bpmn_builder.with_message(message, source_ref, target_ref)
 
     return cast(Result[Bpmn, Error], bpmn_builder.build())
+
+
+def generate_graph_viz(bpmn: Bpmn) -> None:
+    for process in range(len(bpmn.processes)):
+        graph_viz_visitor = GraphVizVisitor(process + 1)
+
+        bpmn.accept(graph_viz_visitor)
+
+        graph_viz_visitor.dot.render("graphs/bpmn_graph.gv", format="png")  # type: ignore[unused-ignore]
