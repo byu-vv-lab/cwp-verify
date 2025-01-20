@@ -10,7 +10,7 @@ from bpmncwpverify.core.error import (
 from returns.functions import not_
 from bpmncwpverify.core.state import State
 from returns.pipeline import is_successful
-from bpmncwpverify.core.cwpmethods import from_xml
+from bpmncwpverify.core.accessmethods.cwpmethods import from_xml
 
 
 def get_root_mx_root():

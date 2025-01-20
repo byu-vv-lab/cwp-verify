@@ -13,7 +13,7 @@ import pytest
 from xml.etree.ElementTree import Element, SubElement
 from returns.pipeline import is_successful
 from returns.functions import not_
-from bpmncwpverify.core.cwpmethods import from_xml
+from bpmncwpverify.core.accessmethods.cwpmethods import from_xml
 
 
 @pytest.fixture
@@ -44,7 +44,9 @@ def test_gen_edge_name(builder):
 
 
 def test_from_xml_success(mocker):
-    mock_builder = mocker.patch("bpmncwpverify.core.cwpmethods.CwpBuilder")
+    mock_builder = mocker.patch(
+        "bpmncwpverify.core.accessmethods.cwpmethods.CwpBuilder"
+    )
     mock_result = mocker.Mock(spec=Success)
     mock_builder.return_value.with_state.return_value = mock_builder.return_value
     mock_builder.return_value.with_edge.return_value = mock_builder.return_value

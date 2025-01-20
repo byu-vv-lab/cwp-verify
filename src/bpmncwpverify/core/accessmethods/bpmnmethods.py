@@ -13,7 +13,7 @@ from bpmncwpverify.core.bpmn import (
     MessageFlow,
 )
 from bpmncwpverify.builder.bpmn_builder import BpmnBuilder
-from bpmncwpverify.core.processmethods import from_xml as process_from_xml
+from bpmncwpverify.core.accessmethods.processmethods import from_xml as process_from_xml
 from bpmncwpverify.visitors.bpmn_promela_visitor import PromelaGenVisitor
 from bpmncwpverify.visitors.bpmn_graph_visitor import GraphVizVisitor
 

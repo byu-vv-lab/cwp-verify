@@ -13,8 +13,14 @@ from bpmncwpverify.core.error import Error, ExceptionError
 from bpmncwpverify.core.state import State
 from bpmncwpverify.core.cwp import Cwp
 from bpmncwpverify.core.bpmn import Bpmn
-from bpmncwpverify.core.bpmnmethods import from_xml as bpmn_from_xml, generate_promela
-from bpmncwpverify.core.cwpmethods import from_xml as cwp_from_xml, generate_ltl
+from bpmncwpverify.core.accessmethods.bpmnmethods import (
+    from_xml as bpmn_from_xml,
+    generate_promela,
+)
+from bpmncwpverify.core.accessmethods.cwpmethods import (
+    from_xml as cwp_from_xml,
+    generate_ltl,
+)
 
 
 class Builder:

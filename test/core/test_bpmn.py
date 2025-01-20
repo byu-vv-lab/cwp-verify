@@ -2,7 +2,7 @@
 from xml.etree.ElementTree import Element, SubElement, tostring
 from defusedxml import ElementTree
 from bpmncwpverify.core.bpmn import BPMN_XML_NAMESPACE
-from bpmncwpverify.core.bpmnmethods import from_xml
+from bpmncwpverify.core.accessmethods.bpmnmethods import from_xml
 from bpmncwpverify.core.state import StateBuilder
 from bpmncwpverify.core.error import BpmnMissingEventsError
 from returns.result import Failure, Success
