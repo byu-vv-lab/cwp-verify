@@ -13,7 +13,7 @@ from bpmncwpverify.core.error import Error, ExceptionError
 from bpmncwpverify.core.state import State
 from bpmncwpverify.core.cwp import Cwp
 from bpmncwpverify.core.bpmn import Bpmn
-from bpmncwpverify.core.bpmnmethods import from_xml
+from bpmncwpverify.core.bpmnmethods import from_xml, generate_promela
 
 
 class Builder:
@@ -79,7 +79,7 @@ class Builder:
 
         ltl = (builder.cwp).unwrap().generate_ltl((builder.symbol_table).unwrap())
         behavior = (builder.behavior_str).unwrap()
-        workflow = (builder.bpmn).unwrap().generate_promela()
+        workflow = generate_promela((builder.bpmn).unwrap())
 
         outputs.promela = f"{ltl}{behavior}{workflow}"
         return Success(outputs)

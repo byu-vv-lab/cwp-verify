@@ -331,15 +331,6 @@ class Bpmn:
 
             graph_viz_visitor.dot.render("graphs/bpmn_graph.gv", format="png")  # type: ignore[unused-ignore]
 
-    def generate_promela(self) -> str:
-        from bpmncwpverify.visitors.bpmn_promela_visitor import PromelaGenVisitor
-
-        promela_visitor = PromelaGenVisitor()
-
-        self.accept(promela_visitor)
-
-        return str(promela_visitor)
-
 
 ###################
 # Bpmn Visitor interface

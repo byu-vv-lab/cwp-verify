@@ -14,6 +14,15 @@ from bpmncwpverify.core.bpmn import (
 )
 from bpmncwpverify.builder.bpmn_builder import BpmnBuilder
 from bpmncwpverify.core.processmethods import from_xml as process_from_xml
+from bpmncwpverify.visitors.bpmn_promela_visitor import PromelaGenVisitor
+
+
+def generate_promela(bpmn: Bpmn) -> str:
+    promela_visitor = PromelaGenVisitor()
+
+    bpmn.accept(promela_visitor)
+
+    return str(promela_visitor)
 
 
 def from_xml(root: Element, symbol_table: State) -> Result["Bpmn", Error]:
